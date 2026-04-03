@@ -1,0 +1,17 @@
+# Firecracker binaries and large files
+firecracker
+rootfs.ext4
+vmlinux
+ubuntu-24.04.squashfs
+release-v1.15.0-x86_64/
+
+# Runtime sockets and logs
+firecracker.socket
+vsock.sock
+firecracker.log
+boot.log
+
+# Python
+__pycache__/
+*.pyc
+venv/
