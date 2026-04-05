@@ -15,3 +15,4 @@ boot.log
 __pycache__/
 *.pyc
 venv/
+.claude/
