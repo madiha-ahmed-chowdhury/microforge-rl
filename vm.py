@@ -32,6 +32,7 @@ class VMState:
     vsock_sock: str          # Unix socket path for vsock proxy
     api_sock: str            # Firecracker API socket path
     tmp_dir: str             # Temp dir holding per-VM config + sockets
+    cgroup_path: Optional[Path] = None  # dedicated cgroup for this VM
     last_execution: Optional[dict] = None
     created_at: float = dataclasses.field(default_factory=time.monotonic)
 
@@ -75,17 +76,19 @@ def start_vm(vm_id: str) -> VMState:
         stderr=subprocess.DEVNULL,
         stdin=subprocess.DEVNULL,
     )
+    cgroup_path = _setup_vm_cgroup(vm_id, proc.pid)
     return VMState(vm_id=vm_id, proc=proc, vsock_sock=vsock_sock,
-                   api_sock=api_sock, tmp_dir=tmp_dir)
+                   api_sock=api_sock, tmp_dir=tmp_dir, cgroup_path=cgroup_path)
 
 
 def stop_vm(vm: VMState) -> None:
-    """Terminate the VM process and clean up its temp directory."""
+    """Terminate the VM process and clean up its temp directory and cgroup."""
     vm.proc.terminate()
     try:
         vm.proc.wait(timeout=10)
     except subprocess.TimeoutExpired:
         vm.proc.kill()
+    _teardown_vm_cgroup(vm.cgroup_path)
     shutil.rmtree(vm.tmp_dir, ignore_errors=True)
 
 
@@ -151,23 +154,77 @@ def send_code(vm: VMState, code: str, timeout_ms: int) -> dict:
 
 # ── Resource control ──────────────────────────────────────────────────────────
 
+def _setup_vm_cgroup(vm_id: str, pid: int) -> Optional[Path]:
+    """
+    Create a dedicated cgroup for the VM and move the process into it.
+    Returns the cgroup path, or None if setup failed (cgroups won't be enforced).
+
+    The VM inherits whatever cgroup the server runs in (e.g. a Chromium VS Code
+    scope). We can't write cpu.max/memory.max there. Instead we create our own
+    leaf cgroup under the user's delegated slice and move the VM process there.
+    """
+    uid = os.getuid()
+    user_service = Path(f"/sys/fs/cgroup/user.slice/user-{uid}.slice/user@{uid}.service")
+    if not user_service.exists():
+        print(f"[vm] WARNING: user service cgroup not found at {user_service}, resource limits disabled")
+        return None
+
+    fc_root  = user_service / "firecracker.slice"
+    vm_cg    = fc_root / f"fc-{vm_id}"
+
+    try:
+        fc_root.mkdir(exist_ok=True)
+        vm_cg.mkdir(exist_ok=True)
+    except PermissionError as e:
+        print(f"[vm] WARNING: cannot create cgroup dirs: {e}, resource limits disabled")
+        return None
+
+    # Enable cpu + memory controllers at each level (ignore if already set)
+    for ctrl_file in (user_service / "cgroup.subtree_control",
+                      fc_root / "cgroup.subtree_control"):
+        try:
+            ctrl_file.write_text("+cpu +memory\n")
+        except (PermissionError, OSError):
+            pass  # may already be enabled or parent doesn't support it
+
+    # Move the VM process into the leaf cgroup
+    try:
+        (vm_cg / "cgroup.procs").write_text(str(pid))
+    except PermissionError as e:
+        print(f"[vm] WARNING: cannot move pid {pid} into cgroup: {e}, resource limits disabled")
+        try:
+            vm_cg.rmdir()
+        except OSError:
+            pass
+        return None
+
+    return vm_cg
+
+
+def _teardown_vm_cgroup(cgroup_path: Optional[Path]) -> None:
+    """Remove the VM's cgroup directory after the process has exited."""
+    if cgroup_path is None:
+        return
+    try:
+        cgroup_path.rmdir()
+    except OSError:
+        pass
+    try:
+        cgroup_path.parent.rmdir()  # fc root — only succeeds when empty
+    except OSError:
+        pass
+
+
 def apply_cgroups(vm: VMState, cpu_millicores: int, memory_limit_mb: int) -> None:
     """
-    Apply CPU and memory limits to a running VM via cgroups v2.
-    Used in the inference phase to enforce the trained policy's action.
-    May require root or cgroup delegation.
+    Apply CPU and memory limits to the VM's dedicated cgroup (cgroups v2).
+    No-ops gracefully if no cgroup was set up (logs a warning instead of crashing).
     """
-    cgroup_path = None
-    with open(f"/proc/{vm.proc.pid}/cgroup") as f:
-        for line in f:
-            parts = line.strip().split(":", 2)
-            if parts[0] == "0":
-                cgroup_path = parts[2]
-                break
-    if not cgroup_path:
-        raise RuntimeError(f"Could not find cgroups v2 path for pid {vm.proc.pid}")
+    base = vm.cgroup_path
+    if base is None:
+        print(f"[vm] WARNING: no cgroup for VM {vm.vm_id}, skipping resource limits")
+        return
 
-    base      = Path("/sys/fs/cgroup") / cgroup_path.lstrip("/")
     period_us = 100_000
     quota_us  = int(cpu_millicores / 1000 * period_us)
     (base / "cpu.max").write_text(f"{quota_us} {period_us}\n")

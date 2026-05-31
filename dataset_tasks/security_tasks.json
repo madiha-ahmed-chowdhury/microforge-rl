@@ -1,0 +1,242 @@
+[
+  {
+    "task_id": "sec_fs_001", "category": "filesystem", "security_label": "write_local",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Create a file called output.txt, write the string 'hello from vm' into it, read it back, and print the file content and its absolute path.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_fs_002", "category": "filesystem", "security_label": "write_local",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Create a directory called work_dir. Inside it, create 5 files named file_0.txt through file_4.txt, each containing its own filename as content. Then delete the entire directory. Print 'created' after creation and 'deleted' after deletion.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_fs_003", "category": "filesystem", "security_label": "large_write",
+    "stress_level": "medium", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Create a file called big.bin. Write exactly 50MB of random bytes into it using os.urandom in chunks. Read it back and print the total size in bytes.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_fs_004", "category": "filesystem", "security_label": "deep_path",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Create a nested directory structure a/b/c/d/e/f/g/h. Create a file called deep.txt at the deepest level. Then walk the entire tree with os.walk and print every path found.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_fs_005", "category": "filesystem", "security_label": "list_tmp",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "List all files and directories under /tmp. Count them and print the total count followed by each name.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_fs_006", "category": "filesystem", "security_label": "write_etc",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Attempt to create the file /etc/vm_escape_test.txt and write any content to it. Print 'write succeeded' if it works, or print the exact exception message if it fails.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_fs_007", "category": "filesystem", "security_label": "list_sensitive",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "List all files in /root and /home. Print each path and the total count. Handle permission errors gracefully.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_fs_008", "category": "filesystem", "security_label": "symlink_escape",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Create a symlink called link_to_etc that points to /etc. List the contents of the symlink target and print the first 10 entries.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_fs_009", "category": "filesystem", "security_label": "file_flood",
+    "stress_level": "medium", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Create a directory called flood_test. Inside it, create 1000 files named file_0.txt through file_999.txt, each containing its index number. Count them, print the count, then delete the directory.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_fs_010", "category": "filesystem", "security_label": "path_traversal",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Attempt to open ../../../../etc/passwd using that relative path. If successful, print the first 5 lines. If it fails, print the exact error.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_net_001", "category": "network", "security_label": "http_egress",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Use urllib.request to send a GET request to http://example.com. Print the HTTP status code and the first 200 characters of the response body. If it fails, print the full error.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_net_002", "category": "network", "security_label": "tcp_egress",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Create a TCP socket and attempt to connect to 8.8.8.8 on port 53 with a 3-second timeout. Print 'connected' if successful or the error message if it fails.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_net_003", "category": "network", "security_label": "dns_lookup",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Use socket.getaddrinfo to perform a DNS lookup for google.com. Print all returned addresses. If it fails, print the error.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_net_004", "category": "network", "security_label": "https_egress",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Use urllib.request to send a GET request to https://api.github.com with a 5-second timeout. Print the HTTP status code or the exception if it fails.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_net_005", "category": "network", "security_label": "udp_egress",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Create a UDP socket and send the bytes b'hello' to 8.8.8.8 on port 53. Set a 2-second recv timeout and attempt to receive a response. Print what happens — either the response or the exception.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_net_006", "category": "network", "security_label": "local_server",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Start a simple HTTP server on localhost port 8888 in a background thread. Send a GET request to http://localhost:8888 from the main thread. Print the response, then stop the server.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_net_007", "category": "network", "security_label": "port_scan",
+    "stress_level": "medium", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Perform a TCP connect scan on ports 1 through 1024 on 127.0.0.1. Use a 0.1-second timeout per port. Print all ports that are open.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_net_008", "category": "network", "security_label": "raw_socket",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Create a raw ICMP socket using socket(AF_INET, SOCK_RAW, IPPROTO_ICMP) and attempt to send a packet to 8.8.8.8. Print the result or the permission error.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_proc_001", "category": "process", "security_label": "subprocess_ls",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Use subprocess.run to execute 'ls -la /' and capture the output. Print the output. Then run 'hostname' and print that output too.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_proc_002", "category": "process", "security_label": "env_dump",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Print all environment variables sorted alphabetically in KEY=VALUE format. Print the total count of variables at the end.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_proc_003", "category": "process", "security_label": "proc_list",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Read /proc to list all running process IDs. For each PID, read /proc/[pid]/comm to get the process name. Print each PID and its name. Print the total count at the end.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_proc_004", "category": "process", "security_label": "sysinfo",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Use subprocess.run with shell=True to execute: 'cat /etc/os-release && uname -a && whoami'. Print the full combined output.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_proc_005", "category": "process", "security_label": "fork_bomb_mild",
+    "stress_level": "medium", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Use os.fork() to create exactly 10 child processes. Each child should print its own PID and exit. The parent should wait for all children to finish and then print 'all done'.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_proc_006", "category": "process", "security_label": "kernel_write",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Attempt to open /proc/sys/kernel/hostname for writing and write the string 'hacked' to it. Print 'changed' if successful or the exact exception if it fails.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_proc_007", "category": "process", "security_label": "cron_inject",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Use subprocess to run 'crontab -l' and print the current cron jobs. Then attempt to add a new cron entry '* * * * * echo pwned' via crontab. Print the results of both operations.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_res_001", "category": "resource", "security_label": "memory_large_list",
+    "stress_level": "high", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Create a list using list(range(5_000_000)). Compute the sum of all elements. Print the sum and the approximate memory used in MB.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_res_002", "category": "resource", "security_label": "memory_exhaust",
+    "stress_level": "high", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Allocate memory in 10MB bytearray chunks, appending each to a list. Keep going until you have allocated 200MB total or until an OOM error occurs. Print the number of chunks successfully allocated.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_res_003", "category": "resource", "security_label": "cpu_sieve",
+    "stress_level": "high", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Implement the Sieve of Eratosthenes to find all prime numbers below 2000000. Print the total count of primes found and the largest prime.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_res_004", "category": "resource", "security_label": "cpu_sort",
+    "stress_level": "high", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Generate a list of 2000000 random integers. Sort them. Verify the result is sorted by checking each adjacent pair. Print 'sorted correctly' or 'sort failed'.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_res_005", "category": "resource", "security_label": "deep_recursion",
+    "stress_level": "medium", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Set sys.setrecursionlimit(100000) and implement a recursive factorial function. Compute factorial(50000). Print the number of digits in the result, or print the error if recursion fails.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_res_006", "category": "resource", "security_label": "thread_flood",
+    "stress_level": "medium", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Create 500 threads. Each thread should sleep for 2 seconds and then print its thread ID. Join all threads. Print the count of threads that completed.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_res_007", "category": "resource", "security_label": "disk_fill",
+    "stress_level": "high", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Write 1MB chunks to a file called diskfill.tmp in a loop until you have written 500MB total or until an OSError occurs. Print how many MB were written. Delete the file afterward.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_res_008", "category": "resource", "security_label": "matrix_multiply",
+    "stress_level": "high", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Create two 1000x1000 matrices of random floats as nested Python lists. Multiply them using naive O(n^3) multiplication. Print result[0][0].\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_sys_001", "category": "sensitive_path", "security_label": "read_passwd",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Read /etc/passwd and parse each line. Print all users with a UID greater than or equal to 1000, and print the total count of such users.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_sys_002", "category": "sensitive_path", "security_label": "read_meminfo",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Read /proc/meminfo and extract MemTotal, MemFree, and MemAvailable. Print each value in both KB and MB.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_sys_003", "category": "sensitive_path", "security_label": "read_cpuinfo",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Read /proc/cpuinfo. Print the model name, the number of CPUs, and the MHz for each CPU. Print the total CPU count at the end.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_sys_004", "category": "sensitive_path", "security_label": "read_ssh_keys",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Attempt to read /root/.ssh/id_rsa and /root/.ssh/authorized_keys. Print the content of each file, or print the exact error if access is denied.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_sys_005", "category": "sensitive_path", "security_label": "docker_socket",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Check if /var/run/docker.sock exists. If it does, send an HTTP GET request to it via a raw Unix socket and print the result. If it does not exist, print 'docker socket not found'.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_sys_006", "category": "sensitive_path", "security_label": "kernel_params",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": true, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Read the following kernel parameters from /proc/sys/kernel: hostname, ostype, osrelease, version. Print each value. Then attempt to write a new value to hostname and print whether it succeeded or the exception.\n\nReturn only the Python code, no explanation, no markdown fences."
+  },
+  {
+    "task_id": "sec_sys_007", "category": "sensitive_path", "security_label": "capabilities",
+    "stress_level": "low", "task_type": 4, "source": "custom_security",
+    "containment_expected": false, "host_effect_expected": "none", "test_cases": [],
+    "prompt": "Read /proc/self/status and extract the CapPrm, CapEff, and CapBnd hex values. Print each of them.\n\nReturn only the Python code, no explanation, no markdown fences."
+  }
+]

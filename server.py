@@ -33,9 +33,10 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from actions import (
-    ACTION_CONFIGS, OUTPUT_CODE_PAIRS, OUTPUT_TRANSITIONS,
-    dataset_size, load_all, load_one, process_instance,
+    ACTION_CONFIGS,
+    dataset_size, get_output_paths, load_all, load_one, process_instance,
 )
+from collecting_dataset import _generate_stress_input
 from vm import VMState, apply_cgroups, send_code, start_vm, stop_vm, wait_for_agent  # used by /vm/* inference endpoints
 
 # ── Collection mode ───────────────────────────────────────────────────────────
@@ -117,6 +118,8 @@ def _run_all(dataset: str, n: Optional[int], offset: int):
         for i, instance in enumerate(instances):
             print(f"[server/run-all] {i+1}/{len(instances)} | {instance['task_id']}")
             try:
+                if instance.get("test_case_generator"):
+                    _generate_stress_input(instance)
                 result = process_instance(instance, fresh_vm_per_action=FRESH_VM_PER_ACTION)
             except Exception as e:
                 print(f"[server/run-all] error on {instance['task_id']}: {e} — skipping")
@@ -124,10 +127,11 @@ def _run_all(dataset: str, n: Optional[int], offset: int):
                     _collect.done += 1
                 continue
 
-            with open(OUTPUT_TRANSITIONS, "a") as f:
+            trans_path, pairs_path = get_output_paths(dataset)
+            with open(trans_path, "a") as f:
                 for t in result["transitions"]:
                     f.write(json.dumps(t) + "\n")
-            with open(OUTPUT_CODE_PAIRS, "a") as f:
+            with open(pairs_path, "a") as f:
                 f.write(json.dumps(result["code_pair"]) + "\n")
 
             written += len(result["transitions"])
@@ -160,21 +164,24 @@ def run_one(req: RunOneRequest):
     idx=null → random. Returns transitions + code pair immediately.
     Saves to rl_transitions.jsonl and rl_code_pairs.jsonl.
     """
-    if req.dataset not in ("mbpp", "humaneval"):
-        raise HTTPException(400, "dataset must be 'mbpp' or 'humaneval'")
+    if req.dataset not in ("mbpp", "humaneval", "effibench", "effibench_large", "security"):
+        raise HTTPException(400, "dataset must be one of: mbpp, humaneval, effibench, effibench_large, security")
 
     idx = req.idx if req.idx is not None else random.randint(0, dataset_size(req.dataset) - 1)
     instance = load_one(req.dataset, idx)
 
     try:
+        if instance.get("test_case_generator"):
+            _generate_stress_input(instance)
         result = process_instance(instance, fresh_vm_per_action=FRESH_VM_PER_ACTION)
     except Exception as e:
         raise HTTPException(500, str(e))
 
-    with open(OUTPUT_TRANSITIONS, "a") as f:
+    trans_path, pairs_path = get_output_paths(req.dataset)
+    with open(trans_path, "a") as f:
         for t in result["transitions"]:
             f.write(json.dumps(t) + "\n")
-    with open(OUTPUT_CODE_PAIRS, "a") as f:
+    with open(pairs_path, "a") as f:
         f.write(json.dumps(result["code_pair"]) + "\n")
 
     return {
@@ -208,8 +215,8 @@ def run_all(req: RunAllRequest):
     with _collect_lock:
         if _collect.running:
             raise HTTPException(409, "Collection already running")
-    if req.dataset not in ("mbpp", "humaneval"):
-        raise HTTPException(400, "dataset must be 'mbpp' or 'humaneval'")
+    if req.dataset not in ("mbpp", "humaneval", "effibench", "effibench_large", "security"):
+        raise HTTPException(400, "dataset must be one of: mbpp, humaneval, effibench, effibench_large, security")
 
     n = req.n if req.n is not None else DEFAULT_N
     n = None if n == 0 else n
@@ -222,7 +229,7 @@ def run_all(req: RunAllRequest):
         "n":              n or "all",
         "offset":         req.offset,
         "action_configs": len(ACTION_CONFIGS),
-        "output":         OUTPUT_TRANSITIONS,
+        "output":         get_output_paths(req.dataset)[0],
     }
 
 

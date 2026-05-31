@@ -36,7 +36,9 @@ ACTION = ACTION_CONFIGS[1]
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset", choices=["mbpp", "humaneval"], default="mbpp")
+    parser.add_argument("--dataset",
+                        choices=["mbpp", "humaneval", "effibench", "effibench_large", "security"],
+                        default="mbpp")
     parser.add_argument("--idx", type=int, default=None,
                         help="Dataset index (random if not set)")
     args = parser.parse_args()
@@ -54,7 +56,8 @@ def main():
     # ── LLM ───────────────────────────────────────────────────────────────────
     print(f"\n[test] Calling MiniMax ({MINIMAX_MODEL})...")
     llm_start = time.monotonic()
-    raw_text, prompt_tokens, completion_tokens = call_minimax(build_llm_prompt(instance))
+    llm_prompt, expected_func, prefill = build_llm_prompt(instance)
+    raw_text, prompt_tokens, completion_tokens = call_minimax(llm_prompt, expected_func=expected_func, prefill=prefill)
     llm_latency_ms = int((time.monotonic() - llm_start) * 1000)
     generated_code = strip_code(raw_text)
     print(f"[test] Response in {llm_latency_ms}ms ({prompt_tokens} in / {completion_tokens} out tokens)")
@@ -66,7 +69,11 @@ def main():
     code_features           = static_analyse(generated_code)
     state                   = build_state(instance["prompt"], code_features, instance["task_type"])
     code_only, code_w_tests = build_runnable(generated_code, instance)
-    has_tests               = bool(instance.get("test_list") or instance.get("test_code"))
+    has_tests = bool(
+        instance.get("test_list") or
+        instance.get("test_code") or
+        (instance.get("test_cases") and instance["test_cases"][0].get("input"))
+    )
 
     # ── Boot VM ────────────────────────────────────────────────────────────────
     vm = start_vm("test-vm")
