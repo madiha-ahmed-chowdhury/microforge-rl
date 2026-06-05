@@ -1,0 +1,11 @@
+{"ep": 3, "reward": -0.866, "avg10": -0.57}
+{"ep": 1, "reward": -0.8027, "avg10": -0.803}
+{"ep": 3, "reward": -0.5574, "avg10": -0.698}
+{"ep": 3, "reward": -0.6026, "avg10": -0.7}
+{"ep": 3, "reward": -0.2636, "avg10": -0.07}
+{"ep": 2, "reward": -1.0212, "avg10": -0.676}
+{"ep": 2, "reward": -0.7174, "avg10": -1.126}
+{"ep": 2, "llm_r": 0.5, "res_r": -1.1255, "avg10": -0.828, "llm_tier": "laguna"}
+{"ep": 2, "llm_r": 0.2, "res_r": -0.405, "avg10": -0.3, "llm_tier": "sonnet"}
+{"ep": 2, "llm_r": 0.2, "res_r": -0.7996, "avg10": -1.032, "llm_tier": "sonnet"}
+{"ep": 5, "llm_r": 0.5, "res_r": -0.6598, "avg10": -0.247, "llm_tier": "laguna"}
