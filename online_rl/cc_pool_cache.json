@@ -2006,7 +2006,8 @@
         "dp"
       ],
       "memory_limit_bytes": 512000000,
-      "max_n": 10000000
+      "max_n": 10000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 10000000\nx = random.randint(1, 10**9)\ny = random.randint(1, 10**9)\nprint(n, x, y)\n"
     },
     {
       "task_id": "cc_204_D. Little Elephant and Retro Strings",
@@ -2019,7 +2020,8 @@
         "dp"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 500000\nk = random.randint(1, n // 3)\ns = ''.join(random.choice('BWX') for _ in range(n))\nprint(n, k)\nprint(s)\n"
     },
     {
       "task_id": "cc_134_B. Pairs of Numbers",
@@ -2035,7 +2037,8 @@
         "number theory"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "print(1000000)\n"
     },
     {
       "task_id": "cc_p00165 Lottery",
@@ -2048,7 +2051,8 @@
         ""
       ],
       "memory_limit_bytes": 134217728,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nfor _ in range(10):\n    n = 50\n    print(n)\n    for _ in range(n):\n        p = random.randint(2, 999983)\n        m = random.randint(-100, 100)\n        print(p, m)\nprint(0)\n"
     },
     {
       "task_id": "cc_1263_E. Editor",
@@ -2062,7 +2066,8 @@
         "implementation"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 500000\nops = []\nfor _ in range(n):\n    ops.append(random.choice(['(', ')', 'L', 'R', 'a', 'b', 'c', 'd']))\nprint(n)\nprint(''.join(ops))\n"
     },
     {
       "task_id": "cc_1292_D. Chaotic V.",
@@ -2080,7 +2085,8 @@
         "trees"
       ],
       "memory_limit_bytes": 512000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 500000\nprint(n)\nprint(*[random.randint(1, 5000) for _ in range(n)])\n"
     },
     {
       "task_id": "cc_209_A. Multicolored Marbles",
@@ -2094,7 +2100,8 @@
         "math"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "print(1000000)\n"
     },
     {
       "task_id": "cc_317_D. Game with Powers",
@@ -2108,7 +2115,8 @@
         "games"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "print(1000000000)\n"
     },
     {
       "task_id": "cc_587_A. Duff and Weight Lifting",
@@ -2121,7 +2129,8 @@
         "greedy"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 1000000\nprint(n)\nprint(*[random.randint(0, 999999) for _ in range(n)])\n"
     },
     {
       "task_id": "cc_588_C. Duff and Weight Lifting",
@@ -2134,7 +2143,8 @@
         "greedy"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 1000000\nprint(n)\nprint(*[random.randint(0, 999999) for _ in range(n)])\n"
     },
     {
       "task_id": "cc_1106_F. Lunar New Year and a Recursive Sequence",
@@ -2178,7 +2188,8 @@
         "number theory"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "print(1000000)\n"
     },
     {
       "task_id": "cc_1208_A. XORinacci",
@@ -2191,7 +2202,8 @@
         "math"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nT = 1000\nprint(T)\nfor _ in range(T):\n    a = random.randint(0, 10**9)\n    b = random.randint(0, 10**9)\n    n = random.randint(0, 10**9)\n    print(a, b, n)\n"
     },
     {
       "task_id": "cc_p00865 Expected Allowance",
@@ -2219,7 +2231,8 @@
         "sortings"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 10**9\nm = 100000\nsx = random.randint(1, n)\nsy = random.randint(1, n)\nfx = random.randint(1, n)\nfy = random.randint(1, n)\nprint(n, m)\nprint(sx, sy, fx, fy)\nfor _ in range(m):\n    print(random.randint(1, n), random.randint(1, n))\n"
     },
     {
       "task_id": "cc_471_C. MUH and House of Cards",
@@ -2235,7 +2248,8 @@
         "math"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "print(1000000000)\n"
     },
     {
       "task_id": "cc_271_C. Secret",
@@ -2249,7 +2263,8 @@
         "implementation"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 1000000\nk = random.randint(1, n // 3)\nprint(n, k)\n"
     },
     {
       "task_id": "cc_964_A. Splits",
@@ -2262,7 +2277,8 @@
         "math"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "print(1000000000)\n"
     },
     {
       "task_id": "cc_p01295 Champernowne Constant",
@@ -2275,7 +2291,8 @@
         ""
       ],
       "memory_limit_bytes": 134217728,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nfor _ in range(50):\n    N = random.randint(1, 10**9)\n    K = random.randint(1, 100)\n    print(N, K)\nprint(0, 0)\n"
     },
     {
       "task_id": "cc_401_C. Team",
@@ -2290,7 +2307,8 @@
         "implementation"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn0 = 333333\nn1 = 333334\nprint(n0, n1)\n"
     },
     {
       "task_id": "cc_p03212 AtCoder Beginner Contest 114 - 755",
@@ -2303,7 +2321,8 @@
         ""
       ],
       "memory_limit_bytes": 1073741824,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "print(999999999)\n"
     },
     {
       "task_id": "cc_1244_G. Running in Pairs",
@@ -2318,7 +2337,8 @@
         "math"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 1000000\nt_min = n * (n + 1) // 2\nt = t_min + random.randint(0, 10**12)\nprint(n, t)\n"
     },
     {
       "task_id": "cc_1476_A. K-divisible Sum",
@@ -2334,7 +2354,8 @@
         "math"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nT = 1000\nprint(T)\nfor _ in range(T):\n    n = random.randint(1, 10**9)\n    k = random.randint(1, 10**9)\n    print(n, k)\n"
     },
     {
       "task_id": "cc_1366_B. Shuffle",
@@ -2348,7 +2369,8 @@
         "two pointers"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nT = 100\nprint(T)\nfor _ in range(T):\n    n = 10**9\n    x = random.randint(1, n)\n    m = 100\n    print(n, x, m)\n    for _ in range(m):\n        l = random.randint(1, n)\n        r = random.randint(l, min(l + 10**6, n))\n        print(l, r)\n"
     },
     {
       "task_id": "cc_536_B. Tavas and Malekas",
@@ -2364,7 +2386,8 @@
         "strings"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random, string\nrandom.seed(42)\nn = 500000\npattern_len = 320\np = ''.join(random.choices(string.ascii_lowercase, k=pattern_len))\npositions = []\npos = random.randint(1, 100)\nwhile pos + pattern_len - 1 <= n:\n    positions.append(pos)\n    pos += pattern_len + random.randint(1, 50)\nk = len(positions)\nprint(n, k)\nprint(p)\nif k:\n    print(*positions)\n"
     },
     {
       "task_id": "cc_110_C. Lucky Sum of Digits",
@@ -2378,7 +2401,8 @@
         "implementation"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "print(1000000)\n"
     },
     {
       "task_id": "cc_1398_F. Controversial Rounds",
@@ -2395,7 +2419,8 @@
         "two pointers"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 1000000\ns = ''.join(random.choice('01?') for _ in range(n))\nprint(n)\nprint(s)\n"
     },
     {
       "task_id": "cc_1223_A. CME",
@@ -2408,7 +2433,8 @@
         "math"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nq = 1000\nprint(q)\nfor _ in range(q):\n    print(random.randint(2, 10**9))\n"
     },
     {
       "task_id": "cc_551_D. GukiZ and Binary Operations",
@@ -2425,7 +2451,8 @@
         "number theory"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 10**18\nk = random.randint(0, 10**18)\nl = random.randint(0, 64)\nm = random.randint(1, 10**9 + 7)\nprint(n, k, l, m)\n"
     },
     {
       "task_id": "cc_990_E. Post Lamps",
@@ -2439,7 +2466,8 @@
         "greedy"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 1000000\nm = 200\nk = 1000\nblock = sorted(random.sample(range(1, n), m))\ncosts = [random.randint(1, 10**9) for _ in range(k)]\nprint(n, m, k)\nprint(*block)\nprint(*costs)\n"
     },
     {
       "task_id": "cc_p00162 Hamming Numbers",
@@ -2452,7 +2480,8 @@
         ""
       ],
       "memory_limit_bytes": 134217728,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nfor _ in range(50):\n    a = random.randint(1, 500000)\n    b = random.randint(a, 1000000)\n    print(a, b)\nprint(0)\n"
     },
     {
       "task_id": "cc_1059_C. Sequence Transformation",
@@ -2466,7 +2495,8 @@
         "math"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "print(1000000)\n"
     },
     {
       "task_id": "cc_142_A. Help Farmer",
@@ -2480,7 +2510,8 @@
         "math"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "print(720720000)\n"
     },
     {
       "task_id": "cc_755_D. PolandBall and Polygon",
@@ -2493,7 +2524,8 @@
         "data structures"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 1000000\nk = 1\nprint(n, k)\n"
     },
     {
       "task_id": "cc_1407_E. Egor in the Republic of Dagestan",
@@ -2511,7 +2543,8 @@
         "shortest paths"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 500000
+      "max_n": 500000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 500000\nm = 500000\nprint(n, m)\nfor _ in range(m):\n    u = random.randint(1, n)\n    v = random.randint(1, n)\n    w = random.randint(0, 1)\n    print(u, v, w)\n"
     },
     {
       "task_id": "cc_431_D. Random Task",
@@ -2528,7 +2561,8 @@
         "math"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nm = random.randint(0, 10**18)\nk = random.randint(1, 63)\nprint(m, k)\n"
     },
     {
       "task_id": "cc_289_C. Polo the Penguin and Strings",
@@ -2541,7 +2575,8 @@
         "greedy"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 1000000\nk = 26\nprint(n, k)\n"
     },
     {
       "task_id": "cc_1175_C. Electrification",
@@ -2556,7 +2591,8 @@
         "greedy"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nT = 1\nn = 200000\nk = 100000\npts = sorted(random.randint(-10**9, 10**9) for _ in range(n))\nprint(T)\nprint(n, k)\nprint(*pts)\n"
     },
     {
       "task_id": "cc_852_B. Neural Network country",
@@ -2570,7 +2606,8 @@
         "matrices"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 500\nl = 1000000\nm = 50\nprint(n, l, m)\nprint(*[random.randint(0, 10**9) for _ in range(n)])\nprint(*[random.randint(0, 10**9) for _ in range(n)])\nprint(*[random.randint(0, 10**9) for _ in range(n)])\n"
     },
     {
       "task_id": "cc_p03961 CODE FESTIVAL 2016 qual C - Encyclopedia of Permutations",
@@ -2583,7 +2620,8 @@
         ""
       ],
       "memory_limit_bytes": 268435456,
-      "max_n": 500000
+      "max_n": 500000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 500000\nperm = list(range(1, n + 1))\nrandom.shuffle(perm)\nindices = random.sample(range(n), n // 2)\nfor i in indices:\n    perm[i] = 0\nprint(n)\nprint(*perm)\n"
     },
     {
       "task_id": "cc_172_D. Calendar Reform",
@@ -2597,7 +2635,8 @@
         "number theory"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 10000000
+      "max_n": 10000000,
+      "test_case_generator": "print(1, 10000000)\n"
     },
     {
       "task_id": "cc_954_G. Castle Defense",
@@ -2613,7 +2652,8 @@
         "two pointers"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 500000
+      "max_n": 500000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 500000\nr = 250000\nk = 10**9\nprint(n, r, k)\nprint(*[random.randint(0, 10**9) for _ in range(n)])\n"
     },
     {
       "task_id": "cc_1353_E. K-periodic Garland",
@@ -2628,7 +2668,8 @@
         "greedy"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nT = 1\nn = 1000000\nk = random.randint(1, n)\ns = ''.join(random.choice('01') for _ in range(n))\nprint(T)\nprint(n, k)\nprint(s)\n"
     },
     {
       "task_id": "cc_385_C. Bear and Prime Numbers",
@@ -2647,7 +2688,8 @@
         "number theory"
       ],
       "memory_limit_bytes": 512000000,
-      "max_n": 1000000
+      "max_n": 1000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 1000000\nxs = [random.randint(2, 10**7) for _ in range(n)]\nm = 50000\nqueries = [(random.randint(2, 10**7), random.randint(2, 10**7)) for _ in range(m)]\nqueries = [(min(a, b), max(a, b)) for a, b in queries]\nprint(n)\nprint(*xs)\nprint(m)\nfor l, r in queries:\n    print(l, r)\n"
     },
     {
       "task_id": "cc_717_D. Dexterina\u2019s Lab",
@@ -2675,7 +2717,8 @@
         ""
       ],
       "memory_limit_bytes": 268435456,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nfor _ in range(30):\n    n = random.randint(1, 100)\n    bits = ''.join(random.choice('01') for _ in range(52))\n    print(n)\n    print(bits)\nprint(0)\n"
     },
     {
       "task_id": "cc_372_A. Counting Kangaroos is Fun",
@@ -2691,7 +2734,8 @@
         "two pointers"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 500000
+      "max_n": 500000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 500000\nprint(n)\nfor _ in range(n):\n    print(random.randint(1, 100000))\n"
     },
     {
       "task_id": "cc_615_E. Hexagons",
@@ -2706,7 +2750,8 @@
         "math"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "print(10**18)\n"
     },
     {
       "task_id": "cc_287_B. Pipeline",
@@ -2720,7 +2765,8 @@
         "math"
       ],
       "memory_limit_bytes": 256000000,
-      "max_n": 1000000000
+      "max_n": 1000000000,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 10**18\nk = random.randint(2, 10**9)\nprint(n, k)\n"
     }
   ]
 }

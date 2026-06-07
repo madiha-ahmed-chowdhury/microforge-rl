@@ -1887,6 +1887,460 @@ for c in message:
 print(''.join(result))
 """,
 
+# ── 50 new stress problems ────────────────────────────────────────────────────
+
+"cc_710_E. Generate a String": """\
+import random
+random.seed(42)
+n = 10000000
+x = random.randint(1, 10**9)
+y = random.randint(1, 10**9)
+print(n, x, y)
+""",
+
+"cc_204_D. Little Elephant and Retro Strings": """\
+import random
+random.seed(42)
+n = 500000
+k = random.randint(1, n // 3)
+s = ''.join(random.choice('BWX') for _ in range(n))
+print(n, k)
+print(s)
+""",
+
+"cc_134_B. Pairs of Numbers": """\
+print(1000000)
+""",
+
+"cc_p00165 Lottery": """\
+import random
+random.seed(42)
+for _ in range(10):
+    n = 50
+    print(n)
+    for _ in range(n):
+        p = random.randint(2, 999983)
+        m = random.randint(-100, 100)
+        print(p, m)
+print(0)
+""",
+
+"cc_1263_E. Editor": """\
+import random
+random.seed(42)
+n = 500000
+ops = []
+for _ in range(n):
+    ops.append(random.choice(['(', ')', 'L', 'R', 'a', 'b', 'c', 'd']))
+print(n)
+print(''.join(ops))
+""",
+
+"cc_1292_D. Chaotic V.": """\
+import random
+random.seed(42)
+n = 500000
+print(n)
+print(*[random.randint(1, 5000) for _ in range(n)])
+""",
+
+"cc_209_A. Multicolored Marbles": """\
+print(1000000)
+""",
+
+"cc_317_D. Game with Powers": """\
+print(1000000000)
+""",
+
+"cc_587_A. Duff and Weight Lifting": """\
+import random
+random.seed(42)
+n = 1000000
+print(n)
+print(*[random.randint(0, 999999) for _ in range(n)])
+""",
+
+"cc_588_C. Duff and Weight Lifting": """\
+import random
+random.seed(42)
+n = 1000000
+print(n)
+print(*[random.randint(0, 999999) for _ in range(n)])
+""",
+
+"cc_1106_F. Lunar New Year and a Recursive Sequence": """\
+import random
+random.seed(42)
+n = 10**9
+k = 100
+bs = [random.randint(0, 10**9) for _ in range(k - 1)]
+fn = random.randint(1, 998244352)
+print(n, k)
+print(*bs)
+print(fn)
+""",
+
+"cc_39_E. What Has Dirichlet Got to Do with That?": """\
+import random
+random.seed(42)
+a = 10000
+b = 30
+n = random.randint(10**8, 10**9)
+print(a, b, n)
+""",
+
+"cc_1062_B. Math": """\
+print(1000000)
+""",
+
+"cc_1208_A. XORinacci": """\
+import random
+random.seed(42)
+T = 1000
+print(T)
+for _ in range(T):
+    a = random.randint(0, 10**9)
+    b = random.randint(0, 10**9)
+    n = random.randint(0, 10**9)
+    print(a, b, n)
+""",
+
+"cc_p00865 Expected Allowance": """\
+import random
+random.seed(42)
+for _ in range(30):
+    n = random.randint(1, 13)
+    m = random.randint(1, 2008)
+    k = random.randint(-n * m, n * m)
+    print(n, m, k)
+print(0, 0, 0)
+""",
+
+"cc_1422_D. Returning Home": """\
+import random
+random.seed(42)
+n = 10**9
+m = 100000
+sx = random.randint(1, n)
+sy = random.randint(1, n)
+fx = random.randint(1, n)
+fy = random.randint(1, n)
+print(n, m)
+print(sx, sy, fx, fy)
+for _ in range(m):
+    print(random.randint(1, n), random.randint(1, n))
+""",
+
+"cc_471_C. MUH and House of Cards": """\
+print(1000000000)
+""",
+
+"cc_271_C. Secret": """\
+import random
+random.seed(42)
+n = 1000000
+k = random.randint(1, n // 3)
+print(n, k)
+""",
+
+"cc_964_A. Splits": """\
+print(1000000000)
+""",
+
+"cc_p01295 Champernowne Constant": """\
+import random
+random.seed(42)
+for _ in range(50):
+    N = random.randint(1, 10**9)
+    K = random.randint(1, 100)
+    print(N, K)
+print(0, 0)
+""",
+
+"cc_401_C. Team": """\
+import random
+random.seed(42)
+n0 = 333333
+n1 = 333334
+print(n0, n1)
+""",
+
+"cc_p03212 AtCoder Beginner Contest 114 - 755": """\
+print(999999999)
+""",
+
+"cc_1244_G. Running in Pairs": """\
+import random
+random.seed(42)
+n = 1000000
+t_min = n * (n + 1) // 2
+t = t_min + random.randint(0, 10**12)
+print(n, t)
+""",
+
+"cc_1476_A. K-divisible Sum": """\
+import random
+random.seed(42)
+T = 1000
+print(T)
+for _ in range(T):
+    n = random.randint(1, 10**9)
+    k = random.randint(1, 10**9)
+    print(n, k)
+""",
+
+"cc_1366_B. Shuffle": """\
+import random
+random.seed(42)
+T = 100
+print(T)
+for _ in range(T):
+    n = 10**9
+    x = random.randint(1, n)
+    m = 100
+    print(n, x, m)
+    for _ in range(m):
+        l = random.randint(1, n)
+        r = random.randint(l, min(l + 10**6, n))
+        print(l, r)
+""",
+
+"cc_536_B. Tavas and Malekas": """\
+import random, string
+random.seed(42)
+n = 500000
+pattern_len = 320
+p = ''.join(random.choices(string.ascii_lowercase, k=pattern_len))
+positions = []
+pos = random.randint(1, 100)
+while pos + pattern_len - 1 <= n:
+    positions.append(pos)
+    pos += pattern_len + random.randint(1, 50)
+k = len(positions)
+print(n, k)
+print(p)
+if k:
+    print(*positions)
+""",
+
+"cc_110_C. Lucky Sum of Digits": """\
+print(1000000)
+""",
+
+"cc_1398_F. Controversial Rounds": """\
+import random
+random.seed(42)
+n = 1000000
+s = ''.join(random.choice('01?') for _ in range(n))
+print(n)
+print(s)
+""",
+
+"cc_1223_A. CME": """\
+import random
+random.seed(42)
+q = 1000
+print(q)
+for _ in range(q):
+    print(random.randint(2, 10**9))
+""",
+
+"cc_551_D. GukiZ and Binary Operations": """\
+import random
+random.seed(42)
+n = 10**18
+k = random.randint(0, 10**18)
+l = random.randint(0, 64)
+m = random.randint(1, 10**9 + 7)
+print(n, k, l, m)
+""",
+
+"cc_990_E. Post Lamps": """\
+import random
+random.seed(42)
+n = 1000000
+m = 200
+k = 1000
+block = sorted(random.sample(range(1, n), m))
+costs = [random.randint(1, 10**9) for _ in range(k)]
+print(n, m, k)
+print(*block)
+print(*costs)
+""",
+
+"cc_p00162 Hamming Numbers": """\
+import random
+random.seed(42)
+for _ in range(50):
+    a = random.randint(1, 500000)
+    b = random.randint(a, 1000000)
+    print(a, b)
+print(0)
+""",
+
+"cc_1059_C. Sequence Transformation": """\
+print(1000000)
+""",
+
+"cc_142_A. Help Farmer": """\
+print(720720000)
+""",
+
+"cc_755_D. PolandBall and Polygon": """\
+import random
+random.seed(42)
+n = 1000000
+k = 1
+print(n, k)
+""",
+
+"cc_1407_E. Egor in the Republic of Dagestan": """\
+import random
+random.seed(42)
+n = 500000
+m = 500000
+print(n, m)
+for _ in range(m):
+    u = random.randint(1, n)
+    v = random.randint(1, n)
+    w = random.randint(0, 1)
+    print(u, v, w)
+""",
+
+"cc_431_D. Random Task": """\
+import random
+random.seed(42)
+m = random.randint(0, 10**18)
+k = random.randint(1, 63)
+print(m, k)
+""",
+
+"cc_289_C. Polo the Penguin and Strings": """\
+import random
+random.seed(42)
+n = 1000000
+k = 26
+print(n, k)
+""",
+
+"cc_1175_C. Electrification": """\
+import random
+random.seed(42)
+T = 1
+n = 200000
+k = 100000
+pts = sorted(random.randint(-10**9, 10**9) for _ in range(n))
+print(T)
+print(n, k)
+print(*pts)
+""",
+
+"cc_852_B. Neural Network country": """\
+import random
+random.seed(42)
+n = 500
+l = 1000000
+m = 50
+print(n, l, m)
+print(*[random.randint(0, 10**9) for _ in range(n)])
+print(*[random.randint(0, 10**9) for _ in range(n)])
+print(*[random.randint(0, 10**9) for _ in range(n)])
+""",
+
+"cc_p03961 CODE FESTIVAL 2016 qual C - Encyclopedia of Permutations": """\
+import random
+random.seed(42)
+n = 500000
+perm = list(range(1, n + 1))
+random.shuffle(perm)
+indices = random.sample(range(n), n // 2)
+for i in indices:
+    perm[i] = 0
+print(n)
+print(*perm)
+""",
+
+"cc_172_D. Calendar Reform": """\
+print(1, 10000000)
+""",
+
+"cc_954_G. Castle Defense": """\
+import random
+random.seed(42)
+n = 500000
+r = 250000
+k = 10**9
+print(n, r, k)
+print(*[random.randint(0, 10**9) for _ in range(n)])
+""",
+
+"cc_1353_E. K-periodic Garland": """\
+import random
+random.seed(42)
+T = 1
+n = 1000000
+k = random.randint(1, n)
+s = ''.join(random.choice('01') for _ in range(n))
+print(T)
+print(n, k)
+print(s)
+""",
+
+"cc_385_C. Bear and Prime Numbers": """\
+import random
+random.seed(42)
+n = 1000000
+xs = [random.randint(2, 10**7) for _ in range(n)]
+m = 50000
+queries = [(random.randint(2, 10**7), random.randint(2, 10**7)) for _ in range(m)]
+queries = [(min(a, b), max(a, b)) for a, b in queries]
+print(n)
+print(*xs)
+print(m)
+for l, r in queries:
+    print(l, r)
+""",
+
+"cc_717_D. Dexterina's Lab": """\
+import random
+random.seed(42)
+n = 10**9
+x = 127
+print(n, x)
+""",
+
+"cc_p01113 Floating-Point Numbers": """\
+import random
+random.seed(42)
+for _ in range(30):
+    n = random.randint(1, 100)
+    bits = ''.join(random.choice('01') for _ in range(52))
+    print(n)
+    print(bits)
+print(0)
+""",
+
+"cc_372_A. Counting Kangaroos is Fun": """\
+import random
+random.seed(42)
+n = 500000
+print(n)
+for _ in range(n):
+    print(random.randint(1, 100000))
+""",
+
+"cc_615_E. Hexagons": """\
+print(10**18)
+""",
+
+"cc_287_B. Pipeline": """\
+import random
+random.seed(42)
+n = 10**18
+k = random.randint(2, 10**9)
+print(n, k)
+""",
+
 }
 
 
@@ -1906,17 +2360,35 @@ def run_script(code: str, stdin: str = "", timeout: int = 60) -> tuple:
             result.stderr.decode("utf-8", errors="replace"),
             result.returncode,
         )
+    except subprocess.TimeoutExpired:
+        return ("", f"TIMEOUT after {timeout}s", 1)
+    except Exception as e:
+        return ("", str(e), 1)
     finally:
-        os.unlink(path)
+        try:
+            os.unlink(path)
+        except Exception:
+            pass
 
 
 def main():
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--new-only", action="store_true",
+                    help="Only run generators for problems that don't have one yet")
+    ap.add_argument("--task", type=str, default=None,
+                    help="Only run generator for this task_id (partial match ok)")
+    args = ap.parse_args()
+
     cache = json.load(open(CACHE_PATH))
     pool  = {p["task_id"]: p for p in cache["problems"]}
 
     results = []
 
     for task_id, gen_code in GENERATORS.items():
+        if args.task and args.task not in task_id:
+            continue
+
         print(f"\n{'='*60}")
         print(f"Task: {task_id}")
 
@@ -1925,6 +2397,10 @@ def main():
             continue
 
         problem = pool[task_id]
+
+        if args.new_only and problem.get("test_case_generator"):
+            print(f"  Already has generator — skipping")
+            continue
 
         print(f"  Running generator...")
         stdin, gen_err, gen_rc = run_script(gen_code)

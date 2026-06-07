@@ -54,14 +54,12 @@ def load_cc_problems(min_rating: int, max_rating: int, pool_size: int) -> list:
     if os.path.exists(_CACHE_PATH):
         with open(_CACHE_PATH) as f:
             cache = json.load(f)
-        meta = cache.get("meta", {})
-        if (meta.get("min_rating") == min_rating and
-                meta.get("max_rating") == max_rating and
-                len(cache.get("problems", [])) >= pool_size):
-            problems = cache["problems"][:pool_size]
+        cached = cache.get("problems", [])
+        if len(cached) >= pool_size:
+            problems = cached[:pool_size]
             print(f"[loader] loaded {len(problems)} problems from cache ({_CACHE_PATH})")
             return problems
-        print(f"[loader] cache mismatch — rebuilding")
+        print(f"[loader] cache has only {len(cached)} problems, need {pool_size} — rebuilding")
 
     print(f"[loader] streaming from HuggingFace (first time only)...")
     problems = _build_pool_from_hf(min_rating, max_rating, pool_size)

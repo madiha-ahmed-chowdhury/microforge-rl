@@ -39,7 +39,7 @@ class VMState:
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
-def start_vm(vm_id: str) -> VMState:
+def start_vm(vm_id: str, memory_mb: int = 128) -> VMState:
     """Boot a new Firecracker VM. Returns a VMState when the process is running."""
     tmp_dir    = tempfile.mkdtemp(prefix=f"fc-{vm_id}-")
     vsock_sock = os.path.join(tmp_dir, "vsock.sock")
@@ -56,7 +56,7 @@ def start_vm(vm_id: str) -> VMState:
             "is_root_device": True,
             "is_read_only": False,
         }],
-        "machine-config": {"vcpu_count": 1, "mem_size_mib": 256},
+        "machine-config": {"vcpu_count": 1, "mem_size_mib": memory_mb},
         "vsock": {"guest_cid": 3, "uds_path": vsock_sock},
     }
     config_path = os.path.join(tmp_dir, "vm_config.json")
@@ -118,7 +118,7 @@ def wait_for_agent(vm: VMState, timeout_sec: int = AGENT_BOOT_TIMEOUT) -> bool:
     while time.monotonic() < deadline:
         try:
             s = _vsock_connect(vm.vsock_sock, 2)
-            s.sendall(json.dumps({"code": "print('ping')", "timeout": 3}).encode() + b"\n")
+            s.sendall(json.dumps({"code": "print('ping')", "timeout": 10}).encode() + b"\n")
             buf = b""
             while b"\n" not in buf:
                 chunk = s.recv(1024)

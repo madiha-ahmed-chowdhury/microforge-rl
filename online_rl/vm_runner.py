@@ -6,7 +6,7 @@ from online_rl.config import PREP_CONFIG
 
 def boot_vm(vm_id: str, cpu_millicores: int, memory_mb: int):
     from vm import start_vm, wait_for_agent, apply_cgroups, stop_vm
-    vm = start_vm(vm_id)
+    vm = start_vm(vm_id, memory_mb)
     time.sleep(3)
     if not wait_for_agent(vm):
         stop_vm(vm)
@@ -25,7 +25,7 @@ def run_code_on_vm(vm, code: str, stdin: str, timeout_ms: int,
     cpu_limit_sec is derived from timeout_ms automatically.
     """
     from vm import send_code
-    wrapped = f"import sys, io\nsys.stdin = io.StringIO({repr(stdin)})\n{code}"
+    wrapped = f"import sys, io\nsys.stdin = io.TextIOWrapper(io.BytesIO({repr(stdin.encode())}))\n{code}"
     # convert timeout_ms to cpu_limit_sec for guest ulimit -t
     cpu_limit_sec = max(1, timeout_ms // 1000)
     try:

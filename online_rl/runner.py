@@ -3,7 +3,9 @@ import json
 import os
 import pickle
 import random
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -31,15 +33,44 @@ from online_rl.vm_runner      import boot_vm, run_code_on_vm, dry_run_execution
 from online_rl.llm_caller     import generate_code, run_prep_vm
 
 
+def _run_script(code: str, stdin: str = "", timeout: int = 60):
+    """Run a Python script, return (stdout, returncode)."""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+        f.write(code)
+        path = f.name
+    try:
+        r = subprocess.run(["python3", path], input=stdin.encode(),
+                           capture_output=True, timeout=timeout)
+        return r.stdout.decode(errors='replace'), r.returncode
+    except subprocess.TimeoutExpired:
+        return "", 1
+    except Exception:
+        return "", 1
+    finally:
+        try:
+            os.unlink(path)
+        except Exception:
+            pass
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--episodes",   type=int, default=3000)
-    parser.add_argument("--resume",     action="store_true")
-    parser.add_argument("--dry-run",    action="store_true", dest="dry_run")
-    parser.add_argument("--min-rating", type=int, default=1400)
-    parser.add_argument("--max-rating", type=int, default=1800)
-    parser.add_argument("--pool",       type=int, default=150)
+    parser.add_argument("--episodes",     type=int, default=3000)
+    parser.add_argument("--resume",       action="store_true")
+    parser.add_argument("--dry-run",      action="store_true", dest="dry_run")
+    parser.add_argument("--min-rating",   type=int, default=1400)
+    parser.add_argument("--max-rating",   type=int, default=1800)
+    parser.add_argument("--pool",         type=int, default=150)
+    parser.add_argument("--task",         type=str, default=None,
+                        help="Run only this problem (partial task_id match)")
+    parser.add_argument("--force-cpu",    type=int, default=None,
+                        help="Override Agent 2 CPU millicores")
+    parser.add_argument("--force-mem",    type=int, default=None,
+                        help="Override Agent 2 memory MB")
+    parser.add_argument("--force-timeout",type=int, default=None,
+                        help="Override Agent 2 timeout ms")
     args = parser.parse_args()
+    verbose = args.task is not None
 
     print(f"[runner] streaming CC problems | rating={args.min_rating}-{args.max_rating} | pool={args.pool}")
     problems = load_cc_problems(args.min_rating, args.max_rating, args.pool)
@@ -85,12 +116,45 @@ def main():
     opus_used       = 0
 
     for ep in range(start_ep, start_ep + args.episodes):
-        problem      = random.choice(problems)
+        if args.task:
+            match = [p for p in problems if args.task in p["task_id"]]
+            if not match:
+                print(f"[runner] ERROR: no problem matching '{args.task}'")
+                break
+            problem = match[0]
+        else:
+            problem = random.choice(problems)
+
         task_id      = problem["task_id"]
         description  = problem["description"]
         stdin        = problem["stdin"]
         expected     = problem["expected"]
         ref_solution = problem["ref_solution"]
+
+        if problem.get("test_case_generator"):
+            if verbose:
+                print(f"\n[verbose] Running test case generator for {task_id}...")
+            gen_stdin, rc = _run_script(problem["test_case_generator"])
+            if rc == 0 and gen_stdin.strip():
+                ref_out, ref_rc = _run_script(ref_solution, stdin=gen_stdin)
+                if ref_rc == 0 and ref_out.strip():
+                    stdin    = gen_stdin
+                    expected = ref_out
+                    if verbose:
+                        print(f"[verbose] Generator OK — stdin={len(stdin)} chars")
+                        print(f"[verbose] stdin preview (first 5 lines):")
+                        for ln in stdin.splitlines()[:5]:
+                            print(f"          {ln}")
+                        print(f"[verbose] expected output preview: {repr(expected[:200])}")
+                else:
+                    if verbose:
+                        print(f"[verbose] Ref solution failed on generated input — using cached stdin")
+            else:
+                if verbose:
+                    print(f"[verbose] Generator failed — using cached stdin")
+        elif verbose:
+            print(f"[verbose] No generator — using cached stdin ({len(stdin)} chars)")
+            print(f"[verbose] stdin preview: {repr(stdin[:200])}")
 
         from actions import build_state as _build_state
         base_state    = _build_state(description, static_analyse(ref_solution), task_type=3)
@@ -125,11 +189,30 @@ def main():
             code, llm_tests_passed = run_prep_vm(prep_vm, code, stdin, expected, description, run_code_on_vm)
             _stop_vm(prep_vm)
             print(f"[runner] PREP done | correct={'✓' if llm_tests_passed else '✗'}")
+            if verbose:
+                print(f"\n[verbose] ── PREP VM ──────────────────────────────────")
+                print(f"[verbose] stdin passed to prep VM: {len(stdin)} chars")
+                print(f"[verbose] expected output: {repr(expected[:300])}")
+                print(f"[verbose] LLM tests passed: {llm_tests_passed}")
+                print(f"[verbose] Generated code ({len(code)} chars):")
+                for i, ln in enumerate(code.splitlines()[:20]):
+                    print(f"          {i+1:3d}: {ln}")
+                if len(code.splitlines()) > 20:
+                    print(f"          ... ({len(code.splitlines())} lines total)")
 
             # Agent 2: select resources based on generated code features
             res_state_vec  = build_state_vec(base_state, static_analyse(code), scaler)
             res_action_raw = res_agent.select_action(res_state_vec)
             final_action   = scale_action(res_action_raw)
+
+            # Override with forced values if provided
+            if args.force_cpu     is not None: final_action["cpu_millicores"] = args.force_cpu
+            if args.force_mem     is not None: final_action["memory_mb"]      = args.force_mem
+            if args.force_timeout is not None: final_action["timeout_ms"]     = args.force_timeout
+
+            if verbose:
+                print(f"\n[verbose] ── AGENT 2 (Resource Allocator) ──────────────")
+                print(f"[verbose] cpu={final_action['cpu_millicores']}mc  mem={final_action['memory_mb']}MB  timeout={final_action['timeout_ms']}ms")
 
             # CONFIG VM: run code under resource constraints
             rolling_state     = list(res_state_vec)
@@ -182,6 +265,16 @@ def main():
                 final_exec = exec_result
                 _stop_vm(config_vm)
                 config_vm = None
+                if verbose:
+                    print(f"\n[verbose] ── CONFIG VM result ──────────────────────────")
+                    print(f"[verbose] exit_code={exec_result.get('exit_code')}  timed_out={exec_result.get('timed_out')}")
+                    print(f"[verbose] wall_time={exec_result.get('wall_time_ms')}ms  mem_peak={exec_result.get('mem_peak_kb')}KB")
+                    print(f"[verbose] tests_passed={exec_result.get('tests_passed')}")
+                    stdout = exec_result.get('stdout', '')
+                    stderr = exec_result.get('stderr', '')
+                    print(f"[verbose] stdout ({len(stdout)} chars): {repr(stdout[:300])}")
+                    if stderr:
+                        print(f"[verbose] stderr: {repr(stderr[:300])}")
                 break
 
             if config_vm is not None:
