@@ -103,13 +103,15 @@ def main():
             opus_used += 1
 
         if args.dry_run:
-            code             = ref_solution
-            llm_model        = "dry-run"
-            llm_tests_passed = None
-            res_state_vec    = build_state_vec(base_state, static_analyse(code), scaler)
-            res_action_raw   = res_agent.select_action(res_state_vec)
-            final_action     = scale_action(res_action_raw)
-            final_exec       = dry_run_execution(final_action)
+            code               = ref_solution
+            llm_model          = "dry-run"
+            llm_tests_passed   = None
+            res_state_vec      = build_state_vec(base_state, static_analyse(code), scaler)
+            res_action_raw     = res_agent.select_action(res_state_vec)
+            current_state_vec  = res_state_vec
+            current_action_raw = res_action_raw
+            final_action       = scale_action(res_action_raw)
+            final_exec         = dry_run_execution(final_action)
         else:
             print(f"[runner] ep {ep:04d} | llm={llm_tier} | task={task_id}")
             code, llm_model = generate_code(description, stdin, expected, llm_tier, ref_solution)
@@ -130,31 +132,49 @@ def main():
             final_action   = scale_action(res_action_raw)
 
             # CONFIG VM: run code under resource constraints
-            rolling_state = list(res_state_vec)
-            final_exec    = None
-            config_vm     = None
+            rolling_state     = list(res_state_vec)
+            current_state_vec = list(res_state_vec)
+            current_action_raw = res_action_raw
+            final_exec        = None
+            config_vm         = None
 
             for attempt in range(MAX_RESOURCE_RETRIES):
                 config_vm = boot_vm(f"cfg-{ep}-{attempt}", final_action["cpu_millicores"], final_action["memory_mb"])
                 if config_vm is None:
                     break
 
-                exec_result = run_code_on_vm(config_vm, code, stdin, final_action["timeout_ms"])
+                exec_result = run_code_on_vm(config_vm, code, stdin,
+                                             final_action["timeout_ms"],
+                                             memory_limit_mb=final_action["memory_mb"])
                 exec_result["tests_passed"] = (
                     exec_result.get("exit_code") == 0 and bool(expected) and
                     exec_result.get("stdout", "").strip() == expected.strip()
                 ) if exec_result.get("exit_code") == 0 and expected else None
 
                 if exec_result.get("timed_out"):
+                    # store this attempt with its real timeout penalty
+                    attempt_reward   = compute_res_reward(exec_result, final_action)
+                    next_rolling     = update_rolling(current_state_vec, exec_result)
+                    res_buffer.push(current_state_vec, current_action_raw, attempt_reward, next_rolling, False)
+
                     rolling_state[FEATURE_COLS.index("recent_success_rate")] *= 0.9
-                    final_action = scale_action(res_agent.select_action(rolling_state))
+                    current_state_vec  = list(rolling_state)
+                    current_action_raw = res_agent.select_action(current_state_vec)
+                    final_action       = scale_action(current_action_raw)
                     _stop_vm(config_vm)
                     config_vm = None
                     continue
 
                 if exec_result.get("exit_code") == -9 and not exec_result.get("timed_out"):
+                    # store this attempt with its real OOM penalty
+                    attempt_reward   = compute_res_reward(exec_result, final_action)
+                    next_rolling     = update_rolling(current_state_vec, exec_result)
+                    res_buffer.push(current_state_vec, current_action_raw, attempt_reward, next_rolling, False)
+
                     rolling_state[FEATURE_COLS.index("recent_mean_mem_used")] *= 1.2
-                    final_action = scale_action(res_agent.select_action(rolling_state))
+                    current_state_vec  = list(rolling_state)
+                    current_action_raw = res_agent.select_action(current_state_vec)
+                    final_action       = scale_action(current_action_raw)
                     _stop_vm(config_vm)
                     config_vm = None
                     continue
@@ -182,8 +202,8 @@ def main():
 
         # ── Train Agent 2 ─────────────────────────────────────────────────────
         res_reward   = compute_res_reward(final_exec, final_action)
-        res_next_vec = update_rolling(res_state_vec, final_exec)
-        res_buffer.push(res_state_vec, res_action_raw, res_reward, res_next_vec, True)
+        res_next_vec = update_rolling(current_state_vec, final_exec)
+        res_buffer.push(current_state_vec, current_action_raw, res_reward, res_next_vec, True)
         if res_buffer.is_ready(RES_SAC_CONFIG["warmup"]):
             res_agent.update(res_buffer.sample(RES_SAC_CONFIG["batch_size"]))
 
@@ -196,6 +216,8 @@ def main():
         transition = {
             "episode":      ep,
             "task_id":      task_id,
+            "cf_rating":    problem["cf_rating"],
+            "cf_tags":      problem["cf_tags"],
             "llm_tier":     llm_tier,
             "llm_model":    llm_model,
             "llm_reward":   llm_reward,
@@ -221,10 +243,11 @@ def main():
             correct = "✓" if tp is True else ("✗" if tp is False else "?")
             sign    = "+" if res_reward >= 0 else ""
             print(
-                f"ep {ep+1:04d} | {task_id} | llm={llm_tier}({llm_model}) | "
+                f"ep {ep+1:04d} | {task_id} cf={problem['cf_rating']} | llm={llm_tier}({llm_model}) | "
                 f"cpu={final_action['cpu_millicores']}mc mem={final_action['memory_mb']}MB "
                 f"t={final_action['timeout_ms']//1000}s | "
-                f"exit={final_exec.get('exit_code')} wall={final_exec.get('wall_time_ms')}ms correct={correct} | "
+                f"exit={final_exec.get('exit_code')} wall={final_exec.get('wall_time_ms')}ms "
+                f"correct={correct} oom={final_exec.get('oom_killed', False)} | "
                 f"llm_r={'+' if llm_reward>=0 else ''}{llm_reward:.2f} "
                 f"res_r={sign}{res_reward:.2f} avg10={'+' if avg10>=0 else ''}{avg10:.2f} | "
                 f"bufs={len(llm_buffer)}/{len(res_buffer)} tiers={llm_tier_counts}"
@@ -233,7 +256,7 @@ def main():
                 f.write(json.dumps({"ep": ep+1, "llm_r": llm_reward, "res_r": res_reward,
                                     "avg10": avg10, "llm_tier": llm_tier}) + "\n")
 
-        if (ep + 1) % 100 == 0:
+        if (ep + 1) % 10 == 0:
             ck = PATHS["checkpoints"]
             llm_agent.save(f"{ck}llm_ep_{ep+1:05d}.pt")
             res_agent.save(f"{ck}res_ep_{ep+1:05d}.pt")

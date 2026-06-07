@@ -1,0 +1,100 @@
+# 100 measured stress candidates not selected in top 50
+# Run find_stress_problems.py --top 100 to add more of these
+
+cc_1374_B. Multiply by 2, divide by 6
+cc_630_A. Again Twenty Five!
+cc_p01076 Graph Making
+cc_103_C. Russian Roulette
+cc_690_A1. Collective Mindsets (easy)
+cc_625_A. Guest From the Past
+cc_12_B. Correct Solution?
+cc_742_A. Arpa's hard exam and Mehrdad's naive cheat
+cc_835_B. The number on the board
+cc_1091_C. New Year and the Sphere Transmission
+cc_p02468 Power
+cc_1037_A. Packets
+cc_1374_A. Required Remainder
+cc_p02116 nCm
+cc_622_A. Infinite Sequence
+cc_997_B. Roman Digits
+cc_1352_B. Same Parity Summands
+cc_1348_D. Phoenix and Science
+cc_630_J. Divisibility
+cc_959_E. Mahmoud and Ehab and the xor-MST
+cc_177_B1. Rectangular Game
+cc_777_A. Shell Game
+cc_939_B. Hamster Farm
+cc_854_B. Maxim Buys an Apartment
+cc_630_P. Area of a Star
+cc_1409_B. Minimum Product
+cc_858_A. k-rounding
+cc_1277_A. Happy Birthday, Polycarp!
+cc_736_B. Taxes
+cc_1352_C. K-th Not Divisible by n
+cc_1487_B. Cat Cycle
+cc_1191_D. Tokitsukaze, CSL and Stone Game
+cc_690_A2. Collective Mindsets (medium)
+cc_940_B. Our Tanya is Crying Out Loud
+cc_1225_C. p-binary
+cc_570_B. Simple Game
+cc_506_E. Mr. Kitayuta's Gift
+cc_9_C. Hexadecimal's Numbers
+cc_735_D. Taxes
+cc_102_D. Buses
+cc_535_B. Tavas and SaDDas
+cc_552_B. Vanya and Books
+cc_717_D. Dexterina's Lab
+cc_876_C. Classroom Watch
+cc_1294_C. Product of Three Numbers
+cc_451_C. Predict Outcome of the Game
+cc_630_D. Hexagons!
+cc_725_B. Food on the Plane
+cc_776_E. The Holmes Children
+cc_630_R. Game
+cc_669_A. Little Artem and Presents
+cc_39_F. Pacifist frogs
+cc_1096_C. Polygon for the Angle
+cc_784_B. Kids' Riddle
+cc_p00463 Amidakuji
+cc_p02470 Euler's Phi Function
+cc_393_C. Blocked Points
+cc_1269_A. Equation
+cc_758_F. Geometrical Progression
+cc_779_B. Weird Rounding
+cc_367_C. Sereja and the Arrangement of Numbers
+cc_820_D. Mister B and PR Shifts
+cc_449_D. Jzzhu and Numbers
+cc_p00184 Tsuruga Castle
+cc_538_B. Quasi Binary
+cc_604_B. More Cowbell
+cc_834_B. The Festive Evening
+cc_1451_C. String Equality
+cc_p00099 Surf Smelt Fishing Contest II
+cc_183_B. Zoo
+cc_659_G. Fence Divercity
+cc_404_D. Minesweeper 1D
+cc_577_B. Modulo Sum
+cc_608_E. Marbles
+cc_60_E. Mushroom Gnomes
+cc_841_B. Godsend
+cc_1493_E. Enormous XOR
+cc_1396_C. Monster Invaders
+cc_p00158 Collatz's Problem
+cc_p01078 Star
+cc_1027_C. Minimum Value Rectangle
+cc_1300_E. Water Balance
+cc_1475_B. New Year's Number
+cc_1095_E. Almost Regular Bracket Sequence
+cc_316_D3. PE Lesson
+cc_67_D. Optical Experiment
+cc_474_B. Worms
+cc_802_H. Fake News (medium)
+cc_236_C. LCM Challenge
+cc_1469_E. A Bit Similar
+cc_1037_C. Equalize
+cc_p01227 Country Road
+cc_442_C. Artem and Array
+cc_650_B. Image Preview
+cc_985_E. Pencils and Boxes
+cc_879_C. Short Program
+cc_219_C. Color Stripe

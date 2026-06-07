@@ -22,7 +22,7 @@ FEATURE_COLS = [
 
 # Action ranges — fully continuous, no rounding
 CPU_MIN, CPU_MAX = 50, 500      # millicores
-MEM_MIN, MEM_MAX = 32, 256      # MB
+MEM_MIN, MEM_MAX = 48, 256      # MB — 48MB minimum: Python needs ~40MB virtual memory overhead
 TMS_MIN, TMS_MAX = 1000, 10000  # ms
 
 PREP_CONFIG = {

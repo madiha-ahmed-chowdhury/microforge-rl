@@ -1,4 +1,10 @@
-def load_cc_problems(min_rating: int, max_rating: int, pool_size: int) -> list:
+import json
+import os
+
+_CACHE_PATH = "online_rl/cc_pool_cache.json"
+
+
+def _build_pool_from_hf(min_rating: int, max_rating: int, pool_size: int) -> list:
     from datasets import load_dataset
     ds       = load_dataset("deepmind/code_contests", split="train", streaming=True)
     problems = []
@@ -40,5 +46,28 @@ def load_cc_problems(min_rating: int, max_rating: int, pool_size: int) -> list:
             "cf_tags":      row["cf_tags"],
         })
         print(f"[loader] {row['name']} | cf={cf} | stdin={len(stdin)}chars")
+
+    return problems
+
+
+def load_cc_problems(min_rating: int, max_rating: int, pool_size: int) -> list:
+    if os.path.exists(_CACHE_PATH):
+        with open(_CACHE_PATH) as f:
+            cache = json.load(f)
+        meta = cache.get("meta", {})
+        if (meta.get("min_rating") == min_rating and
+                meta.get("max_rating") == max_rating and
+                len(cache.get("problems", [])) >= pool_size):
+            problems = cache["problems"][:pool_size]
+            print(f"[loader] loaded {len(problems)} problems from cache ({_CACHE_PATH})")
+            return problems
+        print(f"[loader] cache mismatch — rebuilding")
+
+    print(f"[loader] streaming from HuggingFace (first time only)...")
+    problems = _build_pool_from_hf(min_rating, max_rating, pool_size)
+
+    with open(_CACHE_PATH, "w") as f:
+        json.dump({"meta": {"min_rating": min_rating, "max_rating": max_rating}, "problems": problems}, f)
+    print(f"[loader] cached {len(problems)} problems to {_CACHE_PATH}")
 
     return problems

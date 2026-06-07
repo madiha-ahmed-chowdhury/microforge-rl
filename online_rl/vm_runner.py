@@ -11,20 +11,32 @@ def boot_vm(vm_id: str, cpu_millicores: int, memory_mb: int):
     if not wait_for_agent(vm):
         stop_vm(vm)
         return None
-    apply_cgroups(vm, cpu_millicores, max(128, memory_mb))
+    # host cgroup floor at 128MB — Firecracker process needs ~107MB of host RAM
+    host_cgroup_mem = max(128, memory_mb)
+    apply_cgroups(vm, cpu_millicores, host_cgroup_mem)
     return vm
 
 
-def run_code_on_vm(vm, code: str, stdin: str, timeout_ms: int) -> dict:
+def run_code_on_vm(vm, code: str, stdin: str, timeout_ms: int,
+                   memory_limit_mb: int = 0) -> dict:
+    """
+    Run code on the VM with optional guest-side memory limit.
+    memory_limit_mb: passed to guest agent as ulimit -v (0 = no limit)
+    cpu_limit_sec is derived from timeout_ms automatically.
+    """
     from vm import send_code
     wrapped = f"import sys, io\nsys.stdin = io.StringIO({repr(stdin)})\n{code}"
+    # convert timeout_ms to cpu_limit_sec for guest ulimit -t
+    cpu_limit_sec = max(1, timeout_ms // 1000)
     try:
-        return send_code(vm, wrapped, timeout_ms)
+        return send_code(vm, wrapped, timeout_ms,
+                         memory_limit_mb=memory_limit_mb,
+                         cpu_limit_sec=cpu_limit_sec)
     except Exception as e:
         return {
-            "exit_code": -1, "timed_out": False, "wall_time_ms": 0,
-            "cpu_user_ms": 0, "cpu_sys_ms": 0, "mem_peak_kb": 0,
-            "stdout": "", "stderr": str(e),
+            "exit_code": -1, "timed_out": False, "oom_killed": False,
+            "wall_time_ms": 0, "cpu_user_ms": 0, "cpu_sys_ms": 0,
+            "mem_peak_kb": 0, "stdout": "", "stderr": str(e),
         }
 
 

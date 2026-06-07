@@ -133,15 +133,24 @@ def wait_for_agent(vm: VMState, timeout_sec: int = AGENT_BOOT_TIMEOUT) -> bool:
     return False
 
 
-def send_code(vm: VMState, code: str, timeout_ms: int) -> dict:
+def send_code(vm: VMState, code: str, timeout_ms: int,
+              memory_limit_mb: int = 0, cpu_limit_sec: int = 0) -> dict:
     """
     Send code to the guest VM for execution.
     Returns execution result dict: exit_code, wall_time_ms, cpu_user_ms,
-    cpu_sys_ms, mem_peak_kb, stdout, stderr, timed_out.
+    cpu_sys_ms, mem_peak_kb, stdout, stderr, timed_out, oom_killed.
+
+    memory_limit_mb: guest ulimit -v in MB (0 = no limit)
+    cpu_limit_sec:   guest ulimit -t in seconds (0 = no limit)
     """
     sock = _vsock_connect(vm.vsock_sock, timeout_ms / 1000 + 15)
     sock.settimeout(timeout_ms / 1000 + 15)
-    sock.sendall((json.dumps({"code": code, "timeout": timeout_ms // 1000}) + "\n").encode())
+    payload = {"code": code, "timeout": timeout_ms // 1000}
+    if memory_limit_mb > 0:
+        payload["memory_limit_mb"] = memory_limit_mb
+    if cpu_limit_sec > 0:
+        payload["cpu_limit_sec"] = cpu_limit_sec
+    sock.sendall((json.dumps(payload) + "\n").encode())
     buf = b""
     while b"\n" not in buf:
         chunk = sock.recv(4096)

@@ -1,0 +1,141 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[runner] streaming CC problems | rating=1000-1800 | pool=150
+[loader] cache mismatch — rebuilding
+[loader] streaming from HuggingFace (first time only)...
+[loader] 1101_A. Minimum Integer | cf=1000 | stdin=453chars
+[loader] 1189_D1. Add on a Tree | cf=1600 | stdin=341chars
+[loader] 1227_D1. Optimal Subsequences (Easy Version) | cf=1600 | stdin=75chars
+[loader] 1334_D. Minimum Euler Cycle | cf=1800 | stdin=63chars
+[loader] 1374_E1. Reading Books (easy version) | cf=1600 | stdin=209chars
+[loader] 1421_B. Putting Bricks in the Wall | cf=1100 | stdin=115chars
+[loader] 143_A. Help Vasilisa the Wise 2 | cf=1000 | stdin=18chars
+[loader] 1513_C. Add One | cf=1600 | stdin=35chars
+[loader] 260_B. Ancient Prophesy | cf=1600 | stdin=119chars
+[loader] 284_B. Cows and Poker Game | cf=1000 | stdin=11chars
+[loader] 379_A. New Year Candles | cf=1000 | stdin=7chars
+[loader] 39_H. Multiplication Table | cf=1300 | stdin=4chars
+[loader] 44_B. Cola | cf=1500 | stdin=21chars
+[loader] 519_B. A and B and Compilation Errors | cf=1100 | stdin=62chars
+[loader] 545_C. Woodcutters | cf=1500 | stdin=213chars
+[loader] 634_C. Factory Repairs | cf=1700 | stdin=52chars
+[loader] 663_A. Rebus | cf=1800 | stdin=407chars
+[loader] 7_B. Memory Manager | cf=1600 | stdin=460chars
+[loader] 938_B. Run For Your Prize | cf=1100 | stdin=23chars
+[loader] 1107_D. Compression | cf=1800 | stdin=83chars
+[loader] 1136_D. Nastya Is Buying Lunch | cf=1800 | stdin=296chars
+[loader] 1155_A. Reverse a Substring | cf=1000 | stdin=16chars
+[loader] 1195_D2. Submarine in the Rybinsk Sea (hard edition) | cf=1800 | stdin=496chars
+[loader] 151_C. Win or Freeze | cf=1400 | stdin=15chars
+[loader] 1547_C. Pair Programming | cf=1100 | stdin=93chars
+[loader] 195_A. Let's Watch Football | cf=1000 | stdin=14chars
+[loader] 219_A. k-String | cf=1000 | stdin=505chars
+[loader] 242_C. King's Path | cf=1800 | stdin=289chars
+[loader] 290_D. Orange | cf=1400 | stdin=53chars
+[loader] 316_B2. EKG | cf=1600 | stdin=46chars
+[loader] 361_C. Levko and Array Recovery | cf=1700 | stdin=414chars
+[loader] 385_A. Bear and Raspberry | cf=1000 | stdin=301chars
+[loader] 433_A. Kitahara Haruki's Gift | cf=1100 | stdin=18chars
+[loader] 478_A. Initial Bet | cf=1100 | stdin=20chars
+[loader] 500_C. New Year Book Reading | cf=1600 | stdin=319chars
+[loader] 526_A. King of Thieves | cf=1300 | stdin=105chars
+[loader] 551_B. ZgukistringZ | cf=1800 | stdin=176chars
+[loader] 5_A. Chat Server's Outgoing Traffic | cf=1000 | stdin=499chars
+[loader] 643_B. Bear and Two Paths | cf=1600 | stdin=26chars
+[loader] 670_B. Game of Robots | cf=1000 | stdin=32chars
+[loader] 691_D. Swaps in Permutation | cf=1700 | stdin=159chars
+[loader] 737_A. Road to Cinema | cf=1700 | stdin=82chars
+[loader] 805_A. Fake NP | cf=1000 | stdin=21chars
+[loader] 830_A. Office Keys | cf=1800 | stdin=474chars
+[loader] 851_B. Arpa and an exam about geometry | cf=1400 | stdin=65chars
+[loader] 1037_B. Reach Median | cf=1300 | stdin=26chars
+[loader] 1081_D. Maximum Distance | cf=1800 | stdin=61chars
+[loader] 1129_A2. Toy Train | cf=1800 | stdin=306chars
+[loader] 1227_A. Math Problem | cf=1100 | stdin=206chars
+[loader] 124_D. Squares | cf=1800 | stdin=63chars
+[loader] 1269_B. Modulo Equality | cf=1500 | stdin=20chars
+[loader] 1291_B. Array Sharpening | cf=1300 | stdin=93chars
+[loader] 1311_C. Perform the Combo | cf=1300 | stdin=98chars
+[loader] 1334_A. Level Statistics | cf=1200 | stdin=345chars
+[loader] 1397_C. Multiples of Length | cf=1600 | stdin=335chars
+[loader] 1420_D. Rescue Nibel! | cf=1800 | stdin=246chars
+[loader] 1466_C. Canine poetry | cf=1300 | stdin=52chars
+[loader] 1490_D. Permutation Transformation | cf=1200 | stdin=28chars
+[loader] 235_A. LCM Challenge | cf=1600 | stdin=8chars
+[loader] 378_C. Maze | cf=1600 | stdin=164chars
+[loader] 425_A. Sereja and Swaps | cf=1500 | stdin=498chars
+[loader] 494_A. Treasure | cf=1500 | stdin=101chars
+[loader] 687_A. NP-Hard Problem | cf=1500 | stdin=116chars
+[loader] 730_G. Car Repair Shop | cf=1600 | stdin=416chars
+[loader] 754_B. Ilya and tic-tac-toe game | cf=1100 | stdin=20chars
+[loader] 774_K. Stepan and Vowels | cf=1600 | stdin=205chars
+[loader] 846_B. Math Show | cf=1800 | stdin=311chars
+[loader] 990_B. Micro-World | cf=1200 | stdin=38chars
+[loader] 1165_A. Remainder | cf=1100 | stdin=222chars
+[loader] 1264_A. Beautiful Regional Contest | cf=1500 | stdin=203chars
+[loader] 1285_C. Fadi and LCM | cf=1400 | stdin=14chars
+[loader] 1391_C. Cyclic Permutations  | cf=1500 | stdin=7chars
+[loader] 161_B. Discounts | cf=1700 | stdin=183chars
+[loader] 252_B. Unsorting Array | cf=1800 | stdin=43chars
+[loader] 348_A. Mafia | cf=1600 | stdin=391chars
+[loader] 371_B. Fox Dividing Cheese | cf=1300 | stdin=21chars
+[loader] 488_C. Fight the Monster | cf=1800 | stdin=32chars
+[loader] 560_D. Equivalent Strings | cf=1700 | stdin=268chars
+[loader] 609_B. The Best Gift | cf=1100 | stdin=221chars
+[loader] 814_C. An impassioned circulation of affection | cf=1600 | stdin=358chars
+[loader] 985_A. Chess Placing | cf=1100 | stdin=155chars
+[loader] 1003_D. Coins and Queries | cf=1600 | stdin=30chars
+[loader] 1140_B. Good String | cf=1200 | stdin=59chars
+[loader] 1216_D. Swords | cf=1300 | stdin=97chars
+[loader] 1281_B. Azamon Web Services | cf=1600 | stdin=53chars
+[loader] 1301_B. Motarack's Birthday | cf=1500 | stdin=100chars
+[loader] 1344_A. Hilbert's Hotel | cf=1600 | stdin=196chars
+[loader] 1366_A. Shovels and Swords | cf=1100 | stdin=29chars
+[loader] 1451_D. Circle Game | cf=1700 | stdin=31chars
+[loader] 1475_D. Cleaning the Phone | cf=1800 | stdin=102chars
+[loader] 1525_D. Armchairs | cf=1800 | stdin=204chars
+[loader] 178_A1. Educational Game | cf=1000 | stdin=477chars
+[loader] 272_B. Dima and Sequence | cf=1400 | stdin=79chars
+[loader] 343_B. Alternating Current | cf=1600 | stdin=381chars
+[loader] 38_C. Blinds | cf=1400 | stdin=300chars
+[loader] 40_B. Repaintings | cf=1600 | stdin=21chars
+[loader] 438_A. The Child and Toy | cf=1400 | stdin=159chars
+[loader] 483_B. Friends and Presents | cf=1800 | stdin=32chars
+[loader] 507_B. Amr and Pins | cf=1400 | stdin=37chars
+[loader] 556_C. Case of Matryoshkas | cf=1500 | stdin=14chars
+[loader] 582_A. GCD Table | cf=1700 | stdin=39chars
+[loader] 604_A. Uncowed Forces | cf=1000 | stdin=39chars
+[loader] 626_D. Jerry's Protest | cf=1800 | stdin=61chars
+[loader] 765_D. Artsem and Saunders | cf=1700 | stdin=23chars
+[loader] 789_A. Anastasia and pebbles | cf=1100 | stdin=39chars
+[loader] 80_C. Heroes | cf=1400 | stdin=272chars
+[loader] 87_B. Vasya and Types | cf=1800 | stdin=352chars
+[loader] 1036_B. Diagonal Walking v.2 | cf=1600 | stdin=22chars
+[loader] 1059_A. Cashier | cf=1000 | stdin=24chars
+[loader] 1080_C. Masha and two friends | cf=1500 | stdin=102chars
+[loader] 10_B. Cinema Cashier | cf=1500 | stdin=296chars
+[loader] 1121_A. Technogoblet of Fire | cf=1100 | stdin=508chars
+[loader] 1148_C. Crazy Diamond | cf=1700 | stdin=24chars
+[loader] 1225_B1. TV Subscriptions (Easy Version) | cf=1000 | stdin=309chars
+[loader] 1249_D1. Too Many Segments (easy version) | cf=1800 | stdin=142chars
+[loader] 1267_L. Lexicography | cf=1800 | stdin=109chars
+[loader] 1290_A. Mind Control | cf=1600 | stdin=62chars
+[loader] 1353_C. Board Moves | cf=1000 | stdin=16chars
+[loader] 1396_A. Multiples of Length | cf=1600 | stdin=335chars
+[loader] 141_C. Queue | cf=1800 | stdin=302chars
+[loader] 1463_B. Find The Array | cf=1400 | stdin=109chars
+[loader] 148_B. Escape | cf=1500 | stdin=16chars
+[loader] 1539_D. PriceFixed | cf=1600 | stdin=257chars
+[loader] 166_A. Rank List | cf=1100 | stdin=306chars
+[loader] 233_C. Cycles | cf=1600 | stdin=7chars
+[loader] 259_B. Little Elephant and Magic Square | cf=1100 | stdin=18chars
+[loader] 282_B. Painting Eggs | cf=1500 | stdin=69chars
+[loader] 305_A. Strange Addition | cf=1600 | stdin=296chars
+[loader] 331_A2. Oh Sweet Beaverette | cf=1500 | stdin=215chars
+[loader] 377_A. Maze | cf=1600 | stdin=409chars
+[loader] 448_B. Suffix Structures | cf=1400 | stdin=202chars
+[loader] 46_C. Hamsters and Tigers | cf=1600 | stdin=183chars
+[loader] 492_D. Vanya and Computer Game | cf=1800 | stdin=68chars
+[loader] 591_C. Median Smoothing | cf=1700 | stdin=340chars
+[loader] 633_A. Ebony and Ivory | cf=1100 | stdin=12chars/home/madiha/firecracker-rl/venv/lib/python3.12/site-packages/sklearn/base.py:525: InconsistentVersionWarning: Trying to unpickle estimator StandardScaler from version 1.6.1 when using version 1.9.0. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(

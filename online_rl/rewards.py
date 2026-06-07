@@ -26,7 +26,8 @@ def compute_res_reward(execution: dict, action: dict) -> float:
     rc = REWARD_CONFIG
     if execution.get("timed_out"):
         return rc["r_timeout"]
-    if execution.get("exit_code") == -9 and not execution.get("timed_out"):
+    # guest-side OOM (ulimit -v exceeded, exit 137) or host-side OOM (exit -9)
+    if execution.get("oom_killed") or (execution.get("exit_code") == -9 and not execution.get("timed_out")):
         return rc["r_oom"]
 
     wall_ms       = max(execution.get("wall_time_ms", 1), 1)
