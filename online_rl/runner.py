@@ -186,7 +186,7 @@ def main():
                 print(f"[runner] PREP VM failed — skipping ep {ep}")
                 continue
             from vm import stop_vm as _stop_vm
-            code, llm_tests_passed = run_prep_vm(prep_vm, code, stdin, expected, description, run_code_on_vm)
+            code, llm_tests_passed, prep_result = run_prep_vm(prep_vm, code, stdin, expected, description, run_code_on_vm)
             _stop_vm(prep_vm)
             print(f"[runner] PREP done | correct={'✓' if llm_tests_passed else '✗'}")
             if verbose:
@@ -194,6 +194,13 @@ def main():
                 print(f"[verbose] stdin passed to prep VM: {len(stdin)} chars")
                 print(f"[verbose] expected output: {repr(expected[:300])}")
                 print(f"[verbose] LLM tests passed: {llm_tests_passed}")
+                print(f"[verbose] PREP exit_code={prep_result.get('exit_code')}  wall={prep_result.get('wall_time_ms')}ms  mem={prep_result.get('mem_peak_kb')}KB")
+                prep_stdout = prep_result.get('stdout', '')
+                prep_stderr = prep_result.get('stderr', '')
+                if prep_stdout:
+                    print(f"[verbose] PREP stdout ({len(prep_stdout)} chars): {repr(prep_stdout[:300])}")
+                if prep_stderr:
+                    print(f"[verbose] PREP stderr: {repr(prep_stderr[:300])}")
                 print(f"[verbose] Generated code ({len(code)} chars):")
                 for i, ln in enumerate(code.splitlines()[:20]):
                     print(f"          {i+1:3d}: {ln}")

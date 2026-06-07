@@ -1,0 +1,43 @@
+/home/madiha/firecracker-rl/venv/lib/python3.12/site-packages/sklearn/base.py:525: InconsistentVersionWarning: Trying to unpickle estimator StandardScaler from version 1.6.1 when using version 1.9.0. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+[runner] streaming CC problems | rating=1400-1800 | pool=200
+[loader] loaded 200 problems from cache (online_rl/cc_pool_cache.json)
+[runner] pool ready: 200 problems
+[runner] scaler loaded
+
+[verbose] Running test case generator for cc_379_A. New Year Candles...
+[verbose] Generator OK — stdin=6 chars
+[verbose] stdin preview (first 5 lines):
+          722 8
+[verbose] expected output preview: '825\n'
+[runner] ep 0000 | llm=sonnet | task=cc_379_A. New Year Candles
+[runner] PREP done | correct=✓
+
+[verbose] ── PREP VM ──────────────────────────────────
+[verbose] stdin passed to prep VM: 6 chars
+[verbose] expected output: '825\n'
+[verbose] LLM tests passed: True
+[verbose] PREP exit_code=0  wall=10ms  mem=13424KB
+[verbose] PREP stdout (4 chars): '825\n'
+[verbose] Generated code (149 chars):
+            1: a, b = map(int, input().split())
+            2: hours = 0
+            3: stubs = 0
+            4: while a > 0:
+            5:     hours += a
+            6:     stubs += a
+            7:     a = stubs // b
+            8:     stubs = stubs % b
+            9: print(hours)
+
+[verbose] ── AGENT 2 (Resource Allocator) ──────────────
+[verbose] cpu=500mc  mem=128MB  timeout=20000ms
+
+[verbose] ── CONFIG VM result ──────────────────────────
+[verbose] exit_code=0  timed_out=False
+[verbose] wall_time=11ms  mem_peak=13380KB
+[verbose] tests_passed=True
+[verbose] stdout (4 chars): '825\n'
+ep 0001 | cc_379_A. New Year Candles cf=1000 | llm=sonnet(claude-sonnet-4-6) | cpu=500mc mem=128MB t=20s | exit=0 wall=11ms correct=✓ oom=False | llm_r=+0.70 res_r=-0.80 avg10=-0.80 | bufs=1/1 tiers={'laguna': 0, 'sonnet': 1, 'opus': 0}
+[runner] done. 1 episodes.

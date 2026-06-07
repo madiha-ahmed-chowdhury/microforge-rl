@@ -1,0 +1,55 @@
+/home/madiha/firecracker-rl/venv/lib/python3.12/site-packages/sklearn/base.py:525: InconsistentVersionWarning: Trying to unpickle estimator StandardScaler from version 1.6.1 when using version 1.9.0. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+[runner] streaming CC problems | rating=1400-1800 | pool=200
+[loader] loaded 200 problems from cache (online_rl/cc_pool_cache.json)
+[runner] pool ready: 200 problems
+[runner] scaler loaded
+
+[verbose] Running test case generator for cc_7_B. Memory Manager...
+[verbose] Generator OK — stdin=747 chars
+[verbose] stdin preview (first 5 lines):
+          79 159
+          defragment
+          defragment
+          erase -2
+          alloc 13
+[verbose] expected output preview: 'ILLEGAL_ERASE_ARGUMENT\n1\n2\n3\nILLEGAL_ERASE_ARGUMENT\nILLEGAL_ERASE_ARGUMENT\nILLEGAL_ERASE_ARGUMENT\n4\n5\n6\n7\n8\nILLEGAL_ERASE_ARGUMENT\nNULL\nNULL\n9\nNULL\nNULL\nNULL\n10\nNULL\nILLEGAL_ERASE_ARGUMENT\nNULL\n11\nNUL'
+[runner] ep 0000 | llm=laguna | task=cc_7_B. Memory Manager
+[llm_caller] Laguna failed (status=200)
+[llm_caller] Laguna failed — escalating to Sonnet
+[runner] PREP done | correct=✓
+
+[verbose] ── PREP VM ──────────────────────────────────
+[verbose] stdin passed to prep VM: 747 chars
+[verbose] expected output: 'ILLEGAL_ERASE_ARGUMENT\n1\n2\n3\nILLEGAL_ERASE_ARGUMENT\nILLEGAL_ERASE_ARGUMENT\nILLEGAL_ERASE_ARGUMENT\n4\n5\n6\n7\n8\nILLEGAL_ERASE_ARGUMENT\nNULL\nNULL\n9\nNULL\nNULL\nNULL\n10\nNULL\nILLEGAL_ERASE_ARGUMENT\nNULL\n11\nNULL\nNULL\n12\n13\nILLEGAL_ERASE_ARGUMENT\nILLEGAL_ERASE_ARGUMENT\n14\nNULL\nNULL\n15\nILLEGAL_ERASE_ARGUMENT\nNU'
+[verbose] LLM tests passed: True
+[verbose] PREP exit_code=0  wall=13ms  mem=13428KB
+[verbose] PREP stdout (401 chars): 'ILLEGAL_ERASE_ARGUMENT\n1\n2\n3\nILLEGAL_ERASE_ARGUMENT\nILLEGAL_ERASE_ARGUMENT\nILLEGAL_ERASE_ARGUMENT\n4\n5\n6\n7\n8\nILLEGAL_ERASE_ARGUMENT\nNULL\nNULL\n9\nNULL\nNULL\nNULL\n10\nNULL\nILLEGAL_ERASE_ARGUMENT\nNULL\n11\nNULL\nNULL\n12\n13\nILLEGAL_ERASE_ARGUMENT\nILLEGAL_ERASE_ARGUMENT\n14\nNULL\nNULL\n15\nILLEGAL_ERASE_ARGUMENT\nNU'
+[verbose] Generated code (3106 chars):
+            1: import sys
+            2: 
+            3: def main():
+            4:     data = sys.stdin.read().split('\n')
+            5:     first_line = data[0].split()
+            6:     t = int(first_line[0])
+            7:     m = int(first_line[1])
+            8:     
+            9:     # memory array: 0 means free, positive integer means block id
+           10:     memory = [0] * m
+           11:     
+           12:     # block info: id -> (start, size) but we track via memory array
+           13:     # blocks: id -> list of positions (or just start and size)
+           14:     blocks = {}  # id -> (start, end) inclusive
+           15:     
+           16:     next_id = 1
+           17:     
+           18:     results = []
+           19:     
+           20:     for i in range(1, t + 1):
+          ... (101 lines total)
+
+[verbose] ── AGENT 2 (Resource Allocator) ──────────────
+[verbose] cpu=500mc  mem=32MB  timeout=20000ms
+ep 0001 | cc_7_B. Memory Manager cf=1600 | llm=laguna(sonnet-escalated) | cpu=500mc mem=32MB t=20s | exit=-1 wall=0ms correct=? oom=False | llm_r=+0.50 res_r=-4.25 avg10=-4.25 | bufs=1/1 tiers={'laguna': 1, 'sonnet': 0, 'opus': 0}
+[runner] done. 1 episodes.

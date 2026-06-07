@@ -17,12 +17,8 @@ def _build_gen_prompt(description: str, stdin: str, expected: str) -> str:
         "IMPORTANT: Your response must contain ONLY valid Python code. "
         "No explanation, no prose, no markdown fences.\n\n"
         "Write a complete Python script that reads from stdin and writes to stdout.\n\n"
-        + description[:1500]
+        + description
     )
-    if stdin:
-        prompt += f"\n\nExample input:\n{stdin[:300]}"
-    if expected:
-        prompt += f"\nExample output:\n{expected[:200]}"
     return prompt
 
 
@@ -131,12 +127,12 @@ def refine_code(original_code: str, stdin: str, expected: str,
 
 
 def run_prep_vm(vm, code: str, stdin: str, expected: str,
-                description: str, run_code_fn) -> tuple[str, bool]:
+                description: str, run_code_fn) -> tuple[str, bool, dict]:
     """
     Run LLM code on PREP VM, refine if wrong.
-    Returns (final_code, passed).
+    Returns (final_code, passed, first_result).
     """
-    result     = run_code_fn(vm, code, stdin, 30_000)
+    result     = run_code_fn(vm, code, stdin, 60_000)
     actual_out = result.get("stdout", "").strip()
     passed     = (
         result.get("exit_code") == 0 and
@@ -151,7 +147,7 @@ def run_prep_vm(vm, code: str, stdin: str, expected: str,
             if not refined:
                 break
             code    = refined
-            retry   = run_code_fn(vm, code, stdin, 30_000)
+            retry   = run_code_fn(vm, code, stdin, 60_000)
             actual_out = retry.get("stdout", "").strip()
             if retry.get("exit_code") == 0 and actual_out == expected.strip():
                 print(f"[llm_caller] refinement {attempt+1} passed ✓")
@@ -159,4 +155,4 @@ def run_prep_vm(vm, code: str, stdin: str, expected: str,
                 break
             print(f"[llm_caller] refinement {attempt+1} still wrong")
 
-    return code, passed
+    return code, passed, result

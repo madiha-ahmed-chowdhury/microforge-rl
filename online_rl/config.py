@@ -27,8 +27,8 @@ TMS_MIN, TMS_MAX = 1000, 10000  # ms
 
 PREP_CONFIG = {
     "cpu_millicores": 500,
-    "memory_mb":      256,
-    "timeout_ms":     30000,
+    "memory_mb":      512,
+    "timeout_ms":     60000,
 }
 
 # Agent 1 — LLM Selector: sees problem features, picks which LLM to call
