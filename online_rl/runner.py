@@ -321,7 +321,9 @@ def main():
             "llm_tier":     llm_tier,
             "llm_model":    llm_model,
             "llm_reward":   llm_reward,
+            "llm_state":    dict(zip(FEATURE_COLS, [round(float(x), 4) for x in llm_state_vec])),
             "action":       final_action,
+            "res_state":    dict(zip(FEATURE_COLS, [round(float(x), 4) for x in res_state_vec])),
             "execution": {
                 "exit_code":    final_exec.get("exit_code"),
                 "timed_out":    final_exec.get("timed_out"),
