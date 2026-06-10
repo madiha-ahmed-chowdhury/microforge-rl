@@ -24,9 +24,9 @@ def _build_gen_prompt(description: str, stdin: str, expected: str) -> str:
 
 
 _FREE_MODELS = [
-    ("openai/gpt-oss-120b:free",      "OPENROUTER_API_KEY"),
-    ("moonshotai/kimi-k2.6:free",     "OPENROUTER_API_KEY_2"),
-    ("qwen/qwen3-coder:free",         "OPENROUTER_API_KEY_3"),
+    ("openai/gpt-oss-120b:free", "OPENROUTER_API_KEY"),
+    ("openai/gpt-oss-120b:free", "OPENROUTER_API_KEY_2"),
+    ("openai/gpt-oss-120b:free", "OPENROUTER_API_KEY_3"),
 ]
 
 
