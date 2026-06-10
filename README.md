@@ -411,3 +411,80 @@ The reference output (oracle) is not pre-stored. For each problem:
 - Crash at problem 84/300: prep VM returned empty vsock response → `json.loads("")` raised `JSONDecodeError` → killed entire run. Fixed by wrapping `send_code` in try/except.
 - Duplicate transitions from top-up run: `--n 400 --offset 300` generated a different stratified sample than `--n 300`, causing 24 problems to appear in both. Fixed by de-duplicating (keep first 14 per task_id) and adding `--skip-existing` flag.
 - `stress_level` missing from meta: first 83 problems collected before the fix show `stress_level=unknown` in meta. Not critical — derivable from problem text at training time.
+
+---
+
+### 2026-06-10 — Online RL: code caching + problem pool expansion
+
+**`online_rl/code_cache.py`** (new file)
+- Persistent JSON cache mapping `task_id → {code, model_used, passed, tests_passed, cached_at, use_count}`
+- `should_refresh()` returns True only when `tests_passed is False` (wrong code) — resource failures are SAC's problem, not the cache's
+- `increment_use()` saves to disk every 50 hits to avoid write overhead on hot problems
+- `stats()` prints `cached=N passed=N avg_use=N.N` for quick health checks
+
+**`online_rl/runner.py`**
+- LLM calls now happen **once per problem**, not once per episode — on a cache hit the PREP VM is skipped entirely and `llm_reward = 0.0` (no LLM decision, no cost)
+- Cache miss path: calls LLM → runs PREP VM → stores result → updates bandit, identical to before
+- CONFIG VM (Agent 2 / resource allocator) still runs **every episode** regardless of cache hit — SAC continues learning resource allocation with cached code
+- Added `--refresh-cache` flag: deletes `code_cache.json` and regenerates all codes from scratch
+- Startup prints: `total problems in problem cache`, `problems already in code cache`, `problems needing first LLM call` — shows exactly how much LLM work remains
+- Cache stats printed every 100 episodes alongside bandit checkpoint
+
+**`online_rl/config.py`**
+- Added `"code_cache": "online_rl/results/code_cache.json"` to `PATHS`
+
+**`online_rl/prepare_inputs.py`**
+- Added `--add-new N` flag: streams the full `deepmind/code_contests` HuggingFace dataset, finds problems not already in `cc_pool_cache.json` by `task_id`, samples N randomly (time-seeded so each run picks different problems), and appends them to the pool
+- Added `--min-rating` / `--max-rating` filters for `--add-new` (default 1400–1800)
+- New problems get `"test_case_generator": ""` — generators can be added later via `generate_stress_tests.py`
+- Usage: `python -m online_rl.prepare_inputs --add-new 50`
+
+**LLM call reduction**
+- Before: ~10 000 LLM calls for 10 000 episodes over 300 problems
+- After: ~300 calls (one per problem on first encounter), then ~0
+- Problems with failing code (`tests_passed=False`) are automatically re-attempted next episode
+
+---
+
+## Running Online RL
+
+```bash
+python3 online_rl/runner.py [options]
+```
+
+| Flag | Default | Explanation |
+|---|---|---|
+| `--episodes N` | 3000 | Number of training episodes to run |
+| `--pool N` | 150 | How many problems to use from `cc_pool_cache.json`. Takes the first N problems (slice, not random). Raise this to use more of the 394 available. |
+| `--min-rating N` | 1400 | Lower bound on Codeforces rating when filtering the pool |
+| `--max-rating N` | 1800 | Upper bound on Codeforces rating |
+| `--resume` | off | Resume from the latest checkpoint in `online_rl/checkpoints/` |
+| `--refresh-cache` | off | Delete `code_cache.json` and regenerate all LLM code from scratch |
+| `--task PARTIAL_ID` | off | Run only the problem whose `task_id` contains this string (enables verbose output) |
+| `--force-cpu N` | off | Override Agent 2 CPU decision with a fixed value (millicores) |
+| `--force-mem N` | off | Override Agent 2 memory decision with a fixed value (MB) |
+| `--force-timeout N` | off | Override Agent 2 timeout decision with a fixed value (ms) |
+| `--dry-run` | off | Skip LLM and VM calls entirely — uses ref solution + synthetic execution for fast testing |
+
+### Examples
+
+```bash
+# Basic run — 3000 episodes, 150 problems
+python3 online_rl/runner.py
+
+# Use all 394 problems in the pool
+python3 online_rl/runner.py --episodes 5000 --pool 394
+
+# Resume from last checkpoint
+python3 online_rl/runner.py --resume --episodes 2000
+
+# Debug a specific problem with verbose output
+python3 online_rl/runner.py --task cc_1234A --episodes 1
+
+# Force fixed resources (bypass Agent 2) to isolate LLM bandit training
+python3 online_rl/runner.py --force-cpu 200 --force-mem 128 --force-timeout 5000
+
+# Add more problems to the pool before running
+python3 -m online_rl.prepare_inputs --add-new 50
+python3 online_rl/runner.py --pool 444
+```

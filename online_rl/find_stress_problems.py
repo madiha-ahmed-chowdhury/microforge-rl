@@ -156,20 +156,19 @@ def main():
         else:
             continue
 
-        mem_limit  = row.get('memory_limit_bytes', 256 * 1024 * 1024)
-        max_n      = min(parse_max_n(row['description']), 10**9)
-        if max_n == 0:
+        tl_raw     = row.get('time_limit') or {}
+        time_limit = tl_raw.get('seconds', 0) if isinstance(tl_raw, dict) else float(tl_raw or 0)
+        if time_limit == 0:
             continue
-        candidates.append((max_n, {
-            'task_id':          task_id,
-            'description':      row['description'],
-            'ref_solution':     py3[0],
-            'stdin':            stdin,
-            'expected':         expected,
-            'cf_rating':        row.get('cf_rating', 0),
-            'cf_tags':          row.get('cf_tags', []),
-            'memory_limit_bytes': mem_limit,
-            'max_n':            max_n,
+        candidates.append((time_limit, {
+            'task_id':      task_id,
+            'description':  row['description'],
+            'ref_solution': py3[0],
+            'stdin':        stdin,
+            'expected':     expected,
+            'cf_rating':    row.get('cf_rating', 0),
+            'cf_tags':      row.get('cf_tags', []),
+            'time_limit':   time_limit,
         }))
 
         if scanned % 500 == 0:
@@ -177,44 +176,16 @@ def main():
 
     print(f"[find] scanned {scanned} problems, {len(candidates)} candidates with Python solutions")
 
-    # Sort by score, take top 3× what we need, then measure actual runtime
+    # Sort by time_limit descending, take top --top
     candidates.sort(key=lambda x: x[0], reverse=True)
-    top_candidates = candidates[:args.top * 3]
+    selected_pairs = candidates[:args.top]
+    selected = [p for _, p in selected_pairs]
 
-    print(f"\n[find] measuring runtime/memory on top {len(top_candidates)} candidates...")
-    print(f"{'Task':52} {'MaxN':>12} {'MemLim':>8} {'ms':>6} {'MemKB':>8}  OK?")
-    print('-' * 95)
-
-    measured = []
-    for max_n_val, prob in top_candidates:
-        result = run_and_measure(
-            prob['ref_solution'],
-            prob['stdin'].encode(),
-            timeout=20,
-        )
-        prob['_wall_ms'] = result['wall_ms']
-        prob['_mem_kb']  = result['mem_kb']
-        prob['_ok']      = result['ok']
-
-        stress = result['wall_ms'] * 0.5 + result['mem_kb'] / 100
-        measured.append((stress, prob))
-
-        mem_mb  = prob['memory_limit_bytes'] // (1024 * 1024)
-        ok_str  = '✓' if result['ok'] else '✗'
-        print(
-            f"{prob['task_id'][:52]:52} {prob['max_n']:>12,} {mem_mb:>6}MB "
-            f"{result['wall_ms']:>6} {result['mem_kb']:>8}  {ok_str}"
-        )
-
-    # Final selection: top --top by actual stress, must have ok=True
-    measured.sort(key=lambda x: x[0], reverse=True)
-    selected = [p for _, p in measured if p['_ok']][:args.top]
-
-    print(f"\n[find] selected {len(selected)} stress problems")
-    print(f"\n{'#':>3}  {'Task':52} {'ms':>6} {'MemKB':>8} {'MaxN':>8}")
+    print(f"\n[find] selected {len(selected)} problems (sorted by time_limit)")
+    print(f"\n{'#':>3}  {'Task':52} {'time_limit':>12} {'cf_rating':>10}")
     print('-' * 85)
     for i, p in enumerate(selected, 1):
-        print(f"{i:>3}  {p['task_id'][:52]:52} {p['_wall_ms']:>6} {p['_mem_kb']:>8} {p['max_n']:>8,}")
+        print(f"{i:>3}  {p['task_id'][:52]:52} {p['time_limit']:>12} {p['cf_rating']:>10}")
 
     # Append to cache
     for p in selected:

@@ -1,12 +1,10 @@
 import ast as _ast
 
 from online_rl.config import (
-    FEATURE_COLS,
+    SAC_FEATURE_COLS,
     CPU_MIN, CPU_MAX,
     MEM_MIN, MEM_MAX,
     TMS_MIN, TMS_MAX,
-    LLM_TIERS, LLM_THRESHOLDS,
-    OPUS_WARMUP_BLOCK, OPUS_MAX_PCT,
 )
 
 
@@ -17,7 +15,11 @@ def static_analyse(code: str) -> dict:
         "ast_node_count":        0,
         "has_recursion":         0,
         "has_external_calls":    0,
+        "line_count":            0,
+        "estimated_complexity":  0,
     }
+    features["line_count"] = len([l for l in code.splitlines() if l.strip()])
+
     try:
         tree = _ast.parse(code)
     except SyntaxError:
@@ -46,63 +48,61 @@ def static_analyse(code: str) -> dict:
         if isinstance(n, _ast.Call) and isinstance(n.func, _ast.Name)
     }
     features["has_recursion"]      = int(bool(defined & called))
-    features["has_external_calls"] = int(
-        any(k in code.lower() for k in ("subprocess", "requests", "urllib", "open(", "socket", "http"))
-    )
+    # has_external_calls not in SAC_FEATURE_COLS — computed but unused
+    # features["has_external_calls"] = int(
+    #     any(k in code.lower() for k in ("subprocess", "requests", "urllib", "open(", "socket", "http"))
+    # )
+
+    cc = features["cyclomatic_complexity"]
+    ld = features["max_loop_depth"]
+    if cc > 15 or ld >= 4:
+        features["estimated_complexity"] = 3
+    elif cc > 8 or ld >= 3:
+        features["estimated_complexity"] = 2
+    elif cc > 3 or ld >= 2:
+        features["estimated_complexity"] = 1
+    else:
+        features["estimated_complexity"] = 0
+
     return features
 
 
-def build_state_vec(problem_state: dict, code_features: dict, scaler) -> list:
-    merged = dict(problem_state)
-    for k, v in code_features.items():
-        if k in FEATURE_COLS:
-            merged[k] = v
-    raw = [float(merged.get(k, 0)) for k in FEATURE_COLS]
+def build_state_vec(code_features: dict, rolling: dict, scaler) -> list:
+    merged = {}
+    merged.update(code_features)
+    merged.update(rolling)
+    raw = [float(merged.get(k, 0.0)) for k in SAC_FEATURE_COLS]
     if scaler is not None:
         import numpy as np
         raw = scaler.transform([raw])[0].tolist()
     return raw
 
 
-def update_rolling(state: list, execution: dict) -> list:
-    next_s  = list(state)
-    idx_map = {k: i for i, k in enumerate(FEATURE_COLS)}
-    success = 1.0 if execution.get("exit_code") == 0 else 0.0
+def update_rolling(rolling: dict, execution: dict) -> dict:
+    success = 1.0 if (
+        not execution.get("timed_out", False) and
+        not execution.get("oom_killed", False) and
+        execution.get("exit_code") != -9
+    ) else 0.0
 
-    if "recent_success_rate" in idx_map:
-        i = idx_map["recent_success_rate"]
-        next_s[i] = round(success * 0.1 + state[i] * 0.9, 4)
-    if "recent_mean_cpu_used" in idx_map:
-        i = idx_map["recent_mean_cpu_used"]
-        next_s[i] = round(execution.get("cpu_user_ms", 0) * 0.1 + state[i] * 0.9, 2)
-    if "recent_mean_mem_used" in idx_map:
-        i = idx_map["recent_mean_mem_used"]
-        next_s[i] = round(execution.get("mem_peak_kb", 0) * 0.1 + state[i] * 0.9, 2)
-    return next_s
-
-
-def scale_action(a) -> dict:
-    cpu = int((a[0] + 1) / 2 * (CPU_MAX - CPU_MIN) + CPU_MIN)
-    mem = int((a[1] + 1) / 2 * (MEM_MAX - MEM_MIN) + MEM_MIN)
-    tms = int((a[2] + 1) / 2 * (TMS_MAX - TMS_MIN) + TMS_MIN)
     return {
-        "cpu_millicores": max(CPU_MIN, min(CPU_MAX, cpu)),
-        "memory_mb":      max(MEM_MIN, min(MEM_MAX, mem)),
-        "timeout_ms":     max(TMS_MIN, min(TMS_MAX, tms)),
+        "recent_success_rate":  round(
+            success * 0.1 + rolling["recent_success_rate"] * 0.9, 4),
+        "recent_mean_cpu_used": round(
+            execution.get("cpu_user_ms", 0) * 0.1 + rolling["recent_mean_cpu_used"] * 0.9, 2),
+        "recent_mean_mem_used": round(
+            execution.get("mem_peak_kb", 0) * 0.1 + rolling["recent_mean_mem_used"] * 0.9, 2),
     }
 
 
-def select_llm_tier(a4: float, episode: int, opus_used: int, total_eps: int) -> str:
-    if a4 < LLM_THRESHOLDS[0]:
-        tier = "laguna"
-    elif a4 < LLM_THRESHOLDS[1]:
-        tier = "sonnet"
-    else:
-        tier = "opus"
-
-    if tier == "opus" and episode < OPUS_WARMUP_BLOCK:
-        tier = "sonnet"
-    if tier == "opus" and total_eps > 0 and opus_used / total_eps >= OPUS_MAX_PCT:
-        tier = "sonnet"
-
-    return tier
+# scale_action: continuous tanh → resource values, used by old SACAgent (continuous).
+# DiscreteSACAgent returns bin indices directly — this is unused.
+# def scale_action(a) -> dict:
+#     cpu = int((a[0] + 1) / 2 * (CPU_MAX - CPU_MIN) + CPU_MIN)
+#     mem = int((a[1] + 1) / 2 * (MEM_MAX - MEM_MIN) + MEM_MIN)
+#     tms = int((a[2] + 1) / 2 * (TMS_MAX - TMS_MIN) + TMS_MIN)
+#     return {
+#         "cpu_millicores": max(CPU_MIN, min(CPU_MAX, cpu)),
+#         "memory_mb":      max(MEM_MIN, min(MEM_MAX, mem)),
+#         "timeout_ms":     max(TMS_MIN, min(TMS_MAX, tms)),
+#     }

@@ -1,5 +1,6 @@
 import ast
 import os
+import random
 
 from online_rl.config import MAX_REFINEMENT_ATTEMPTS
 
@@ -22,9 +23,16 @@ def _build_gen_prompt(description: str, stdin: str, expected: str) -> str:
     return prompt
 
 
-def _try_laguna(prompt: str) -> str | None:
+_FREE_MODELS = [
+    ("openai/gpt-oss-120b:free",      "OPENROUTER_API_KEY"),
+    ("moonshotai/kimi-k2.6:free",     "OPENROUTER_API_KEY_2"),
+    ("qwen/qwen3-coder:free",         "OPENROUTER_API_KEY_3"),
+]
+
+
+def _try_openrouter(prompt: str, model: str, api_key_env: str) -> str | None:
     import requests
-    api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    api_key = os.environ.get(api_key_env, "")
     try:
         resp = requests.post(
             url="https://openrouter.ai/api/v1/chat/completions",
@@ -34,7 +42,7 @@ def _try_laguna(prompt: str) -> str | None:
                 "HTTP-Referer":  "https://github.com/madiha/microforge-rl",
             },
             json={
-                "model":       "poolside/laguna-m.1:free",
+                "model":       model,
                 "max_tokens":  8192,
                 "temperature": 0.2,
                 "messages":    [{"role": "user", "content": prompt}],
@@ -50,10 +58,25 @@ def _try_laguna(prompt: str) -> str | None:
                 code = strip_code(content)
                 if _try_parse(code):
                     return code
-        print(f"[llm_caller] Laguna failed (status={resp.status_code})")
+                print(f"[llm_caller] {model} syntax error in response")
+            else:
+                err = data.get("error", {})
+                print(f"[llm_caller] {model} failed: finish={finish!r} err={err.get('message', '')}")
+        else:
+            print(f"[llm_caller] {model} HTTP {resp.status_code}: {resp.text[:200]}")
     except Exception as e:
-        print(f"[llm_caller] Laguna error: {e}")
+        print(f"[llm_caller] {model} error: {e}")
     return None
+
+
+def _try_free_models(prompt: str) -> tuple[str | None, str]:
+    for model, key_env in random.sample(_FREE_MODELS, len(_FREE_MODELS)):
+        short = model.split("/")[1].split(":")[0]
+        print(f"[llm_caller] trying free model: {short}")
+        code = _try_openrouter(prompt, model, key_env)
+        if code:
+            return code, short
+    return None, ""
 
 
 def _try_claude(prompt: str, model: str) -> str | None:
@@ -73,11 +96,11 @@ def generate_code(description: str, stdin: str, expected: str,
     from llm_cc import SONNET_MODEL, OPUS_MODEL
     prompt = _build_gen_prompt(description, stdin, expected)
 
-    if tier == "laguna":
-        code = _try_laguna(prompt)
+    if tier == "free":
+        code, model_name = _try_free_models(prompt)
         if code:
-            return code, "laguna-m.1"
-        print("[llm_caller] Laguna failed — escalating to Sonnet")
+            return code, model_name
+        print("[llm_caller] all free models failed — escalating to Sonnet")
         code = _try_claude(prompt, SONNET_MODEL)
         if code:
             return code, "sonnet-escalated"

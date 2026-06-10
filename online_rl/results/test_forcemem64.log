@@ -1,0 +1,11 @@
+/home/madiha/firecracker-rl/venv/lib/python3.12/site-packages/sklearn/base.py:525: InconsistentVersionWarning: Trying to unpickle estimator StandardScaler from version 1.6.1 when using version 1.9.0. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+[runner] streaming CC problems | rating=1400-1800 | pool=200
+[loader] loaded 200 problems from cache (online_rl/cc_pool_cache.json)
+[runner] pool ready: 200 problems
+[runner] scaler loaded
+[runner] ep 0000 | llm=free | task=cc_737_A. Road to Cinema
+[runner] PREP done | correct=✓
+ep 0001 | cc_737_A. Road to Cinema cf=1700 | llm=free(claude-sonnet-4-6) | cpu=400mc mem=64MB t=10s | exit=0 wall=669ms correct=✓ oom=False | llm_r=+1.00 res_r=-0.89 avg10=-0.89 | bufs=1/1 tiers={'free': 1, 'sonnet': 0, 'opus': 0}
+[runner] done. 1 episodes.

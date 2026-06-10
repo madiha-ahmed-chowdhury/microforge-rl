@@ -2,13 +2,36 @@ import math
 from online_rl.config import REWARD_CONFIG
 
 
+# def compute_llm_reward(tests_passed, llm_tier: str, llm_model: str) -> float:
+#     if tests_passed is True:
+#         r_quality = 1.0
+#     elif tests_passed is False:
+#         r_quality = -1.5
+#     else:
+#         r_quality = 0.5
+
+#     r_cost = REWARD_CONFIG["llm_costs"].get(llm_tier, 0.0)
+
+#     if llm_model == "ref-fallback":
+#         r_failure = -1.2
+#     elif llm_model.endswith("-escalated"):
+#         r_failure = -0.5
+#     else:
+#         r_failure = 0.0
+
+#     return round(r_quality + r_cost + r_failure, 4)
+
 def compute_llm_reward(tests_passed, llm_tier: str, llm_model: str) -> float:
+    # code correct
     if tests_passed is True:
         r_quality = 1.0
+    # code ran but wrong answer
     elif tests_passed is False:
         r_quality = -1.5
+    # code never completed (timeout, OOM, crash)
+    # None means execution did not finish — not a success
     else:
-        r_quality = 0.5
+        r_quality = -1
 
     r_cost = REWARD_CONFIG["llm_costs"].get(llm_tier, 0.0)
 
@@ -20,7 +43,6 @@ def compute_llm_reward(tests_passed, llm_tier: str, llm_model: str) -> float:
         r_failure = 0.0
 
     return round(r_quality + r_cost + r_failure, 4)
-
 
 def compute_res_reward(execution: dict, action: dict) -> float:
     rc = REWARD_CONFIG

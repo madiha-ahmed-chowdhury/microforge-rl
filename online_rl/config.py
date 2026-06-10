@@ -1,20 +1,21 @@
-FEATURE_COLS = [
-    "prompt_token_count",
-    "prompt_complexity_score",
-    "task_type",
-    "has_loops_hint",
-    "has_io_hint",
-    "example_count",
-    "line_count",
+import math as _math
+
+# ── Discrete resource bins ─────────────────────────────────────────────────
+CPU_BINS     = [50, 75, 100, 150, 200, 300, 400, 500]
+MEMORY_BINS  = [32, 64, 128, 256, 512]
+TIMEOUT_BINS = [500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 7000, 10000, 20000]
+
+N_CPU     = len(CPU_BINS)    # 8
+N_MEMORY  = len(MEMORY_BINS) # 6
+N_TIMEOUT = len(TIMEOUT_BINS)# 11
+
+SAC_FEATURE_COLS = [
     "cyclomatic_complexity",
-    "ast_node_count",
-    "has_recursion",
-    "has_external_calls",
     "max_loop_depth",
     "estimated_complexity",
-    "host_cpu_load_1m",
-    "host_mem_available_mb",
-    "queue_depth",
+    "has_recursion",
+    "ast_node_count",
+    "line_count",
     "recent_success_rate",
     "recent_mean_cpu_used",
     "recent_mean_mem_used",
@@ -22,7 +23,7 @@ FEATURE_COLS = [
 
 # Action ranges — fully continuous, no rounding
 CPU_MIN, CPU_MAX = 50, 500      # millicores
-MEM_MIN, MEM_MAX = 48, 256      # MB — 48MB minimum: Python needs ~40MB virtual memory overhead
+MEM_MIN, MEM_MAX = 48, 512      # MB — 48MB minimum: Python needs ~40MB virtual memory overhead
 TMS_MIN, TMS_MAX = 1000, 10000  # ms
 
 PREP_CONFIG = {
@@ -31,30 +32,18 @@ PREP_CONFIG = {
     "timeout_ms":     60000,
 }
 
-# Agent 1 — LLM Selector: sees problem features, picks which LLM to call
-LLM_SAC_CONFIG = {
-    "lr":                   3e-4,
-    "gamma":                0.99,
-    "tau":                  0.005,
-    "batch_size":           128,
-    "buffer_size":          5000,
-    "warmup":               100,
-    "target_entropy_ratio": 0.98,
-    "state_dim":            19,
-    "action_dim":           1,
-}
-
-# Agent 2 — Resource Allocator: sees problem + generated code features, picks cpu/mem/timeout
+# Agent 2 — Resource Allocator: discrete SAC over CPU/memory/timeout bins
 RES_SAC_CONFIG = {
-    "lr":                   3e-4,
+    "lr_actor":             3e-4,
+    "lr_critic":            5e-4,
+    "lr_alpha":             3e-4,
     "gamma":                0.99,
     "tau":                  0.005,
     "batch_size":           256,
-    "buffer_size":          5000,
+    "buffer_size":          20000,
     "warmup":               200,
-    "target_entropy_ratio": 0.98,
-    "state_dim":            19,
-    "action_dim":           3,
+    "target_entropy":       -(_math.log(N_CPU) + _math.log(N_MEMORY) + _math.log(N_TIMEOUT)) * 0.98,
+    "state_dim":            9,
 }
 
 SAC_CONFIG = RES_SAC_CONFIG  # keep backward compat
@@ -66,19 +55,14 @@ REWARD_CONFIG = {
     "mem_waste_w":  -2.0,
     "latency_w":    -0.2,
     "latency_base": 500,
-    "llm_costs":    {"laguna": 0.0, "haiku": -0.05, "sonnet": -0.3, "opus": -1.0},
+    "llm_costs":    {"free": 0.0, "haiku": -0.05, "sonnet": -0.3, "opus": -1.0},
 }
 
-# LLM tier selection — 4th action dimension thresholded
-# < 0.5  → laguna  (free, fast)
-# 0.5–0.9 → sonnet  (paid, strong)
-# > 0.9  → opus    (expensive, rare)
-LLM_TIERS      = ["laguna", "sonnet", "opus"]
-LLM_THRESHOLDS = [0.5, 0.9]
-
-# Hard caps: no Opus for first N episodes, and never more than X% of total
-OPUS_WARMUP_BLOCK  = 200    # no Opus until episode 200
-OPUS_MAX_PCT       = 0.02   # Opus capped at 2% of all episodes after warmup
+# LLM tier selection was previously a 4th action dimension; now handled by LLMBandit.
+# LLM_TIERS      = ["free", "sonnet", "opus"]
+# LLM_THRESHOLDS = [0.5, 0.9]
+# OPUS_WARMUP_BLOCK  = 200
+# OPUS_MAX_PCT       = 0.02
 
 PATHS = {
     "inputs":          "online_rl/inputs.json",
@@ -89,6 +73,8 @@ PATHS = {
     "transitions":     "online_rl/results/transitions.jsonl",
     "code_pairs":      "collected/effibench_code_pairs_dedup.jsonl",
     "raw_transitions": "collected/effibench_transitions.jsonl",
+    "code_cache":      "online_rl/results/code_cache.json",
+    "online_scaler":   "online_rl/results/online_scaler.pkl",
 }
 
 VSOCK = {

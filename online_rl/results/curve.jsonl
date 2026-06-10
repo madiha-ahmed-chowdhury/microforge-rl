@@ -19,3 +19,10 @@
 {"ep": 1, "llm_r": -2.0, "res_r": -4.2504, "avg10": -4.25, "llm_tier": "laguna"}
 {"ep": 1, "llm_r": 0.5, "res_r": -0.7951, "avg10": -0.795, "llm_tier": "laguna"}
 {"ep": 1, "llm_r": 0.5, "res_r": -4.2504, "avg10": -4.25, "llm_tier": "laguna"}
+{"ep": 1, "llm_r": 0.5, "res_r": -0.7246, "avg10": -0.725, "llm_tier": "laguna"}
+{"ep": 1, "llm_r": 0.5, "res_r": -4.0924, "avg10": -4.092, "llm_tier": "laguna"}
+{"ep": 1, "llm_r": 1.0, "res_r": -0.7025, "avg10": -0.703, "llm_tier": "free"}
+{"ep": 1, "llm_r": 1.0, "res_r": -0.9026, "avg10": -0.903, "llm_tier": "free"}
+{"ep": 5, "llm_r": 1.0, "res_r": -0.9531, "avg10": -2.848, "llm_tier": "free"}
+{"ep": 1, "llm_r": 1.0, "res_r": -0.8897, "avg10": -0.89, "llm_tier": "free"}
+{"ep": 5, "llm_r": -1.5, "res_r": -4.0379, "avg10": -2.179, "llm_tier": "free"}

@@ -1,0 +1,21 @@
+/home/madiha/firecracker-rl/venv/lib/python3.12/site-packages/sklearn/base.py:525: InconsistentVersionWarning: Trying to unpickle estimator StandardScaler from version 1.6.1 when using version 1.9.0. This might lead to breaking code or invalid results. Use at your own risk. For more info please refer to:
+https://scikit-learn.org/stable/model_persistence.html#security-maintainability-limitations
+  warnings.warn(
+[runner] streaming CC problems | rating=1400-1800 | pool=200
+[loader] loaded 200 problems from cache (online_rl/cc_pool_cache.json)
+[runner] pool ready: 200 problems
+[runner] scaler loaded
+[runner] ep 0000 | llm=free | task=cc_990_B. Micro-World
+[runner] PREP done | correct=✓
+[runner] ep 0001 | llm=free | task=cc_670_B. Game of Robots
+[llm_caller] trying free model: gpt-oss-120b
+[runner] PREP done | correct=✓
+[runner] ep 0002 | llm=free | task=cc_663_A. Rebus
+[runner] PREP done | correct=✓
+[runner] ep 0003 | llm=free | task=cc_1291_B. Array Sharpening
+[runner] PREP done | correct=✓
+[runner] ep 0004 | llm=free | task=cc_1264_A. Beautiful Regional Contest
+[llm_caller] trying free model: gpt-oss-120b
+[runner] PREP done | correct=✓
+ep 0005 | cc_1264_A. Beautiful Regional Contest cf=1500 | llm=free(gpt-oss-120b) | cpu=500mc mem=512MB t=2s | exit=0 wall=11ms correct=✓ oom=False | llm_r=+1.00 res_r=-0.95 avg10=-2.85 | bufs=5/5 tiers={'free': 5, 'sonnet': 0, 'opus': 0}
+[runner] done. 5 episodes.
