@@ -26,8 +26,7 @@ def run_code_on_vm(vm, code: str, stdin: str, timeout_ms: int,
     """
     from vm import send_code
     wrapped = f"import sys, io\nsys.stdin = io.TextIOWrapper(io.BytesIO({repr(stdin.encode())}))\n{code}"
-    # convert timeout_ms to cpu_limit_sec for guest ulimit -t
-    cpu_limit_sec = max(1, timeout_ms // 1000)
+    cpu_limit_sec = timeout_ms / 1000
     try:
         return send_code(vm, wrapped, timeout_ms,
                          memory_limit_mb=memory_limit_mb,

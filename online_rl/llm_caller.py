@@ -130,11 +130,11 @@ def generate_code(description: str, stdin: str, expected: str,
 def refine_code(original_code: str, stdin: str, expected: str,
                 actual: str, description: str, attempt: int = 0) -> str:
     from llm_cc import generate_code_claude, SONNET_MODEL, OPUS_MODEL
-    models = [SONNET_MODEL, OPUS_MODEL]
+    models = [SONNET_MODEL]
     model  = models[min(attempt, len(models) - 1)]
     prompt = (
         "The following code produced wrong output on a competitive programming problem.\n"
-        f"Problem:\n{description[:800]}\n\n"
+        f"Problem:\n{description}\n\n"
         f"Code:\n{original_code}\n\n"
         f"Input:\n{stdin[:500]}\n\n"
         f"Expected:\n{expected[:300]}\n\n"

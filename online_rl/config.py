@@ -1,13 +1,15 @@
 import math as _math
 
 # ── Discrete resource bins ─────────────────────────────────────────────────
-CPU_BINS     = [50, 75, 100, 150, 200, 300, 400, 500]
-MEMORY_BINS  = [32, 64, 128, 256, 512]
-TIMEOUT_BINS = [500, 1000, 1500, 2000, 2500, 3000, 4000, 5000, 7000, 10000, 20000]
+CPU_BINS     = [50, 75, 100, 125, 150, 175, 200, 300, 500]
+MEMORY_BINS  = [64, 80, 96, 112, 128, 160, 192, 256, 320, 512]
+TIMEOUT_BINS = [200, 300, 400, 600, 800, 1000, 1500, 2000, 3000, 5000, 8000, 10000, 15000, 20000, 30000]
 
-N_CPU     = len(CPU_BINS)    # 8
-N_MEMORY  = len(MEMORY_BINS) # 6
-N_TIMEOUT = len(TIMEOUT_BINS)# 11
+N_CPU     = 9   # len(CPU_BINS)
+N_MEMORY  = 10  # len(MEMORY_BINS)
+N_TIMEOUT = 15 # len(TIMEOUT_BINS)
+
+FIXED_OVERHEAD_MB = 65  # guest OS + Python runtime baseline
 
 SAC_FEATURE_COLS = [
     "cyclomatic_complexity",
@@ -23,8 +25,8 @@ SAC_FEATURE_COLS = [
 
 # Action ranges — fully continuous, no rounding
 CPU_MIN, CPU_MAX = 50, 500      # millicores
-MEM_MIN, MEM_MAX = 48, 512      # MB — 48MB minimum: Python needs ~40MB virtual memory overhead
-TMS_MIN, TMS_MAX = 1000, 10000  # ms
+MEM_MIN, MEM_MAX = 64, 512      # MB — 64MB minimum (matches lowest MEMORY_BIN)
+TMS_MIN, TMS_MAX = 200, 10000  # ms
 
 PREP_CONFIG = {
     "cpu_millicores": 500,
@@ -83,5 +85,8 @@ VSOCK = {
     "guest_cid": 3,
 }
 
-MAX_RESOURCE_RETRIES     = 3
-MAX_REFINEMENT_ATTEMPTS  = 2
+VM_BOOT_TIMEOUT             = 30   # seconds for wait_for_agent polling
+TIMEOUT_STARTUP_OVERHEAD_MS = 200  # Python interpreter startup floor for reward
+MAX_RESOURCE_RETRIES        = 3
+MAX_REFINEMENT_ATTEMPTS  = 1
+MAX_CACHE_RETRY_ATTEMPTS = 3  # LLM re-calls before giving up on a failing cached problem

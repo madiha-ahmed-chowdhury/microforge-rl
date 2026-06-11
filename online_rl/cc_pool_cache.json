@@ -197,7 +197,7 @@
         "dp",
         "greedy"
       ],
-      "test_case_generator": "import random\nn = 200\nprint(n)\nx = 0\nfor _ in range(n):\n    x += random.randint(1, 1000)\n    h = random.randint(1, 10**6)\n    print(x, h)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 100000\nprint(n)\nx = 0\nfor _ in range(n):\n    x += random.randint(1, 1000)\n    h = random.randint(1, 10**6)\n    print(x, h)\n"
     },
     {
       "task_id": "cc_634_C. Factory Repairs",
@@ -263,7 +263,7 @@
         "math",
         "number theory"
       ],
-      "test_case_generator": "import random\n# n must be divisible by 4 for hex encoding; use n=16\nn = 16\nprint(n)\nfor _ in range(n):\n    val = random.randint(0, 2**n - 1)\n    print(format(val, f'0{n//4}X'))\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 520  # max valid, must be multiple of 4\nprint(n)\nfor _ in range(n):\n    val = random.randint(0, 2**n - 1)\n    print(format(val, f'0{n//4}X'))\n"
     },
     {
       "task_id": "cc_1136_D. Nastya Is Buying Lunch",
@@ -303,7 +303,7 @@
         "math",
         "number theory"
       ],
-      "test_case_generator": "import random\nn = 100\nprint(n)\nprint(*[random.randint(1, 10**9) for _ in range(n)])\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 100000\nprint(n)\nprint(*[random.randint(1, 10**9) for _ in range(n)])\n"
     },
     {
       "task_id": "cc_151_C. Win or Freeze",
@@ -330,7 +330,7 @@
         "greedy",
         "two pointers"
       ],
-      "test_case_generator": "import random\nt = 5\nprint(t)\nfor _ in range(t):\n    print()\n    k = random.randint(0, 10)\n    n = random.randint(1, 8)\n    m = random.randint(1, 8)\n    print(k, n, m)\n    # a: monocarp actions (0=add line, positive=delete line i)\n    lines_a = k\n    a = []\n    for _ in range(n):\n        if lines_a > 0 and random.random() < 0.4:\n            a.append(random.randint(1, lines_a))\n        else:\n            a.append(0)\n            lines_a += 1\n    print(*a)\n    # b: polycarp actions\n    lines_b = k\n    b = []\n    for _ in range(m):\n        if lines_b > 0 and random.random() < 0.4:\n            b.append(random.randint(1, lines_b))\n        else:\n            b.append(0)\n            lines_b += 1\n    print(*b)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nt = 100\nprint(t)\nfor _ in range(t):\n    print()\n    k = random.randint(0, 10)\n    n = random.randint(1, 8)\n    m = random.randint(1, 8)\n    print(k, n, m)\n    lines_a = k\n    a = []\n    for _ in range(n):\n        if lines_a > 0 and random.random() < 0.4:\n            a.append(random.randint(1, lines_a))\n        else:\n            a.append(0)\n            lines_a += 1\n    print(*a)\n    lines_b = k\n    b = []\n    for _ in range(m):\n        if lines_b > 0 and random.random() < 0.4:\n            b.append(random.randint(1, lines_b))\n        else:\n            b.append(0)\n            lines_b += 1\n    print(*b)\n"
     },
     {
       "task_id": "cc_195_A. Let's Watch Football",
@@ -585,7 +585,7 @@
         "greedy",
         "sortings"
       ],
-      "test_case_generator": "import random\nn = 50\nk = random.randint(n, n + 20)\np = random.randint(1, 20000)\npeople = sorted(random.sample(range(1, 20000), n))\nkeys = sorted(random.sample(range(1, 20000), k))\nprint(n, k, p)\nprint(*people)\nprint(*keys)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 1000\nk = random.randint(n, n + 200)\np = random.randint(1, 20000)\npeople = sorted(random.sample(range(1, 20001), n))\nkeys   = sorted(random.sample(range(1, 20001), k))\nprint(n, k, p)\nprint(*people)\nprint(*keys)\n"
     },
     {
       "task_id": "cc_851_B. Arpa and an exam about geometry",
@@ -625,7 +625,7 @@
         "shortest paths",
         "sortings"
       ],
-      "test_case_generator": "import random\nn = 20\nm = random.randint(n-1, n*(n-1)//2)\nk = random.randint(1, n)\nspecials = random.sample(range(1, n+1), k)\nprint(n, m, k)\nprint(*specials)\nedges = set()\n# ensure connected: chain\nfor i in range(1, n):\n    edges.add((i, i+1, random.randint(1, 10**9)))\nwhile len(edges) < m:\n    u = random.randint(1, n)\n    v = random.randint(1, n)\n    if u != v:\n        edges.add((min(u,v), max(u,v), random.randint(1, 10**9)))\nfor u, v, w in list(edges)[:m]:\n    print(u, v, w)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 1000\nm = random.randint(n - 1, min(n * (n - 1) // 2, 5000))\nk = random.randint(1, n)\nspecials = random.sample(range(1, n + 1), k)\nprint(n, m, k)\nprint(*specials)\nedges = set()\nfor i in range(1, n):\n    edges.add((i, i + 1, random.randint(1, 10**9)))\nwhile len(edges) < m:\n    u = random.randint(1, n)\n    v = random.randint(1, n)\n    if u != v:\n        edges.add((min(u, v), max(u, v), random.randint(1, 10**9)))\nfor u, v, w in list(edges)[:m]:\n    print(u, v, w)\n"
     },
     {
       "task_id": "cc_1129_A2. Toy Train",
@@ -638,7 +638,7 @@
         "brute force",
         "greedy"
       ],
-      "test_case_generator": "import random\nn = 100\nm = random.randint(1, n)\nprint(n, m)\nfor _ in range(m):\n    s = random.randint(1, n)\n    d = random.randint(1, n)\n    print(s, d)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 5000\nm = random.randint(1, n)\nprint(n, m)\nfor _ in range(m):\n    s = random.randint(1, n)\n    d = random.randint(1, n)\n    print(s, d)\n"
     },
     {
       "task_id": "cc_1227_A. Math Problem",
@@ -650,7 +650,7 @@
       "cf_tags": [
         "math"
       ],
-      "test_case_generator": "import random\nt = 5\nprint(t)\nfor _ in range(t):\n    n = random.randint(1, 50)\n    print(n)\n    for _ in range(n):\n        l = random.randint(0, 10**9)\n        r = random.randint(l, min(l + 10**9, 2 * 10**9))\n        print(l, r)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nt = 100\nprint(t)\nfor _ in range(t):\n    n = random.randint(1, 50)\n    print(n)\n    for _ in range(n):\n        l = random.randint(0, 10**9)\n        r = random.randint(l, min(l + 10**9, 2 * 10**9))\n        print(l, r)\n"
     },
     {
       "task_id": "cc_124_D. Squares",
@@ -700,7 +700,7 @@
       "cf_tags": [
         "brute force"
       ],
-      "test_case_generator": "import random\nimport string\nt = 5\nprint(t)\nfor _ in range(t):\n    n = random.randint(5, 26)\n    m = random.randint(1, 10)\n    s = ''.join(random.choice(string.ascii_lowercase) for _ in range(n))\n    print(n, m)\n    print(s)\n    fails = sorted(random.sample(range(n), min(m, n)))\n    print(*fails)\n"
+      "test_case_generator": "import random, string\nrandom.seed(42)\nt = 10000\nprint(t)\nfor _ in range(t):\n    n = random.randint(5, 26)\n    m = random.randint(1, n)\n    s = ''.join(random.choice(string.ascii_lowercase) for _ in range(n))\n    print(n, m)\n    print(s)\n    fails = sorted(random.sample(range(n), min(m, n)))\n    print(*fails)\n"
     },
     {
       "task_id": "cc_1334_A. Level Statistics",
@@ -754,7 +754,7 @@
         "greedy",
         "strings"
       ],
-      "test_case_generator": "import random\nimport string\nt = 10\nprint(t)\nfor _ in range(t):\n    n = random.randint(1, 30)\n    s = ''.join(random.choice('abcde') for _ in range(n))\n    print(s)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nt = 10000\nprint(t)\nfor _ in range(t):\n    n = random.randint(1, 30)\n    s = ''.join(random.choice('abcde') for _ in range(n))\n    print(s)\n"
     },
     {
       "task_id": "cc_1490_D. Permutation Transformation",
@@ -830,7 +830,7 @@
         "dfs and similar",
         "graphs"
       ],
-      "test_case_generator": "import random\nn = 20\nm = random.randint(n-1, 30)\nprint(n, m)\nedges = set()\nfor i in range(1, n):\n    edges.add((i, i+1))\nwhile len(edges) < m:\n    u = random.randint(1, n)\n    v = random.randint(1, n)\n    if u != v:\n        edges.add((min(u,v), max(u,v)))\nfor u, v in edges:\n    print(u, v)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 100000\nm = 150000\nprint(n, m)\nedges = set()\nfor i in range(1, n):\n    edges.add((i, i + 1))\nwhile len(edges) < m:\n    u = random.randint(1, n)\n    v = random.randint(1, n)\n    if u != v:\n        edges.add((min(u, v), max(u, v)))\nfor u, v in list(edges)[:m]:\n    print(u, v)\n"
     },
     {
       "task_id": "cc_730_G. Car Repair Shop",
@@ -921,7 +921,7 @@
         "greedy",
         "implementation"
       ],
-      "test_case_generator": "import random\nt = 5\nprint(t)\nfor _ in range(t):\n    n = random.randint(5, 30)\n    print(n)\n    scores = sorted([random.randint(0, 20) for _ in range(n)], reverse=True)\n    print(*scores)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nt = 100\nprint(t)\nfor _ in range(t):\n    n = random.randint(5, 30)\n    print(n)\n    scores = sorted([random.randint(0, 20) for _ in range(n)], reverse=True)\n    print(*scores)\n"
     },
     {
       "task_id": "cc_1285_C. Fadi and LCM",
@@ -1122,7 +1122,7 @@
       "cf_tags": [
         "greedy"
       ],
-      "test_case_generator": "import random\nimport string\nt = 10\nprint(t)\nfor _ in range(t):\n    def rword():\n        return ''.join(random.choice(string.ascii_uppercase) for _ in range(random.randint(3, 10)))\n    print(rword(), rword())\n"
+      "test_case_generator": "import random, string\nrandom.seed(42)\nt = 150\nprint(t)\nfor _ in range(t):\n    def rword():\n        return ''.join(random.choice(string.ascii_uppercase) for _ in range(random.randint(3, 10)))\n    print(rword(), rword())\n"
     },
     {
       "task_id": "cc_1301_B. Motarack's Birthday",
@@ -1136,7 +1136,7 @@
         "greedy",
         "ternary search"
       ],
-      "test_case_generator": "import random\nt = 10\nprint(t)\nfor _ in range(t):\n    n = random.randint(2, 20)\n    print(n)\n    arr = [random.randint(0, 50) for _ in range(n)]\n    # randomly set some to -1\n    for i in range(n):\n        if random.random() < 0.3:\n            arr[i] = -1\n    print(*arr)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nt = 10000\nprint(t)\nfor _ in range(t):\n    n = random.randint(2, 20)\n    print(n)\n    arr = [random.randint(0, 50) for _ in range(n)]\n    for i in range(n):\n        if random.random() < 0.3:\n            arr[i] = -1\n    print(*arr)\n"
     },
     {
       "task_id": "cc_1344_A. Hilbert's Hotel",
@@ -1150,7 +1150,7 @@
         "number theory",
         "sortings"
       ],
-      "test_case_generator": "import random\nt = 10\nprint(t)\nfor _ in range(t):\n    n = random.randint(1, 20)\n    print(n)\n    print(*[random.randint(-200, 200) for _ in range(n)])\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nt = 10000\nprint(t)\nfor _ in range(t):\n    n = random.randint(1, 20)\n    print(n)\n    print(*[random.randint(-200, 200) for _ in range(n)])\n"
     },
     {
       "task_id": "cc_1366_A. Shovels and Swords",
@@ -1193,7 +1193,7 @@
         "sortings",
         "two pointers"
       ],
-      "test_case_generator": "import random\nt = 5\nprint(t)\nfor _ in range(t):\n    n = random.randint(3, 20)\n    m = random.randint(1, 50)\n    print(n, m)\n    a = [random.randint(1, 50) for _ in range(n)]\n    b = [random.randint(1, 2) for _ in range(n)]\n    print(*a)\n    print(*b)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nt = 1000\nprint(t)\nfor _ in range(t):\n    n = random.randint(3, 20)\n    m = random.randint(1, 50)\n    print(n, m)\n    a = [random.randint(1, 50) for _ in range(n)]\n    b = [random.randint(1, 2) for _ in range(n)]\n    print(*a)\n    print(*b)\n"
     },
     {
       "task_id": "cc_1525_D. Armchairs",
@@ -1452,7 +1452,7 @@
       "cf_tags": [
         "implementation"
       ],
-      "test_case_generator": "import random\nt = 10\nprint(t)\nfor _ in range(t):\n    n = random.randint(2, 10)\n    m = random.randint(2, 10)\n    print(n, m)\n    a1, b1 = random.randint(1, n), random.randint(1, m)\n    c1, d1 = random.randint(a1, n), random.randint(b1, m)\n    a2, b2 = random.randint(1, n), random.randint(1, m)\n    c2, d2 = random.randint(a2, n), random.randint(b2, m)\n    print(a1, b1, c1, d1)\n    print(a2, b2, c2, d2)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nt = 1000\nprint(t)\nfor _ in range(t):\n    n = random.randint(2, 10**9)\n    m = random.randint(2, 10**9)\n    print(n, m)\n    a1, b1 = random.randint(1, n), random.randint(1, m)\n    c1, d1 = random.randint(a1, n), random.randint(b1, m)\n    a2, b2 = random.randint(1, n), random.randint(1, m)\n    c2, d2 = random.randint(a2, n), random.randint(b2, m)\n    print(a1, b1, c1, d1)\n    print(a2, b2, c2, d2)\n"
     },
     {
       "task_id": "cc_10_B. Cinema Cashier",
@@ -1554,7 +1554,7 @@
       "cf_tags": [
         "math"
       ],
-      "test_case_generator": "import random\nt = 5\nprint(t)\nfor _ in range(t):\n    n = random.randint(0, 5) * 2 + 1  # odd\n    print(n)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nt = 200\nprint(t)\nfor _ in range(t):\n    n = random.choice([2 * i + 1 for i in range(1, 500000)])\n    print(n)\n"
     },
     {
       "task_id": "cc_1396_A. Multiples of Length",
@@ -1940,7 +1940,7 @@
         "graphs",
         "greedy"
       ],
-      "test_case_generator": "import random\nt = 4\nprint(t)\nfor _ in range(t):\n    n = random.randint(3, 8)\n    m = random.randint(n-1, min(n*(n-1)//2, 12))\n    k = random.randint(1, 10**9)\n    print(n, m, k)\n    edges = set()\n    for i in range(1, n):\n        edges.add((i, i+1, random.randint(1, 10**9)))\n    while len(edges) < m:\n        u = random.randint(1, n)\n        v = random.randint(1, n)\n        if u != v:\n            edges.add((min(u,v), max(u,v), random.randint(1, 10**9)))\n    for u, v, s in list(edges)[:m]:\n        print(u, v, s)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nt = 100\nprint(t)\nfor _ in range(t):\n    n = random.randint(3, 8)\n    m = random.randint(n - 1, min(n * (n - 1) // 2, 12))\n    k = random.randint(1, 10**9)\n    print(n, m, k)\n    edges = set()\n    for i in range(1, n):\n        edges.add((i, i + 1, random.randint(1, 10**9)))\n    while len(edges) < m:\n        u = random.randint(1, n)\n        v = random.randint(1, n)\n        if u != v:\n            edges.add((min(u, v), max(u, v), random.randint(1, 10**9)))\n    for u, v, s in list(edges)[:m]:\n        print(u, v, s)\n"
     },
     {
       "task_id": "cc_191_A. Dynasty Puzzles",
@@ -2607,7 +2607,7 @@
       ],
       "memory_limit_bytes": 256000000,
       "max_n": 1000000,
-      "test_case_generator": "import random\nrandom.seed(42)\nn = 500\nl = 1000000\nm = 50\nprint(n, l, m)\nprint(*[random.randint(0, 10**9) for _ in range(n)])\nprint(*[random.randint(0, 10**9) for _ in range(n)])\nprint(*[random.randint(0, 10**9) for _ in range(n)])\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 100000\nl = 10**6\nm = 50\nprint(n, l, m)\nprint(*[random.randint(0, 10**9) for _ in range(n)])\nprint(*[random.randint(0, 10**9) for _ in range(n)])\nprint(*[random.randint(0, 10**9) for _ in range(n)])\n"
     },
     {
       "task_id": "cc_p03961 CODE FESTIVAL 2016 qual C - Encyclopedia of Permutations",
@@ -2705,7 +2705,7 @@
       ],
       "memory_limit_bytes": 256000000,
       "max_n": 1000000000,
-      "test_case_generator": "import random\nrandom.seed(42)\nn = 200\nk = 100\nprobs = [round(random.uniform(0.01, 0.5), 6) for _ in range(n - 2)]\nprint(n, k)\nprint(*probs)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 10000\nk = 5000\nprobs = [round(random.uniform(0.01, 0.5), 6) for _ in range(n - 2)]\nprint(n, k)\nprint(*probs)\n"
     },
     {
       "task_id": "cc_p01113 Floating-Point Numbers",
@@ -2871,7 +2871,7 @@
         "constructive algorithms",
         "greedy"
       ],
-      "test_case_generator": "import random\nrandom.seed(42)\nn = 1000000\nk = 500000\nq = n\nprint(n, k, q)\nfor i in range(1, q + 1):\n    print(i)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 5000000\nk = 2500000\nq = n\nprint(n, k, q)\nfor i in range(1, q + 1):\n    print(i)\n"
     },
     {
       "task_id": "cc_690_A1. Collective Mindsets (easy)",
@@ -3025,7 +3025,7 @@
         "bitmasks",
         "constructive algorithms"
       ],
-      "test_case_generator": "import random\nrandom.seed(42)\nn = 5000\nprint(n)\nfor _ in range(n):\n    op = random.choice(['^', '&', '|'])\n    val = random.randint(0, 1023)\n    print(op, val)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 500000\nprint(n)\nfor _ in range(n):\n    op = random.choice(['^', '&', '|'])\n    val = random.randint(0, 1023)\n    print(op, val)\n"
     },
     {
       "task_id": "cc_p02468 Power",
@@ -3053,7 +3053,7 @@
         "implementation",
         "strings"
       ],
-      "test_case_generator": "import random, string\nrandom.seed(42)\nt = 100\nprint(t)\nfor _ in range(t):\n    n = 10**5\n    k = random.randint(2, n)\n    a = ''.join(random.choice(string.ascii_lowercase) for _ in range(n))\n    b = ''.join(random.choice(string.ascii_lowercase) for _ in range(n))\n    print(n, k)\n    print(a)\n    print(b)\n"
+      "test_case_generator": "import random, string\nrandom.seed(42)\nt = 1000\nprint(t)\nfor _ in range(t):\n    n = 10**5\n    k = random.randint(2, n)\n    a = ''.join(random.choice(string.ascii_lowercase) for _ in range(n))\n    b = ''.join(random.choice(string.ascii_lowercase) for _ in range(n))\n    print(n, k)\n    print(a)\n    print(b)\n"
     },
     {
       "task_id": "cc_p00099 Surf Smelt Fishing Contest II",
@@ -3212,7 +3212,7 @@
         "dp",
         "implementation"
       ],
-      "test_case_generator": "import random\nrandom.seed(42)\nn = 2000\ns = ''.join(random.choice('*?01') for _ in range(n))\n# replace '2' with '?'\n# make sure no '2' appears (it's not a valid character except in pattern)\nprint(s)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 10**6\ns = ''.join(random.choice('*?01') for _ in range(n))\nprint(s)\n"
     },
     {
       "task_id": "cc_577_B. Modulo Sum",
@@ -3507,7 +3507,7 @@
         "strings",
         "two pointers"
       ],
-      "test_case_generator": "import random\nrandom.seed(42)\nt = 1\nprint(t)\nn = 1000\nl = '0' + ''.join(random.choice('01') for _ in range(n - 1))\nr = '1' + ''.join(random.choice('01') for _ in range(n - 1))\nprint(n)\nprint(l)\nprint(r)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nt = 1\nprint(t)\nn = 10**6\nl = '0' + ''.join(random.choice('01') for _ in range(n - 1))\nr = '1' + ''.join(random.choice('01') for _ in range(n - 1))\nprint(n)\nprint(l)\nprint(r)\n"
     },
     {
       "task_id": "cc_690_A2. Collective Mindsets (medium)",
@@ -3666,7 +3666,7 @@
         "matrices",
         "strings"
       ],
-      "test_case_generator": "import random\nrandom.seed(42)\nn = 150\ns = ''.join(random.choice('abcdefghijklmnopqrstuvwxyz') for _ in range(n))\nprint(s)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 500\ns = ''.join(random.choice('abcdefghijklmnopqrstuvwxyz') for _ in range(n))\nprint(s)\n"
     },
     {
       "task_id": "cc_9_C. Hexadecimal's Numbers",
@@ -3719,7 +3719,7 @@
         "data structures",
         "dp"
       ],
-      "test_case_generator": "import random\nrandom.seed(42)\nn = 100000\nm = 100000\nprint(n, m)\nfor _ in range(m):\n    l = random.randint(0, n - 1)\n    r = random.randint(l + 1, n)\n    print(l, r)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 10**9\nm = 100000\nprint(n, m)\nfor _ in range(m):\n    l = random.randint(0, n - 1)\n    r = random.randint(l + 1, n)\n    print(l, r)\n"
     },
     {
       "task_id": "cc_1095_E. Almost Regular Bracket Sequence",
@@ -3746,7 +3746,7 @@
         "combinatorics",
         "implementation"
       ],
-      "test_case_generator": "print(4444444)\n"
+      "test_case_generator": "print(\"777777777777777777\")\n"
     },
     {
       "task_id": "cc_367_C. Sereja and the Arrangement of Numbers",
@@ -3760,7 +3760,7 @@
         "greedy",
         "sortings"
       ],
-      "test_case_generator": "import random\nrandom.seed(42)\nn = 4000\nm = 4000\nprint(n, m)\nfor _ in range(m):\n    # cnt_x and cnt_y - frequencies up to n\n    a = random.randint(1, 10**5)\n    b = random.randint(1, 10**5)\n    print(a, b)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 2000000\nm = 100000\nprint(n, m)\nfor _ in range(m):\n    a = random.randint(1, n)\n    b = random.randint(1, n)\n    print(a, b)\n"
     },
     {
       "task_id": "cc_316_D3. PE Lesson",
@@ -3841,7 +3841,7 @@
         "implementation",
         "math"
       ],
-      "test_case_generator": "import random\nrandom.seed(42)\nt = 100\nprint(t)\nfor _ in range(t):\n    n = random.randint(3, 10**9)\n    k = random.randint(1, n)\n    a = random.randint(-1, n)\n    b = random.randint(-1, n)\n    print(n, k, a, b)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nt = 100000\nprint(t)\nfor _ in range(t):\n    n = random.randint(3, 10**9)\n    k = random.randint(1, n)\n    a = random.randint(-1, n)\n    b = random.randint(-1, n)\n    print(n, k, a, b)\n"
     },
     {
       "task_id": "cc_474_B. Worms",
@@ -3973,7 +3973,7 @@
         "math",
         "number theory"
       ],
-      "test_case_generator": "import random\nrandom.seed(42)\nn = 10\nl = 1\nr = 10**9\nprint(n, l, r)\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 10**7\nl = 1\nr = 10**9\nprint(n, l, r)\n"
     },
     {
       "task_id": "cc_1037_C. Equalize",
@@ -3999,7 +3999,7 @@
       "cf_tags": [
         "implementation"
       ],
-      "test_case_generator": "import random\nrandom.seed(42)\nn = 200\nm = 100\nk = 80\nprint(n, m, k)\nprint(*[random.randint(1, 200) for _ in range(m)])\nprint(*[random.randint(1, 200) for _ in range(k)])\n"
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 10**6\nm = 1000\nk = 1000\nprint(n, m, k)\nprint(*[random.randint(1, n) for _ in range(m)])\nprint(*[random.randint(1, n) for _ in range(k)])\n"
     },
     {
       "task_id": "cc_p01227 Country Road",

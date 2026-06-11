@@ -17,10 +17,11 @@ from typing import Optional
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-WORK_DIR           = Path(__file__).parent.resolve()
-FIRECRACKER_BIN    = str(WORK_DIR / "firecracker")
-VSOCK_PORT         = 52
-AGENT_BOOT_TIMEOUT = 180   # seconds
+WORK_DIR        = Path(__file__).parent.resolve()
+FIRECRACKER_BIN = str(WORK_DIR / "firecracker")
+VSOCK_PORT      = 52
+
+from online_rl.config import VM_BOOT_TIMEOUT  # 30 seconds
 
 
 # ── VM State ──────────────────────────────────────────────────────────────────
@@ -112,7 +113,7 @@ def _vsock_connect(vsock_sock: str, timeout_sec: float) -> socket.socket:
     return sock
 
 
-def wait_for_agent(vm: VMState, timeout_sec: int = AGENT_BOOT_TIMEOUT) -> bool:
+def wait_for_agent(vm: VMState, timeout_sec: int = VM_BOOT_TIMEOUT) -> bool:
     """Poll until the guest agent responds to a ping. Returns True if ready."""
     deadline = time.monotonic() + timeout_sec
     while time.monotonic() < deadline:
@@ -134,7 +135,7 @@ def wait_for_agent(vm: VMState, timeout_sec: int = AGENT_BOOT_TIMEOUT) -> bool:
 
 
 def send_code(vm: VMState, code: str, timeout_ms: int,
-              memory_limit_mb: int = 0, cpu_limit_sec: int = 0) -> dict:
+              memory_limit_mb: int = 0, cpu_limit_sec: float = 0) -> dict:
     """
     Send code to the guest VM for execution.
     Returns execution result dict: exit_code, wall_time_ms, cpu_user_ms,
@@ -143,9 +144,9 @@ def send_code(vm: VMState, code: str, timeout_ms: int,
     memory_limit_mb: guest ulimit -v in MB (0 = no limit)
     cpu_limit_sec:   guest ulimit -t in seconds (0 = no limit)
     """
-    sock = _vsock_connect(vm.vsock_sock, timeout_ms / 1000 + 15)
-    sock.settimeout(timeout_ms / 1000 + 15)
-    payload = {"code": code, "timeout": timeout_ms // 1000}
+    sock = _vsock_connect(vm.vsock_sock, timeout_ms / 1000 + 10)
+    sock.settimeout(timeout_ms / 1000 + 10)
+    payload = {"code": code, "timeout": timeout_ms / 1000}
     if memory_limit_mb > 0:
         payload["memory_limit_mb"] = memory_limit_mb
     if cpu_limit_sec > 0:

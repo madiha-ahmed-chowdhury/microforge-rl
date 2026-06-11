@@ -35,6 +35,7 @@ from online_rl.problem_loader import load_cc_problems
 from online_rl.state_builder  import static_analyse, build_state_vec, update_rolling
 from online_rl.rewards        import compute_llm_reward, compute_res_reward
 from online_rl.vm_runner      import boot_vm, run_code_on_vm, dry_run_execution
+from vm import stop_vm as _stop_vm
 from online_rl.llm_caller     import generate_code, run_prep_vm
 from online_rl.code_cache     import CodeCache
 
@@ -64,9 +65,9 @@ def main():
     parser.add_argument("--episodes",     type=int, default=3000)
     parser.add_argument("--resume",       action="store_true")
     parser.add_argument("--dry-run",      action="store_true", dest="dry_run")
-    parser.add_argument("--min-rating",   type=int, default=1400)
-    parser.add_argument("--max-rating",   type=int, default=1800)
-    parser.add_argument("--pool",         type=int, default=150)
+    # parser.add_argument("--min-rating",   type=int, default=1400)
+    # parser.add_argument("--max-rating",   type=int, default=1800)
+    # parser.add_argument("--pool",         type=int, default=150)
     parser.add_argument("--task",         type=str, default=None,
                         help="Run only this problem (partial task_id match)")
     parser.add_argument("--force-cpu",    type=int, default=None,
@@ -80,8 +81,8 @@ def main():
     args = parser.parse_args()
     verbose = args.task is not None
 
-    print(f"[runner] streaming CC problems | rating={args.min_rating}-{args.max_rating} | pool={args.pool}")
-    problems = load_cc_problems(args.min_rating, args.max_rating, args.pool)
+    print(f"[runner] loading all problems from pool cache")
+    problems = load_cc_problems()
     print(f"[runner] pool ready: {len(problems)} problems")
 
     from sklearn.preprocessing import StandardScaler
@@ -99,13 +100,19 @@ def main():
         res_ckpts     = sorted(ckpt_dir.glob("res_ep_*.pt"))
         res_buf_ckpts = sorted(ckpt_dir.glob("res_buf_*.pkl"))
         if res_ckpts:
-            res_agent.load(str(res_ckpts[-1]))
-            start_ep = int(res_ckpts[-1].stem.split("_")[2])
-            print(f"[runner] agent resumed from ep {start_ep}")
+            try:
+                res_agent.load(str(res_ckpts[-1]))
+                start_ep = int(res_ckpts[-1].stem.split("_")[2])
+                print(f"[runner] agent resumed from ep {start_ep}")
+            except Exception as e:
+                print(f"[runner] WARNING: could not load agent checkpoint ({e}) — starting fresh weights")
         if res_buf_ckpts:
-            with open(res_buf_ckpts[-1], "rb") as f:
-                res_buffer = pickle.load(f)
-            print(f"[runner] buffer restored: res={len(res_buffer)}")
+            try:
+                with open(res_buf_ckpts[-1], "rb") as f:
+                    res_buffer = pickle.load(f)
+                print(f"[runner] buffer restored: res={len(res_buffer)}")
+            except Exception as e:
+                print(f"[runner] WARNING: could not load replay buffer ({e}) — starting empty")
         bandit_ckpts = sorted(ckpt_dir.glob("bandit_ep_*.json"))
         if bandit_ckpts:
             bandit.load(str(bandit_ckpts[-1]))
@@ -219,7 +226,6 @@ def main():
                 if prep_vm is None:
                     print(f"[runner] PREP VM failed — skipping ep {ep}")
                     continue
-                from vm import stop_vm as _stop_vm
                 code, llm_tests_passed, prep_result = run_prep_vm(prep_vm, code, stdin, expected, description, run_code_on_vm)
                 _stop_vm(prep_vm)
                 print(f"[runner] PREP done | correct={'✓' if llm_tests_passed else '✗'}")
@@ -360,7 +366,7 @@ def main():
                         current_action_dict["mem_idx"],
                         current_action_dict["timeout_idx"],
                         res_reward, next_state_vec, True)
-        if res_buffer.is_ready(RES_SAC_CONFIG["warmup"]):
+        if res_buffer.is_ready(max(RES_SAC_CONFIG["warmup"], RES_SAC_CONFIG["batch_size"])):
             res_agent.update(res_buffer.sample(RES_SAC_CONFIG["batch_size"]))
 
         # ── Update rolling history ────────────────────────────────────────────
@@ -436,10 +442,9 @@ def main():
             res_agent.save(f"{ck}res_ep_{ep+1:05d}.pt")
             with open(f"{ck}res_buf_{ep+1:05d}.pkl", "wb") as f:
                 pickle.dump(res_buffer, f)
+            bandit.save(f"{ck}bandit_ep_{ep+1:05d}.json")
             print(f"[runner] checkpoint saved at ep {ep+1}")
             if (ep + 1) % 100 == 0:
-                bandit.save(f"{ck}bandit_ep_{ep+1:05d}.json")
-                print(f"[runner] bandit checkpoint saved at ep {ep+1}")
                 print(f"[cache] {cache.stats()}")
         if (ep + 1) % 200 == 0:
             bandit.summary()

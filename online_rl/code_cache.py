@@ -2,6 +2,8 @@ import json
 import os
 import time
 
+from online_rl.config import MAX_CACHE_RETRY_ATTEMPTS
+
 
 class CodeCache:
 
@@ -19,13 +21,15 @@ class CodeCache:
     def store(self, task_id: str, code: str,
               model_used: str, passed: bool,
               tests_passed) -> None:
+        prev_attempts = self.cache.get(task_id, {}).get("failed_attempts", 0)
         self.cache[task_id] = {
-            "code":         code,
-            "model_used":   model_used,
-            "passed":       passed,
-            "tests_passed": tests_passed,
-            "cached_at":    time.time(),
-            "use_count":    0,
+            "code":            code,
+            "model_used":      model_used,
+            "passed":          passed,
+            "tests_passed":    tests_passed,
+            "cached_at":       time.time(),
+            "use_count":       0,
+            "failed_attempts": 0 if passed else prev_attempts + 1,
         }
         self.save()
 
@@ -35,14 +39,13 @@ class CodeCache:
             if self.cache[task_id]["use_count"] % 50 == 0:
                 self.save()
 
-    def should_refresh(self, task_id: str,
-                       max_failures: int = 5) -> bool:
+    def should_refresh(self, task_id: str) -> bool:
         entry = self.cache.get(task_id)
         if not entry:
             return True
-        # refresh if code was consistently wrong
-        # but not if it was resource failures (those are SAC's job)
         if entry["tests_passed"] is False:
+            if entry.get("failed_attempts", 0) >= MAX_CACHE_RETRY_ATTEMPTS:
+                return False  # gave up — use wrong code, stop burning LLM calls
             return True
         return False
 

@@ -195,8 +195,7 @@ errors3 = errors2[:removed2] + errors2[removed2+1:]
 print(*errors3)
 """,
 
-"cc_545_C. Woodcutters": """\
-import random
+"cc_545_C. Woodcutters": """import random
 random.seed(42)
 n = 100000
 print(n)
@@ -276,14 +275,12 @@ positions = random.sample(range(2, 10**6), n)
 print(*positions)
 """,
 
-"cc_1107_D. Compression": """\
-import random
+"cc_1107_D. Compression": """import random
 random.seed(42)
-n = 200  # divisible by 4; 200x200 binary matrix
+n = 520  # max valid, must be multiple of 4
 print(n)
 for _ in range(n):
-    bits = ''.join(random.choice('01') for _ in range(n))
-    val = int(bits, 2)
+    val = random.randint(0, 2**n - 1)
     print(format(val, f'0{n//4}X'))
 """,
 
@@ -314,8 +311,7 @@ print(n)
 print(s)
 """,
 
-"cc_1195_D2. Submarine in the Rybinsk Sea (hard edition)": """\
-import random
+"cc_1195_D2. Submarine in the Rybinsk Sea (hard edition)": """import random
 random.seed(42)
 n = 100000
 print(n)
@@ -332,10 +328,9 @@ a, b, c = 999999937, 999999929, 999999893
 print(a * b * c)
 """,
 
-"cc_1547_C. Pair Programming": """\
-import random
+"cc_1547_C. Pair Programming": """import random
 random.seed(42)
-t = 5
+t = 100
 print(t)
 for _ in range(t):
     print()
@@ -343,7 +338,6 @@ for _ in range(t):
     n = random.randint(1, 8)
     m = random.randint(1, 8)
     print(k, n, m)
-    # a: monocarp actions (0=add line, positive=delete line i)
     lines_a = k
     a = []
     for _ in range(n):
@@ -353,7 +347,6 @@ for _ in range(t):
             a.append(0)
             lines_a += 1
     print(*a)
-    # b: polycarp actions
     lines_b = k
     b = []
     for _ in range(m):
@@ -590,14 +583,13 @@ r = random.randint(l, min(l + 10**6, 10**9))
 print(l, r)
 """,
 
-"cc_830_A. Office Keys": """\
-import random
+"cc_830_A. Office Keys": """import random
 random.seed(42)
 n = 1000
-k = 2000
+k = random.randint(n, n + 200)
 p = random.randint(1, 20000)
-people = sorted(random.sample(range(1, 20000), n))
-keys = sorted(random.sample(range(1, 20000), k))
+people = sorted(random.sample(range(1, 20001), n))
+keys   = sorted(random.sample(range(1, 20001), k))
 print(n, k, p)
 print(*people)
 print(*keys)
@@ -619,33 +611,30 @@ print(n, s)
 print(*[random.randint(-10**9, 10**9) for _ in range(n)])
 """,
 
-"cc_1081_D. Maximum Distance": """\
-import random
+"cc_1081_D. Maximum Distance": """import random
 random.seed(42)
-n = 100000
-m = 100000
+n = 1000
+m = random.randint(n - 1, min(n * (n - 1) // 2, 5000))
 k = random.randint(1, n)
-specials = random.sample(range(1, n+1), k)
+specials = random.sample(range(1, n + 1), k)
 print(n, m, k)
 print(*specials)
 edges = set()
-# ensure connected: chain
 for i in range(1, n):
-    edges.add((i, i+1, random.randint(1, 10**9)))
+    edges.add((i, i + 1, random.randint(1, 10**9)))
 while len(edges) < m:
     u = random.randint(1, n)
     v = random.randint(1, n)
     if u != v:
-        edges.add((min(u,v), max(u,v), random.randint(1, 10**9)))
+        edges.add((min(u, v), max(u, v), random.randint(1, 10**9)))
 for u, v, w in list(edges)[:m]:
     print(u, v, w)
 """,
 
-"cc_1129_A2. Toy Train": """\
-import random
+"cc_1129_A2. Toy Train": """import random
 random.seed(42)
 n = 5000
-m = 100000
+m = random.randint(1, n)
 print(n, m)
 for _ in range(m):
     s = random.randint(1, n)
@@ -653,13 +642,12 @@ for _ in range(m):
     print(s, d)
 """,
 
-"cc_1227_A. Math Problem": """\
-import random
+"cc_1227_A. Math Problem": """import random
 random.seed(42)
-t = 5
+t = 100
 print(t)
 for _ in range(t):
-    n = 300000
+    n = random.randint(1, 50)
     print(n)
     for _ in range(n):
         l = random.randint(0, 10**9)
@@ -702,15 +690,13 @@ for _ in range(t):
     print(*[random.randint(0, 10**6) for _ in range(n)])
 """,
 
-"cc_1311_C. Perform the Combo": """\
-import random
+"cc_1311_C. Perform the Combo": """import random, string
 random.seed(42)
-import string
-t = 4
+t = 10000
 print(t)
 for _ in range(t):
-    n = 200000
-    m = random.randint(1, 10)
+    n = random.randint(5, 26)
+    m = random.randint(1, n)
     s = ''.join(random.choice(string.ascii_lowercase) for _ in range(n))
     print(n, m)
     print(s)
@@ -755,14 +741,12 @@ for _ in range(k):
     print(l, r)
 """,
 
-"cc_1466_C. Canine poetry": """\
-import random
+"cc_1466_C. Canine poetry": """import random
 random.seed(42)
-import string
-t = 100000
+t = 10000
 print(t)
 for _ in range(t):
-    n = random.randint(1, 5)
+    n = random.randint(1, 30)
     s = ''.join(random.choice('abcde') for _ in range(n))
     print(s)
 """,
@@ -831,21 +815,20 @@ for i in range(len(s)):
 print(''.join(s))
 """,
 
-"cc_687_A. NP-Hard Problem": """\
-import random
+"cc_687_A. NP-Hard Problem": """import random
 random.seed(42)
 n = 100000
-m = 100000
+m = 150000
 print(n, m)
 edges = set()
 for i in range(1, n):
-    edges.add((i, i+1))
+    edges.add((i, i + 1))
 while len(edges) < m:
     u = random.randint(1, n)
     v = random.randint(1, n)
     if u != v:
-        edges.add((min(u,v), max(u,v)))
-for u, v in edges:
+        edges.add((min(u, v), max(u, v)))
+for u, v in list(edges)[:m]:
     print(u, v)
 """,
 
@@ -912,13 +895,12 @@ print(n, x, y)
 print(s)
 """,
 
-"cc_1264_A. Beautiful Regional Contest": """\
-import random
+"cc_1264_A. Beautiful Regional Contest": """import random
 random.seed(42)
-t = 50
+t = 100
 print(t)
 for _ in range(t):
-    n = random.randint(3, 5000)
+    n = random.randint(5, 30)
     print(n)
     scores = sorted([random.randint(0, 20) for _ in range(n)], reverse=True)
     print(*scores)
@@ -1074,11 +1056,9 @@ vals = sorted(random.sample(range(1, 10**9), n))
 print(*vals)
 """,
 
-"cc_1281_B. Azamon Web Services": """\
-import random
+"cc_1281_B. Azamon Web Services": """import random, string
 random.seed(42)
-import string
-t = 1500
+t = 150
 print(t)
 for _ in range(t):
     def rword():
@@ -1086,29 +1066,26 @@ for _ in range(t):
     print(rword(), rword())
 """,
 
-"cc_1301_B. Motarack's Birthday": """\
-import random
+"cc_1301_B. Motarack's Birthday": """import random
 random.seed(42)
-t = 10
+t = 10000
 print(t)
 for _ in range(t):
-    n = 5000
+    n = random.randint(2, 20)
     print(n)
     arr = [random.randint(0, 50) for _ in range(n)]
-    # randomly set some to -1
     for i in range(n):
         if random.random() < 0.3:
             arr[i] = -1
     print(*arr)
 """,
 
-"cc_1344_A. Hilbert's Hotel": """\
-import random
+"cc_1344_A. Hilbert's Hotel": """import random
 random.seed(42)
 t = 10000
 print(t)
 for _ in range(t):
-    n = 100
+    n = random.randint(1, 20)
     print(n)
     print(*[random.randint(-200, 200) for _ in range(n)])
 """,
@@ -1135,13 +1112,12 @@ for _ in range(t):
     print(d, k)
 """,
 
-"cc_1475_D. Cleaning the Phone": """\
-import random
+"cc_1475_D. Cleaning the Phone": """import random
 random.seed(42)
-t = 20
+t = 1000
 print(t)
 for _ in range(t):
-    n = random.randint(3, 5000)
+    n = random.randint(3, 20)
     m = random.randint(1, 50)
     print(n, m)
     a = [random.randint(1, 50) for _ in range(n)]
@@ -1388,8 +1364,7 @@ for _ in range(n):
     t += l
 """,
 
-"cc_1080_C. Masha and two friends": """\
-import random
+"cc_1080_C. Masha and two friends": """import random
 random.seed(42)
 t = 1000
 print(t)
@@ -1488,13 +1463,12 @@ for _ in range(t):
     print(*[random.randint(-100, 100) for _ in range(n)])
 """,
 
-"cc_1353_C. Board Moves": """\
-import random
+"cc_1353_C. Board Moves": """import random
 random.seed(42)
 t = 200
 print(t)
 for _ in range(t):
-    n = random.randint(0, 249999) * 2 + 1  # odd
+    n = random.choice([2 * i + 1 for i in range(1, 500000)])
     print(n)
 """,
 
@@ -1800,24 +1774,23 @@ print(*a)
 print(*b)
 """,
 
-"cc_1468_J. Road Reform": """\
-import random
+"cc_1468_J. Road Reform": """import random
 random.seed(42)
-t = 4
+t = 100
 print(t)
 for _ in range(t):
     n = random.randint(3, 8)
-    m = random.randint(n-1, min(n*(n-1)//2, 12))
+    m = random.randint(n - 1, min(n * (n - 1) // 2, 12))
     k = random.randint(1, 10**9)
     print(n, m, k)
     edges = set()
     for i in range(1, n):
-        edges.add((i, i+1, random.randint(1, 10**9)))
+        edges.add((i, i + 1, random.randint(1, 10**9)))
     while len(edges) < m:
         u = random.randint(1, n)
         v = random.randint(1, n)
         if u != v:
-            edges.add((min(u,v), max(u,v), random.randint(1, 10**9)))
+            edges.add((min(u, v), max(u, v), random.randint(1, 10**9)))
     for u, v, s in list(edges)[:m]:
         print(u, v, s)
 """,
@@ -2235,11 +2208,10 @@ print(n, k)
 print(*pts)
 """,
 
-"cc_852_B. Neural Network country": """\
-import random
+"cc_852_B. Neural Network country": """import random
 random.seed(42)
-n = 500
-l = 1000000
+n = 100000
+l = 10**6
 m = 50
 print(n, l, m)
 print(*[random.randint(0, 10**9) for _ in range(n)])
@@ -2301,12 +2273,13 @@ for l, r in queries:
     print(l, r)
 """,
 
-"cc_717_D. Dexterina’s Lab": """\
-import random
+"cc_717_D. Dexterina’s Lab": """import random
 random.seed(42)
-n = 10**9
-x = 127
-print(n, x)
+n = 10000
+k = 5000
+probs = [round(random.uniform(0.01, 0.5), 6) for _ in range(n - 2)]
+print(n, k)
+print(*probs)
 """,
 
 "cc_p01113 Floating-Point Numbers": """\
@@ -2565,10 +2538,9 @@ for _ in range(t):
     print(random.randint(1, 10**6))
 """,
 
-"cc_451_C. Predict Outcome of the Game": """\
-import random
+"cc_451_C. Predict Outcome of the Game": """import random
 random.seed(42)
-t = 100
+t = 100000
 print(t)
 for _ in range(t):
     n = random.randint(3, 10**9)
@@ -2602,10 +2574,9 @@ print(n, k)
 print(s)
 """,
 
-"cc_1451_C. String Equality": """\
-import random, string
+"cc_1451_C. String Equality": """import random, string
 random.seed(42)
-t = 100
+t = 1000
 print(t)
 for _ in range(t):
     n = 10**5
@@ -2617,10 +2588,9 @@ for _ in range(t):
     print(b)
 """,
 
-"cc_879_C. Short Program": """\
-import random
+"cc_879_C. Short Program": """import random
 random.seed(42)
-n = 5000
+n = 500000
 print(n)
 for _ in range(n):
     op = random.choice(['^', '&', '|'])
@@ -2733,33 +2703,30 @@ for _ in range(q):
     print(random.randint(1, total))
 """,
 
-"cc_367_C. Sereja and the Arrangement of Numbers": """\
-import random
+"cc_367_C. Sereja and the Arrangement of Numbers": """import random
 random.seed(42)
-n = 4000
-m = 4000
+n = 2000000
+m = 100000
 print(n, m)
 for _ in range(m):
-    # cnt_x and cnt_y - frequencies up to n
-    a = random.randint(1, 10**5)
-    b = random.randint(1, 10**5)
+    a = random.randint(1, n)
+    b = random.randint(1, n)
     print(a, b)
 """,
 
 "cc_39_F. Pacifist frogs": """import random
 random.seed(42)
-n = 200
-m = 100
-k = 80
+n = 10**6
+m = 1000
+k = 1000
 print(n, m, k)
-print(*[random.randint(1, 200) for _ in range(m)])
-print(*[random.randint(1, 200) for _ in range(k)])
+print(*[random.randint(1, n) for _ in range(m)])
+print(*[random.randint(1, n) for _ in range(k)])
 """,
 
-"cc_102_D. Buses": """\
-import random
+"cc_102_D. Buses": """import random
 random.seed(42)
-n = 100000
+n = 10**9
 m = 100000
 print(n, m)
 for _ in range(m):
@@ -2893,13 +2860,10 @@ print(n)
 print(*[random.randint(0, 10**6) for _ in range(n)])
 """,
 
-"cc_404_D. Minesweeper 1D": """\
-import random
+"cc_404_D. Minesweeper 1D": """import random
 random.seed(42)
-n = 2000
+n = 10**6
 s = ''.join(random.choice('*?01') for _ in range(n))
-# replace '2' with '?'
-# make sure no '2' appears (it's not a valid character except in pattern)
 print(s)
 """,
 
@@ -2940,12 +2904,11 @@ m = random.randint(1, n)
 print(n, m)
 """,
 
-"cc_1493_E. Enormous XOR": """\
-import random
+"cc_1493_E. Enormous XOR": """import random
 random.seed(42)
 t = 1
 print(t)
-n = 1000
+n = 10**6
 l = '0' + ''.join(random.choice('01') for _ in range(n - 1))
 r = '1' + ''.join(random.choice('01') for _ in range(n - 1))
 print(n)
@@ -2965,10 +2928,9 @@ print(n, k)
 print(s)
 """,
 
-"cc_758_F. Geometrical Progression": """\
-import random
+"cc_758_F. Geometrical Progression": """import random
 random.seed(42)
-n = 10
+n = 10**7
 l = 1
 r = 10**9
 print(n, l, r)
@@ -3055,11 +3017,10 @@ print(n1)
 print(n2)
 """,
 
-"cc_103_C. Russian Roulette": """\
-import random
+"cc_103_C. Russian Roulette": """import random
 random.seed(42)
-n = 1000000
-k = 500000
+n = 5000000
+k = 2500000
 q = n
 print(n, k, q)
 for i in range(1, q + 1):
@@ -5368,7 +5329,7 @@ print('''4 4
 
 "cc_506_E. Mr. Kitayuta's Gift": """import random
 random.seed(42)
-n = 150
+n = 500
 s = ''.join(random.choice('abcdefghijklmnopqrstuvwxyz') for _ in range(n))
 print(s)
 """,

@@ -1,0 +1,72 @@
+{
+  "level0_trivial": {
+    "runs": [
+      51,
+      80,
+      76,
+      15,
+      32
+    ],
+    "min": 15,
+    "max": 80,
+    "mean": 50.8,
+    "median": 51,
+    "p90": 80
+  },
+  "level1_imports_only": {
+    "runs": [
+      12,
+      12,
+      150,
+      177,
+      56
+    ],
+    "min": 12,
+    "max": 177,
+    "mean": 81.4,
+    "median": 56,
+    "p90": 177
+  },
+  "level2_read_and_sum": {
+    "runs": [
+      11,
+      55,
+      11,
+      72,
+      79
+    ],
+    "min": 11,
+    "max": 79,
+    "mean": 45.6,
+    "median": 55,
+    "p90": 79
+  },
+  "level3_typical_easy_cp": {
+    "runs": [
+      92,
+      19,
+      148,
+      35,
+      86
+    ],
+    "min": 19,
+    "max": 148,
+    "mean": 76,
+    "median": 86,
+    "p90": 148
+  },
+  "level4_sort_and_binary_search": {
+    "runs": [
+      177,
+      95,
+      177,
+      13,
+      81
+    ],
+    "min": 13,
+    "max": 177,
+    "mean": 108.6,
+    "median": 95,
+    "p90": 177
+  }
+}

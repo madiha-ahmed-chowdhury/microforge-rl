@@ -67,6 +67,8 @@ def static_analyse(code: str) -> dict:
     return features
 
 
+_RAW_SCALES = [50.0, 10.0, 5.0, 1.0, 1000.0, 200.0, 1.0, 200.0, 50000.0]
+
 def build_state_vec(code_features: dict, rolling: dict, scaler) -> list:
     merged = {}
     merged.update(code_features)
@@ -75,6 +77,8 @@ def build_state_vec(code_features: dict, rolling: dict, scaler) -> list:
     if scaler is not None:
         import numpy as np
         raw = scaler.transform([raw])[0].tolist()
+    else:
+        raw = [v / s for v, s in zip(raw, _RAW_SCALES)]
     return raw
 
 

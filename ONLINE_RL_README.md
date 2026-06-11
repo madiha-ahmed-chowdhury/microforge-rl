@@ -744,6 +744,68 @@ Config VM: determined by SAC actor output (continuous)
 
 ## Changelog
 
+### 2026-06-12 — Timeout bug fixes, state normalisation, reward floor, cost controls
+
+#### Root cause: integer division sending timeout=0 to guest
+
+`vm.py` was computing `payload["timeout"] = timeout_ms // 1000`. For any
+`timeout_ms < 1000` (bins 50, 200, 400, 600, 800ms) this produced `timeout=0`.
+Inside `agent.py` the guest cast this with `int(request.get("timeout"))`, so
+`subprocess.communicate(timeout=0)` fired immediately, killing the process before
+it ran. All sub-1000ms episodes returned `timed_out=True, exit_code=-9`, the
+runner retried 3× with the same action, exhausted `MAX_RESOURCE_RETRIES`, and
+stored `exit_code=-1`. This looked like VM boot failures but was a pure integer
+division bug.
+
+**Fixes applied:**
+- `vm.py`: `timeout_ms // 1000` → `timeout_ms / 1000` (float)
+- `agent.py` (inside rootfs, written via debugfs): `int(timeout)` → `float(timeout)`
+  and `timeout_sec: int` → `timeout_sec: float` in `measure_process`
+- `vm_runner.py`: `cpu_limit_sec = max(1, timeout_ms // 1000)` → `timeout_ms / 1000`
+
+After this fix, TIMEOUT_BINS was extended to include 400, 600, 800ms (now valid).
+N_TIMEOUT updated to 13.
+
+#### Root cause: unscaled state features biasing untrained actor toward 400ms
+
+Before the StandardScaler is fitted (first 200 episodes), `build_state_vec`
+returned raw feature values. `ast_node_count` (~720) and `line_count` (~100) are
+orders of magnitude larger than other features and dominated the first Linear layer
+of the untrained actor. This consistently pushed the timeout head to index 2 (400ms)
+— not random exploration but deterministic bias from large unscaled inputs. Result:
+60% of warmup episodes chose 400ms, which (before the division fix) all failed.
+
+**Fix:** added `_RAW_SCALES` to `state_builder.py`. When `scaler is None`, each
+feature is divided by its known rough maximum so all inputs arrive in ~[0, 1].
+
+#### VM boot timeout separated from code execution timeout
+
+`AGENT_BOOT_TIMEOUT = 180` was hardcoded in `vm.py` and used for both boot polling
+and as a fallback. Refactored:
+- `VM_BOOT_TIMEOUT = 30` added to `config.py` — controls `wait_for_agent` polling only
+- `send_code` socket timeout is `timeout_ms / 1000 + 10` (was +15)
+- VM boot time is completely separate from `action["timeout_ms"]`
+
+#### Reward function floor
+
+`min_viable_tms = wall_ms * 1.5` was teaching the agent that sub-200ms timeouts
+were achievable. Python interpreter startup inside the guest takes 50–177ms
+(measured empirically), so the true minimum viable timeout is never below ~200ms
+even for a trivially fast program. Fixed to:
+`min_viable_tms = max(TIMEOUT_STARTUP_OVERHEAD_MS, wall_ms * 2.0)`
+where `TIMEOUT_STARTUP_OVERHEAD_MS = 200` lives in `config.py`.
+
+#### API cost controls
+
+Refinement was the primary driver of Claude API spend. Each wrong episode could
+trigger up to 2 refinement calls (Sonnet then Opus), neither recorded in
+transitions.jsonl. Fixed:
+- `MAX_REFINEMENT_ATTEMPTS`: 2 → 1
+- Refinement model list: `[SONNET_MODEL, OPUS_MODEL]` → `[SONNET_MODEL]`
+  (Opus never used in refinement)
+
+---
+
 ### 2026-06-03 — Online RL design finalised
 
 - Moved from discrete 14-config action space to continuous [0,1]^3 action space

@@ -1,0 +1,33 @@
+{
+  "program": "a = 1 + 1\nprint(a)\n",
+  "results": [
+    {
+      "memory_mb": 32,
+      "error": "vm boot failed"
+    },
+    {
+      "memory_mb": 64,
+      "exit_code": 0,
+      "stdout": "2",
+      "stderr": "",
+      "wall_time_ms": 2344,
+      "cpu_user_ms": 11,
+      "mem_peak_kb": 10388,
+      "mem_peak_mb": 10.14,
+      "timed_out": false,
+      "oom_killed": false
+    },
+    {
+      "memory_mb": 128,
+      "exit_code": 0,
+      "stdout": "2",
+      "stderr": "",
+      "wall_time_ms": 93,
+      "cpu_user_ms": 23,
+      "mem_peak_kb": 13368,
+      "mem_peak_mb": 13.05,
+      "timed_out": false,
+      "oom_killed": false
+    }
+  ]
+}
