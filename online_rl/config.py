@@ -44,7 +44,7 @@ RES_SAC_CONFIG = {
     "batch_size":           256,
     "buffer_size":          20000,
     "warmup":               200,
-    "target_entropy":       -(_math.log(N_CPU) + _math.log(N_MEMORY) + _math.log(N_TIMEOUT)) * 0.98,
+    "target_entropy":       -(_math.log(N_CPU) + _math.log(N_MEMORY) + _math.log(N_TIMEOUT)) * 0.70,
     "state_dim":            9,
 }
 
