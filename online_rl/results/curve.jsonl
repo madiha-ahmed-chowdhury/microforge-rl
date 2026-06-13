@@ -52,3 +52,13 @@
 {"ep": 280, "llm_r": 0.0, "res_r": -4.0, "avg10": -1.237, "llm_tier": "cached"}
 {"ep": 290, "llm_r": -1.5, "res_r": -1.4174, "avg10": -1.811, "llm_tier": "free"}
 {"ep": 300, "llm_r": -1.5, "res_r": -1.0091, "avg10": -1.946, "llm_tier": "free"}
+{"ep": 310, "llm_r": 0.0, "res_r": -2.8068, "avg10": -1.541, "llm_tier": "cached"}
+{"ep": 320, "llm_r": -1.5, "res_r": 0.1051, "avg10": -2.015, "llm_tier": "free"}
+{"ep": 330, "llm_r": 0.0, "res_r": -2.2049, "avg10": -1.901, "llm_tier": "cached"}
+{"ep": 340, "llm_r": 0.0, "res_r": -1.0058, "avg10": -1.42, "llm_tier": "cached"}
+{"ep": 350, "llm_r": 0.0, "res_r": -3.7054, "avg10": -2.172, "llm_tier": "cached"}
+{"ep": 360, "llm_r": 0.0, "res_r": -0.7658, "avg10": -1.771, "llm_tier": "cached"}
+{"ep": 370, "llm_r": 0.0, "res_r": -2.118, "avg10": -1.357, "llm_tier": "cached"}
+{"ep": 380, "llm_r": 1.0, "res_r": -2.1054, "avg10": -1.486, "llm_tier": "free"}
+{"ep": 390, "llm_r": 0.0, "res_r": -1.8266, "avg10": -1.435, "llm_tier": "cached"}
+{"ep": 400, "llm_r": 0.0, "res_r": -1.4054, "avg10": -1.724, "llm_tier": "cached"}

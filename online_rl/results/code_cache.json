@@ -23,7 +23,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781050163.8536375,
-    "use_count": 3
+    "use_count": 4
   },
   "cc_102_D. Buses": {
     "code": "import sys, bisect\n\nMOD = 1000000007\n\ndef solve() -> None:\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    it = iter(data)\n    n = int(next(it))\n    m = int(next(it))\n    buses = []\n    coords = {0, n}\n    for _ in range(m):\n        s = int(next(it)); t = int(next(it))\n        buses.append((s, t))\n        coords.add(s); coords.add(t)\n    # sort buses by ending stop\n    buses.sort(key=lambda x: x[1])\n    # coordinate compression\n    xs = sorted(coords)\n    idx = {x:i+1 for i,x in enumerate(xs)}  # 1-based for Fenwick\n    size = len(xs)\n    bit = [0]*(size+2)\n    def bit_add(i, v):\n        while i <= size:\n            bit[i] = (bit[i] + v) % MOD\n            i += i & -i\n    def bit_sum(i):\n        s = 0\n        while i:\n            s = (s + bit[i]) % MOD\n            i -= i & -i\n        return s\n    def range_sum(l, r):\n        if l > r:\n            return 0\n        return (bit_sum(r) - bit_sum(l-1)) % MOD\n\n    # dp at start\n    bit_add(idx[0], 1)\n\n    dp = {}  # optional store\n    for s, t in buses:\n        # find compressed indices covering [s, t-1]\n        l = bisect.bisect_left(xs, s)\n        r = bisect.bisect_right(xs, t-1) - 1\n        if l <= r:\n            sum_range = range_sum(l+1, r+1)  # convert to 1-based\n        else:\n            sum_range = 0\n        if sum_range:\n            bit_add(idx[t], sum_range)\n    ans = range_sum(idx[n], idx[n])\n    print(ans % MOD)\n\nif __name__ == \"__main__\":\n    solve()",
@@ -31,7 +31,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781050202.9610295,
-    "use_count": 1
+    "use_count": 2
   },
   "cc_634_C. Factory Repairs": {
     "code": "import sys\n\nclass BIT:\n    def __init__(self, n):\n        self.n = n\n        self.bit = [0] * (n + 1)\n    def add(self, idx, delta):\n        i = idx\n        n = self.n\n        bit = self.bit\n        while i <= n:\n            bit[i] += delta\n            i += i & -i\n    def sum(self, idx):\n        res = 0\n        i = idx\n        bit = self.bit\n        while i:\n            res += bit[i]\n            i -= i & -i\n        return res\n\ndef solve():\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    it = iter(data)\n    n = int(next(it)); k = int(next(it)); a = int(next(it)); b = int(next(it)); q = int(next(it))\n    orders = [0] * (n + 1)\n    bit_b = BIT(n)\n    bit_a = BIT(n)\n    out_lines = []\n    for _ in range(q):\n        typ = int(next(it))\n        if typ == 1:\n            d = int(next(it)); inc = int(next(it))\n            old = orders[d]\n            new = old + inc\n            orders[d] = new\n            old_b = min(old, b)\n            new_b = min(new, b)\n            if new_b != old_b:\n                bit_b.add(d, new_b - old_b)\n            old_a = min(old, a)\n            new_a = min(new, a)\n            if new_a != old_a:\n                bit_a.add(d, new_a - old_a)\n        else:\n            p = int(next(it))\n            before = bit_b.sum(p - 1)\n            after_start = p + k\n            if after_start > n:\n                after = 0\n            else:\n                total_a = bit_a.sum(n)\n                before_a = bit_a.sum(after_start - 1)\n                after = total_a - before_a\n            out_lines.append(str(before + after))\n    sys.stdout.write(\"\\n\".join(out_lines))\n\nif __name__ == \"__main__\":\n    solve()",
@@ -39,7 +39,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781050271.5748744,
-    "use_count": 0
+    "use_count": 1
   },
   "cc_p03961 CODE FESTIVAL 2016 qual C - Encyclopedia of Permutations": {
     "code": "import sys\nMOD = 10**9 + 7\n\ndef main():\n    data = sys.stdin.read().split()\n    N = int(data[0])\n    P = list(map(int, data[1:N+1]))\n    \n    fact = [1]*(N+2)\n    for i in range(1,N+2): fact[i]=fact[i-1]*i%MOD\n    \n    inv = [1]*(N+2)\n    inv[1]=1\n    for i in range(2,N+2): inv[i]=(MOD-MOD//i)*inv[MOD%i]%MOD\n    \n    k = P.count(0)\n    total_ways = fact[k]\n    \n    class BIT:\n        def __init__(self,n):\n            self.n=n; self.bit=[0]*(n+2)\n        def add(self,i,v):\n            while i<=self.n: self.bit[i]+=v; i+=i&-i\n        def query(self,i):\n            s=0\n            while i>0: s+=self.bit[i]; i-=i&-i\n            return s\n    \n    bit=BIT(N)\n    z_before=0  # zeros seen so far\n    sum_contrib=0\n    inv_k = inv[k] if k>0 else 0\n    \n    for i in range(N):\n        fact_rem = fact[N-i-1]\n        if P[i]==0:\n            # unknown slot z_before-th zero (0-indexed)\n            # available unknowns = k - z_before, available total = N-i\n            # expected less = (N-i-1)/2 ... but need to account for known placed\n            # Among N-i available numbers, unknown ones = k-z_before, known ones placed already handled\n            # Expected value of chosen = average of available, expected rank among available = (N-i-1)/2\n            avg = (N-i-1)*pow(2,MOD-2,MOD)%MOD\n            sum_contrib=(sum_contrib+fact_rem*avg)%MOD\n            z_before+=1\n        else:\n            lk=bit.query(P[i]-1)\n            less_unk=(P[i]-1)-lk\n            exp_placed=less_unk*z_before%MOD*inv_k%MOD if k>0 else 0\n            exp_avail=(lk+less_unk-exp_placed)%MOD\n            sum_contrib=(sum_contrib+fact_rem*exp_avail)%MOD\n            bit.add(P[i],1)\n    \n    ans=total_ways*(1+sum_contrib)%MOD\n    print(ans)\n\nmain()",
@@ -64,7 +64,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781083779.8637085,
-    "use_count": 0
+    "use_count": 1
   },
   "cc_p00158 Collatz's Problem": {
     "code": "import sys\n\ndef collatz_steps(n: int) -> int:\n    steps = 0\n    while n != 1:\n        if n % 2 == 0:\n            n //= 2\n        else:\n            n = n * 3 + 1\n        steps += 1\n    return steps\n\ndef main():\n    out_lines = []\n    for line in sys.stdin:\n        line = line.strip()\n        if not line:\n            continue\n        n = int(line)\n        if n == 0:\n            break\n        out_lines.append(str(collatz_steps(n)))\n    sys.stdout.write(\"\\n\".join(out_lines))\n\nif __name__ == \"__main__\":\n    main()",
@@ -120,7 +120,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781297321.7093456,
-    "use_count": 1,
+    "use_count": 2,
     "failed_attempts": 0
   },
   "cc_p00780 Goldbach's Conjecture": {
@@ -178,7 +178,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781084783.2151632,
-    "use_count": 2
+    "use_count": 3
   },
   "cc_1095_E. Almost Regular Bracket Sequence": {
     "code": "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    s = data[1].strip()\n    pref = [0] * (n + 1)\n    for i, ch in enumerate(s, 1):\n        pref[i] = pref[i - 1] + (1 if ch == '(' else -1)\n\n    total = pref[n]\n    # suffix minima of pref\n    suff_min = [0] * (n + 2)\n    INF = 10**9\n    suff_min[n] = pref[n]\n    for i in range(n - 1, -1, -1):\n        suff_min[i] = pref[i] if pref[i] < suff_min[i + 1] else suff_min[i + 1]\n\n    # prefix minima up to each position\n    pref_min = [0] * (n + 1)\n    pref_min[0] = pref[0]\n    for i in range(1, n + 1):\n        pref_min[i] = pref[i] if pref[i] < pref_min[i - 1] else pref_min[i - 1]\n\n    ans = 0\n    if total == 2:\n        # need to flip '(' to ')'\n        for i, ch in enumerate(s, 1):\n            if ch == '(':\n                if pref_min[i - 1] >= 0 and suff_min[i] >= 2:\n                    ans += 1\n    elif total == -2:\n        # need to flip ')' to '('\n        for i, ch in enumerate(s, 1):\n            if ch == ')':\n                if pref_min[i - 1] >= 0 and suff_min[i] >= -2:\n                    ans += 1\n    # else ans stays 0\n    sys.stdout.write(str(ans))\n\nif __name__ == \"__main__\":\n    main()",
@@ -194,7 +194,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781084859.2540631,
-    "use_count": 1
+    "use_count": 2
   },
   "cc_1353_C. Board Moves": {
     "code": "import sys\n\ndef solve() -> None:\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    t = int(data[0])\n    out = []\n    for i in range(1, t + 1):\n        n = int(data[i])\n        k = n // 2\n        ans = 4 * k * (k + 1) * (2 * k + 1) // 3\n        out.append(str(ans))\n    sys.stdout.write(\"\\n\".join(out))\n\nif __name__ == \"__main__\":\n    solve()",
@@ -230,12 +230,13 @@
     "use_count": 4
   },
   "cc_p01694 Step Aerobics": {
-    "code": "import sys\n\ndef process_dataset(n, moves):\n    left = 0\n    right = 0\n    count = 0\n    last_full = 0  # last uniform state both feet were on\n    valid = True   # whether current transition has been valid\n\n    for mv in moves:\n        if mv == 'lu':\n            if left == 1:\n                valid = False\n                continue\n            left = 1\n        elif mv == 'ru':\n            if right == 1:\n                valid = False\n                continue\n            right = 1\n        elif mv == 'ld':\n            if left == 0:\n                valid = False\n                continue\n            left = 0\n        elif mv == 'rd':\n            if right == 0:\n                valid = False\n                continue\n            right = 0\n\n        if left == right:\n            # reached a uniform state\n            if left != last_full and valid:\n                count += 1\n            last_full = left\n            valid = True\n        # else intermediate, keep valid as is\n\n    return count\n\ndef main():\n    data = sys.stdin.read().strip().split()\n    idx = 0\n    out_lines = []\n    while idx < len(data):\n        n = int(data[idx])\n        idx += 1\n        if n == 0:\n            break\n        moves = data[idx:idx+n]\n        idx += n\n        out_lines.append(str(process_dataset(n, moves)))\n    sys.stdout.write(\"\\n\".join(out_lines))\n\nif __name__ == \"__main__\":\n    main()",
-    "model_used": "gpt-oss-120b",
+    "code": "import sys\n\ndef solve():\n    input_data = sys.stdin.read().split()\n    idx = 0\n    \n    while idx < len(input_data):\n        n = int(input_data[idx])\n        idx += 1\n        if n == 0:\n            break\n        \n        moves = input_data[idx:idx+n]\n        idx += n\n        \n        left = 0\n        right = 0\n        count = 0\n        \n        going_up_started = False\n        going_down_started = False\n        \n        for move in moves:\n            prev_left = left\n            prev_right = right\n            \n            if move == 'lu':\n                left = 1\n            elif move == 'ru':\n                right = 1\n            elif move == 'ld':\n                left = 0\n            elif move == 'rd':\n                right = 0\n            \n            prev_both_floor = (prev_left == 0 and prev_right == 0)\n            prev_both_step = (prev_left == 1 and prev_right == 1)\n            curr_both_floor = (left == 0 and right == 0)\n            curr_both_step = (left == 1 and right == 1)\n            \n            # Set flags when leaving a \"both\" state\n            if prev_both_floor and not curr_both_floor:\n                going_up_started = True\n                going_down_started = False\n            elif prev_both_step and not curr_both_step:\n                going_down_started = True\n                going_up_started = False\n            \n            # Check completions\n            if curr_both_step and going_up_started:\n                count += 1\n                going_up_started = False\n                going_down_started = False\n            elif curr_both_floor and going_down_started:\n                count += 1\n                going_up_started = False\n                going_down_started = False\n            elif curr_both_floor and not prev_both_floor:\n                # Returned to floor without valid completion\n                going_up_started = False\n            elif curr_both_step and not prev_both_step:\n                # Went to step without valid completion\n                going_down_started = False\n        \n        print(count)\n\nsolve()",
+    "model_used": "claude-sonnet-4-6",
     "passed": false,
     "tests_passed": false,
-    "cached_at": 1781085062.187479,
-    "use_count": 0
+    "cached_at": 1781361374.6229794,
+    "use_count": 0,
+    "failed_attempts": 2
   },
   "cc_551_D. GukiZ and Binary Operations": {
     "code": "import sys\nfrom functools import lru_cache\n\ndef mat_mul(A, B, mod):\n    n = len(A)\n    C = [[0]*n for _ in range(n)]\n    for i in range(n):\n        for j in range(n):\n            s = 0\n            for k in range(n):\n                s += A[i][k] * B[k][j]\n            C[i][j] = s % mod\n    return C\n\ndef mat_pow(M, p, mod):\n    n = len(M)\n    result = [[1 if i==j else 0 for j in range(n)] for i in range(n)]\n    base = [row[:] for row in M]\n    while p > 0:\n        if p & 1:\n            result = mat_mul(result, base, mod)\n        base = mat_mul(base, base, mod)\n        p >>= 1\n    return result\n\ndef solve():\n    line = input().split()\n    n, k, l, m = int(line[0]), int(line[1]), int(line[2]), int(line[3])\n    \n    # Each bit position is independent\n    # For each bit position b (0 to l-1):\n    #   bit b of k is either 0 or 1\n    #   We need arrays of length n with elements in {0,1} (for this bit)\n    #   such that (a[0] AND a[1] AND ... AND a[n-1]) OR ... condition\n    # \n    # The condition from the problem (based on examples) appears to be:\n    # a[0] AND a[1] AND ... AND a[n-1] = k  (based on example analysis)\n    # Wait, let me check: example 1: n=2, k=1, l=2\n    # Arrays {1,1},{3,1},{1,3} - AND of each = 1. Yes!\n    # Example 3: n=3, k=3, l=2 - arrays where AND = 3\n    # {0,3,3}: 0&3&3=0, not 3. Hmm.\n    # \n    # Maybe it's OR: {0,3,3}: 0|3|3=3=k. Yes!\n    # {1,1}: 1|1=1=k. Yes!\n    # So condition is: a[0] OR a[1] OR ... OR a[n-1] = k\n    # But wait, k can be > 2^l - 1, then answer is 0.\n    \n    if l == 0:\n        # All elements must be 0, k must be 0\n        if k == 0:\n            print(1 % m)\n        else:\n            print(0)\n        return\n    \n    if k >= (1 << l):\n        print(0)\n        return\n    \n    # For each bit, independently count arrays of n bits (0 or 1) whose OR = bit_value\n    # If bit_value = 0: all elements must be 0 -> 1 way\n    # If bit_value = 1: at least one element is 1 -> 2^n - 1 ways\n    \n    # Total answer = product over all l bits of (ways for that bit)\n    # bits where k has 0: 1 way each\n    # bits where k has 1: (2^n - 1) ways each\n    \n    # Count number of 1-bits in k\n    ones = bin(k).count('1')\n    # zeros in the l-bit representation\n    # zeros = l - ones  (these contribute factor 1)\n    \n    # Answer = (2^n - 1)^ones mod m\n    # But n can be up to 1e18, so we need modular exponentiation\n    # Also m might not be prime, so we just do pow with mod\n    \n    # 2^n mod m\n    pow2n = pow(2, n, m)\n    base = (pow2n - 1) % m\n    \n    # base^ones mod m\n    ans = pow(base, ones, m)\n    print(ans % m)\n\nsolve()",
@@ -243,7 +244,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781085085.3054488,
-    "use_count": 0
+    "use_count": 1
   },
   "cc_284_B. Cows and Poker Game": {
     "code": "import sys\n\ndef solve() -> None:\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    statuses = data[1:n+1]\n    cnt_I = statuses.count('IN')\n    if cnt_I == 0:\n        # all non-folded are 'ALLIN'\n        ans = statuses.count('ALLIN')\n    elif cnt_I == 1:\n        ans = 1\n    else:\n        ans = 0\n    print(ans)\n\nif __name__ == \"__main__\":\n    solve()",
@@ -309,7 +310,7 @@
     "passed": false,
     "tests_passed": false,
     "cached_at": 1781296681.53169,
-    "use_count": 1,
+    "use_count": 2,
     "failed_attempts": 3
   },
   "cc_691_D. Swaps in Permutation": {
@@ -359,7 +360,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781085909.548738,
-    "use_count": 1
+    "use_count": 2
   },
   "cc_124_D. Squares": {
     "code": "import sys\n\ndef cnt_between(l, r, mod):\n    if l > r:\n        l, r = r, l\n    return r // mod - l // mod\n\ndef main():\n    data = list(map(int, sys.stdin.read().split()))\n    if len(data) != 6:\n        return\n    a, b, x1, y1, x2, y2 = data\n    u1 = x1 + y1\n    v1 = x1 - y1\n    u2 = x2 + y2\n    v2 = x2 - y2\n    cnt_u = cnt_between(min(u1, u2), max(u1, u2), 2 * a)\n    cnt_v = cnt_between(min(v1, v2), max(v1, v2), 2 * b)\n    print(max(cnt_u, cnt_v))\n\nif __name__ == \"__main__\":\n    main()",
@@ -443,12 +444,13 @@
     "use_count": 2
   },
   "cc_263_D. Cycle in Graph": {
-    "code": "import sys\n\ndef solve() -> None:\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    it = iter(data)\n    n = int(next(it)); m = int(next(it)); k = int(next(it))\n    adj = [[] for _ in range(n + 1)]\n    for _ in range(m):\n        a = int(next(it)); b = int(next(it))\n        adj[a].append(b)\n        adj[b].append(a)\n\n    sys.setrecursionlimit(3000000)\n    visited = [False] * (n + 1)\n    parent = [0] * (n + 1)\n    depth = [0] * (n + 1)\n    stack = []\n\n    def output_cycle(u, v):\n        # u is current node, v is ancestor\n        cycle = []\n        x = u\n        while x != v:\n            cycle.append(x)\n            x = parent[x]\n        cycle.append(v)\n        # cycle is from u up to v\n        # need to close the cycle, order can be as is\n        print(len(cycle))\n        print(' '.join(map(str, cycle)))\n        sys.exit(0)\n\n    for start in range(1, n + 1):\n        if visited[start]:\n            continue\n        stack.append(start)\n        parent[start] = 0\n        depth[start] = 0\n        visited[start] = True\n        while stack:\n            u = stack.pop()\n            for v in adj[u]:\n                if not visited[v]:\n                    visited[v] = True\n                    parent[v] = u\n                    depth[v] = depth[u] + 1\n                    stack.append(v)\n                elif v != parent[u] and depth[v] < depth[u] - 1:\n                    # back edge to ancestor\n                    length = depth[u] - depth[v] + 1\n                    if length >= k + 1:\n                        output_cycle(u, v)\n    # Fallback (should not happen)\n    # As a safety, find any cycle via simple DFS recursion\n    sys.setrecursionlimit(1 << 25)\n    visited = [0] * (n + 1)\n    path = []\n    def dfs(u, p):\n        visited[u] = 1\n        path.append(u)\n        for v in adj[u]:\n            if v == p:\n                continue\n            if visited[v] == 0:\n                if dfs(v, u):\n                    return True\n            elif visited[v] == 1:\n                idx = path.index(v)\n                cycle = path[idx:]\n                if len(cycle) >= k + 1:\n                    print(len(cycle))\n                    print(' '.join(map(str, cycle)))\n                    return True\n        path.pop()\n        visited[u] = 2\n        return False\n    for i in range(1, n + 1):\n        if visited[i] == 0:\n            if dfs(i, -1):\n                return\n\nif __name__ == \"__main__\":\n    solve()",
+    "code": "import sys\nfrom collections import defaultdict\n\ndef solve() -> None:\n    data = sys.stdin.buffer.read().split()\n    it = iter(data)\n    n = int(next(it)); m = int(next(it)); k = int(next(it))\n    adj = [[] for _ in range(n + 1)]\n    for _ in range(m):\n        a = int(next(it)); b = int(next(it))\n        adj[a].append(b)\n        adj[b].append(a)\n\n    color = [0] * (n + 1)  # 0=white,1=gray,2=black\n    parent = [0] * (n + 1)\n    depth = [0] * (n + 1)\n    answer = None\n\n    for start in range(1, n + 1):\n        if color[start] != 0:\n            continue\n        stack = [(start, -1, 0, False)]\n        while stack and answer is None:\n            u, par, d, returning = stack.pop()\n            if returning:\n                color[u] = 2\n                continue\n            if color[u] == 1:\n                continue\n            color[u] = 1\n            parent[u] = par\n            depth[u] = d\n            stack.append((u, par, d, True))\n            for v in adj[u]:\n                if color[v] == 0:\n                    stack.append((v, u, d + 1, False))\n                elif color[v] == 1 and v != par:\n                    if depth[u] - depth[v] + 1 >= k + 1:\n                        cycle = []\n                        cur = u\n                        while cur != v:\n                            cycle.append(cur)\n                            cur = parent[cur]\n                        cycle.append(v)\n                        answer = cycle\n                        break\n        if answer:\n            break\n\n    r = len(answer)\n    sys.stdout.write(str(r) + \"\\n\")\n    sys.stdout.write(\" \".join(map(str, answer)) + \"\\n\")\n\nif __name__ == \"__main__\":\n    solve()",
     "model_used": "gpt-oss-120b",
     "passed": false,
     "tests_passed": false,
-    "cached_at": 1781086913.2608385,
-    "use_count": 0
+    "cached_at": 1781361799.7738545,
+    "use_count": 0,
+    "failed_attempts": 1
   },
   "cc_1475_D. Cleaning the Phone": {
     "code": "import sys\ninput = sys.stdin.readline\n\ndef solve():\n    n, m = map(int, input().split())\n    a = list(map(int, input().split()))\n    b = list(map(int, input().split()))\n    \n    # Separate apps by importance\n    regular = []  # b_i = 1\n    important = []  # b_i = 2\n    \n    for i in range(n):\n        if b[i] == 1:\n            regular.append(a[i])\n        else:\n            important.append(a[i])\n    \n    # Sort in descending order (take largest first to minimize count)\n    regular.sort(reverse=True)\n    important.sort(reverse=True)\n    \n    total_mem = sum(regular) + sum(important)\n    if total_mem < m:\n        print(-1)\n        return\n    \n    # Strategy: minimize convenience points lost\n    # Try all possible numbers of important apps removed (0 to len(important))\n    # For each choice of important apps removed, we need to cover remaining memory with regular apps\n    \n    # Precompute prefix sums\n    reg_prefix = [0]\n    for x in regular:\n        reg_prefix.append(reg_prefix[-1] + x)\n    \n    imp_prefix = [0]\n    for x in important:\n        imp_prefix.append(imp_prefix[-1] + x)\n    \n    best = float('inf')\n    \n    # For each number of important apps we remove (0..len(important))\n    # We remove imp_count important apps (the largest ones)\n    # Memory freed by important = imp_prefix[imp_count]\n    # Remaining needed from regular = max(0, m - imp_prefix[imp_count])\n    # Find minimum reg apps needed to cover remaining\n    \n    for imp_count in range(len(important) + 1):\n        mem_from_imp = imp_prefix[imp_count]\n        remaining = m - mem_from_imp\n        \n        if remaining <= 0:\n            # No regular apps needed\n            cost = imp_count * 2\n            if cost < best:\n                best = cost\n        else:\n            # Need to cover 'remaining' memory from regular apps\n            # Binary search or linear scan on reg_prefix\n            # reg_prefix is increasing, find smallest reg_count such that reg_prefix[reg_count] >= remaining\n            lo, hi = 0, len(regular)\n            if reg_prefix[hi] < remaining:\n                # Can't cover even with all regular apps\n                # This case shouldn't happen since we checked total_mem >= m\n                # But let's handle it\n                continue\n            # Binary search\n            lo, hi = 0, len(regular)\n            ans_reg = len(regular)\n            while lo <= hi:\n                mid = (lo + hi) // 2\n                if reg_prefix[mid] >= remaining:\n                    ans_reg = mid\n                    hi = mid - 1\n                else:\n                    lo = mid + 1\n            cost = imp_count * 2 + ans_reg * 1\n            if cost < best:\n                best = cost\n    \n    print(best)\n\nt = int(input())\nfor _ in range(t):\n    solve()",
@@ -610,7 +612,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781090403.9711592,
-    "use_count": 2
+    "use_count": 3
   },
   "cc_178_A1. Educational Game": {
     "code": "import sys\nfrom math import log2\n\ndef solve():\n    input_data = sys.stdin.read().split()\n    n = int(input_data[0])\n    a = list(map(int, input_data[1:n+1]))\n    \n    # For each k from 1 to n-1, find minimum moves to zero out first k elements\n    # \n    # Key insight: each unit at position i (1-indexed, i <= k) needs to be moved\n    # to some position j > k. The cost is the number of moves to move it there.\n    # From position i, in one move we can go to i + 2^t for some t >= 0, as long as destination <= n.\n    # We want to move from i to some j > k.\n    # The minimum number of moves from position i to reach some position > k.\n    #\n    # Actually, each unit needs to get out of the first k positions.\n    # From position i, we can jump to i + 2^t. We need to reach some position > k in minimum steps.\n    # \n    # The minimum number of moves to move one unit from position i to outside [1..k]:\n    # We need to find minimum steps to go from i to some j > k.\n    # Each step: from current position p, go to p + 2^t (t >= 0) with p + 2^t <= n.\n    # We want to reach > k.\n    #\n    # This is a BFS/greedy problem per unit. But with n up to 1e5 and values up to 1e4,\n    # we need efficiency.\n    #\n    # For a fixed k, cost to move one unit at position i (i <= k) out:\n    # Greedily: use the largest power of 2 that doesn't overshoot n, and try to get > k.\n    # \n    # Let's precompute for each position i and each k, the min moves. But that's O(n^2).\n    # \n    # For fixed i, as k increases from i to n-1, the cost to escape can only increase or stay same.\n    # \n    # Let me think differently. For fixed i, the minimum moves to get from i to some position > k:\n    # This depends on k. Let's compute cost(i, k) = min moves to escape k from position i.\n    \n    # For small n (n<=300 gets 20 pts, n<=2000 gets 50), let's do O(n^2) or O(n^2 log n).\n    \n    # BFS for each (i, k) pair would be too slow. \n    # Key observation: cost(i, k) only depends on i and k through their relationship.\n    # \n    # Greedy: from position i, to escape position k, keep adding largest possible power of 2.\n    # Use BFS on positions to find min steps from i to >k, with moves +2^t where result<=n.\n    \n    # Precompute min_steps[i][k] using BFS? Too slow for n=1e5.\n    # \n    # For the given constraints and that it says not to use %lld (C++ hint), let's do O(n^2) for now.\n    \n    # Precompute for each starting position i, min steps to reach each possible \"barrier\" k\n    # min_cost[i] = array where min_cost[i][k] = min moves to move from i to >k\n    \n    # Total answer for k = sum over i=1..k of a[i-1] * cost(i, k)\n    \n    # Let's precompute cost(i, k) for all i, k with i <= k < n\n    # For each i, do BFS over positions to find min steps to exceed each k\n    \n    INF = float('inf')\n    # cost[i][j] = min moves to go from position i to position j (1-indexed)\n    # Then cost_escape(i, k) = min over j>k of cost[i][j]\n    \n    # For each i, BFS\n    results = []\n    \n    # Precompute for each i, min_steps to reach any position > k for each k\n    # Let escape[i][k] = min steps from i to get to position > k\n    \n    ans = [0] * n  # ans[k] for k=1..n-1\n    \n    for i in range(1, n+1):\n        if a[i-1] == 0:\n            continue\n        # BFS from i\n        dist = [INF] * (n+1)\n        dist[i] = 0\n        from collections import deque\n        q = deque([i])\n        while q:\n            p = q.popleft()\n            t = 0\n            while True:\n                nxt = p + (1 << t)\n                if nxt > n:\n                    break\n                if dist[nxt] == INF:\n                    dist[nxt] = dist[p] + 1\n                    q.append(nxt)\n                t += 1\n        # Now for each k from i to n-1, find min dist[j] for j > k\n        # Compute suffix min of dist from position k+1 to n\n        # suffix_min[k] = min(dist[k+1], ..., dist[n])\n        suf_min = INF\n        # We need for k = i..n-1: min(dist[k+1..n])\n        # Process k from n-1 down to i\n        min_so_far = [INF] * (n+2)\n        for j in range(n, 0, -1):\n            min_so_far[j] = min(dist[j], min_so_far[j+1] if j+1<=n else INF)\n        for k in range(i, n):\n            ans[k] = ans[k] + a[i-1] * min_so_far[k+1]\n    \n    for k in range(1, n):\n        print(ans[k])\n\nsolve()",
@@ -634,7 +636,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781090522.9598255,
-    "use_count": 2
+    "use_count": 3
   },
   "cc_1294_C. Product of Three Numbers": {
     "code": "import sys, math\n\ndef find_three_factors(n):\n    a = b = c = None\n    # find first factor a\n    for i in range(2, int(math.isqrt(n)) + 1):\n        if n % i == 0:\n            a = i\n            n //= i\n            break\n    if a is None:\n        return None\n    # find second factor b\n    for i in range(2, int(math.isqrt(n)) + 1):\n        if n % i == 0 and i != a:\n            b = i\n            c = n // i\n            break\n    if b is None or c is None:\n        return None\n    if c != a and c != b and c > 1:\n        return a, b, c\n    return None\n\ndef solve() -> None:\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    t = int(data[0])\n    out_lines = []\n    idx = 1\n    for _ in range(t):\n        n = int(data[idx]); idx += 1\n        res = find_three_factors(n)\n        if res:\n            a, b, c = res\n            out_lines.append(\"YES\")\n            out_lines.append(f\"{a} {b} {c}\")\n        else:\n            out_lines.append(\"NO\")\n    sys.stdout.write(\"\\n\".join(out_lines))\n\nif __name__ == \"__main__\":\n    solve()",
@@ -674,7 +676,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781090776.9770136,
-    "use_count": 0
+    "use_count": 1
   },
   "cc_1059_C. Sequence Transformation": {
     "code": "import sys\n\ndef solve() -> None:\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    N = int(data[0])\n    res = []\n    cur = 1\n    n = N\n    while n > 1:\n        cnt = (n + 1) // 2\n        res.extend([cur] * cnt)\n        n //= 2\n        cur <<= 1\n    res.append(cur)\n    sys.stdout.write(' '.join(map(str, res)) + '\\n')\n\nif __name__ == \"__main__\":\n    solve()",
@@ -707,7 +709,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781091166.1469753,
-    "use_count": 0
+    "use_count": 1
   },
   "cc_p01981 Change of the Era Name": {
     "code": "import sys\n\nHEISEI_END_YEAR = 31\nHEISEI_END_MONTH = 4\nHEISEI_END_DAY = 30\n\ndef is_after_heisei(y, m, d):\n    if y > HEISEI_END_YEAR:\n        return True\n    if y == HEISEI_END_YEAR:\n        if m > HEISEI_END_MONTH:\n            return True\n        if m == HEISEI_END_MONTH and d > HEISEI_END_DAY:\n            return True\n    return False\n\nout = []\nfor line in sys.stdin:\n    line = line.strip()\n    if not line or line == '#':\n        break\n    parts = line.split()\n    g, y, m, d = parts[0], int(parts[1]), int(parts[2]), int(parts[3])\n    \n    # The database stores everything as Heisei years\n    # So we treat y as Heisei year regardless of g\n    if is_after_heisei(y, m, d):\n        gregorian_year = 1988 + y\n        new_era_year = gregorian_year - 2019 + 1\n        out.append(f\"? {new_era_year} {m} {d}\")\n    else:\n        out.append(f\"HEISEI {y} {m} {d}\")\n\nprint(\"\\n\".join(out))",
@@ -748,7 +750,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781091383.2113755,
-    "use_count": 0
+    "use_count": 1
   },
   "cc_582_A. GCD Table": {
     "code": "import sys\nfrom collections import Counter\nfrom math import gcd\n\ndef solve():\n    input_data = sys.stdin.read().split()\n    n = int(input_data[0])\n    nums = list(map(int, input_data[1:n*n+1]))\n    \n    count = Counter(nums)\n    \n    # Sort numbers in decreasing order\n    sorted_nums = sorted(count.keys(), reverse=True)\n    \n    a = []\n    \n    for num in sorted_nums:\n        while count[num] > 0:\n            # Take this number as an element of a\n            a.append(num)\n            # Remove 2 occurrences of num (diagonal G[i][i] = a[i], and symmetry)\n            count[num] -= 2\n            if count[num] <= 0:\n                del count[num]\n            # For each previously chosen element, remove 2 occurrences of gcd(num, prev)\n            for prev in a[:-1]:\n                g = gcd(num, prev)\n                count[g] -= 2\n                if count[g] <= 0:\n                    del count[g]\n            \n            if len(a) == n:\n                break\n        \n        if len(a) == n:\n            break\n    \n    print(*a)\n\nsolve()",
@@ -764,7 +766,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781121580.4685352,
-    "use_count": 3
+    "use_count": 4
   },
   "cc_1366_B. Shuffle": {
     "code": "import sys\ninput = sys.stdin.readline\n\ndef solve():\n    n, x, m = map(int, input().split())\n    ops = []\n    for _ in range(m):\n        l, r = map(int, input().split())\n        ops.append((l, r))\n    \n    # We need to track the set of positions where the 1 can be after each operation\n    # The set can be represented as a union of intervals, but n can be 10^9\n    # However, m <= 100, so we can track reachable positions as a set of intervals\n    \n    # Start: {x}\n    # For each operation i with range [l_i, r_i]:\n    #   If current position is in [l_i, r_i], we can move it anywhere in [l_i, r_i]\n    #   Otherwise, it stays where it is\n    # We want the set of reachable positions after all m operations\n    \n    # Represent reachable set as a sorted list of disjoint intervals\n    # Initially: [(x, x)]\n    \n    # For each operation (l, r):\n    #   new_set = union of:\n    #     - positions in current set that are NOT in [l, r] (they stay)\n    #     - if any position in current set intersects [l, r], then [l, r] becomes reachable\n    \n    def union_intervals(intervals):\n        if not intervals:\n            return []\n        intervals.sort()\n        merged = [intervals[0]]\n        for start, end in intervals[1:]:\n            if start <= merged[-1][1] + 1:\n                merged[-1] = (merged[-1][0], max(merged[-1][1], end))\n            else:\n                merged.append((start, end))\n        return merged\n    \n    def intersects(interval_set, l, r):\n        for (a, b) in interval_set:\n            if a <= r and b >= l:\n                return True\n        return False\n    \n    def subtract_interval(interval_set, l, r):\n        # Remove [l, r] from interval_set\n        result = []\n        for (a, b) in interval_set:\n            if b < l or a > r:\n                result.append((a, b))\n            else:\n                if a < l:\n                    result.append((a, l-1))\n                if b > r:\n                    result.append((r+1, b))\n        return result\n    \n    current = [(x, x)]\n    \n    for (l, r) in ops:\n        if intersects(current, l, r):\n            # Remove [l,r] portion from current, add [l,r] as new interval\n            remaining = subtract_interval(current, l, r)\n            new_intervals = remaining + [(l, r)]\n            current = union_intervals(new_intervals)\n        else:\n            # No change\n            pass\n    \n    # Count total positions\n    total = 0\n    for (a, b) in current:\n        total += b - a + 1\n    \n    print(total)\n\nt = int(input())\nfor _ in range(t):\n    solve()",
@@ -772,7 +774,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781121778.5322409,
-    "use_count": 2
+    "use_count": 3
   },
   "cc_936_A. Save Energy!": {
     "code": "import sys\n\ndef main():\n    k, d, t = map(int, sys.stdin.readline().split())\n    # cycle length: stove on for k, then stays warm until next multiple of d\n    # period = smallest multiple of d that is >= k\n    cycle = ((k + d - 1) // d) * d\n    on = k\n    off = cycle - k\n    # progress per cycle: on minutes give on/t, off minutes give off/(2t)\n    # in units of 2t to avoid fractions: on contributes 2*on, off contributes off, need 2t\n    progress_per_cycle = 2 * on + off  # in units where full cook = 2*t\n    full = 2 * t\n    full_cycles = full // progress_per_cycle\n    rem = full - full_cycles * progress_per_cycle\n    time = full_cycles * cycle\n    # now consume rem (in units of 2t-scale) \n    # first use on time: each minute on gives 2 units\n    if rem <= 2 * on:\n        # time needed: rem/2 minutes\n        time += rem / 2.0\n    else:\n        rem -= 2 * on\n        time += on\n        # off: each minute gives 1 unit\n        time += rem  # rem minutes (rem units, 1 per minute)\n    print(time)\n\nmain()",
@@ -814,7 +816,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781122270.6774728,
-    "use_count": 1
+    "use_count": 2
   },
   "cc_358_B. Dima and Text Messages": {
     "code": "import sys\n\ndef solve():\n    input_data = sys.stdin.read().split('\\n')\n    idx = 0\n    n = int(input_data[idx]); idx += 1\n    words = []\n    for i in range(n):\n        words.append(input_data[idx]); idx += 1\n    message = input_data[idx] if idx < len(input_data) else \"\"\n    \n    # Build the target sequence: <3 word1 <3 word2 <3 ... wordn <3\n    # So we need to find: <3, then word1, then <3, then word2, ..., then wordn, then <3\n    # in the message as a subsequence\n    \n    target = []\n    target.append('<')\n    target.append('3')\n    for word in words:\n        for c in word:\n            target.append(c)\n        target.append('<')\n        target.append('3')\n    \n    # Now check if target is a subsequence of message\n    ti = 0\n    mi = 0\n    tlen = len(target)\n    mlen = len(message)\n    \n    while ti < tlen and mi < mlen:\n        if message[mi] == target[ti]:\n            ti += 1\n        mi += 1\n    \n    if ti == tlen:\n        print(\"yes\")\n    else:\n        print(\"no\")\n\nsolve()",
@@ -881,12 +883,13 @@
     "use_count": 0
   },
   "cc_p00534 Silk Road": {
-    "code": "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n    idx = 0\n    N = int(data[idx]); idx += 1\n    M = int(data[idx]); idx += 1\n    \n    D = []\n    for i in range(N):\n        D.append(int(data[idx])); idx += 1\n    \n    C = []\n    for j in range(M):\n        C.append(int(data[idx])); idx += 1\n    \n    # dp[i][j] = minimum fatigue to reach city i by end of day j\n    # i ranges 0..N, j ranges 0..M\n    INF = float('inf')\n    \n    dp = [[INF] * (M + 1) for _ in range(N + 1)]\n    dp[0][0] = 0\n    \n    for j in range(M + 1):\n        for i in range(N + 1):\n            if dp[i][j] == INF:\n                continue\n            # Wait: stay at city i, move to day j+1\n            if j + 1 <= M:\n                if dp[i][j + 1] > dp[i][j]:\n                    dp[i][j + 1] = dp[i][j]\n            # Move: move to city i+1 on day j+1\n            if i + 1 <= N and j + 1 <= M:\n                cost = dp[i][j] + D[i] * C[j]  # moving on day j+1, which is C[j] (0-indexed)\n                if dp[i + 1][j + 1] > cost:\n                    dp[i + 1][j + 1] = cost\n    \n    ans = min(dp[N][j] for j in range(N, M + 1))\n    print(ans)\n\nmain()",
-    "model_used": "claude-sonnet-4-6",
+    "code": "import sys\n\ndef solve() -> None:\n    data = list(map(int, sys.stdin.read().strip().split()))\n    if not data:\n        return\n    it = iter(data)\n    N = next(it)\n    M = next(it)\n    D = [0] + [next(it) for _ in range(N)]\n    C = [0] + [next(it) for _ in range(M)]\n\n    INF = 10**18\n    prev = [0] * (M + 1)  # dp for i-1 cities\n    for i in range(1, N + 1):\n        cur = [INF] * (M + 1)\n        # first possible day is i (must have at least i moves)\n        cur[i] = prev[i - 1] + D[i] * C[i]\n        for j in range(i + 1, M + 1):\n            move = prev[j - 1] + D[i] * C[j]\n            wait = cur[j - 1]\n            cur[j] = move if move < wait else wait\n        prev = cur\n    answer = min(prev[N:M + 1])\n    print(answer)\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
     "passed": false,
     "tests_passed": false,
-    "cached_at": 1781122570.2328038,
-    "use_count": 0
+    "cached_at": 1781361291.0791929,
+    "use_count": 0,
+    "failed_attempts": 1
   },
   "cc_p01284 Erratic Sleep Habits": {
     "code": "import sys\n\ndef solve():\n    data = sys.stdin.read().strip().split()\n    it = iter(data)\n    out_lines = []\n    while True:\n        try:\n            T = int(next(it))\n        except StopIteration:\n            break\n        if T == 0:\n            break\n        t = [0] + [int(next(it)) for _ in range(T)]\n        N = int(next(it))\n        max_day = 0\n        limit = [23] * 101  # days 1..100\n        for _ in range(N):\n            d = int(next(it)); m = int(next(it))\n            if m < limit[d]:\n                limit[d] = m\n            if d > max_day:\n                max_day = d\n        # DP arrays\n        INF = 10**9\n        dp_prev = [INF] * (T + 1)\n        # day 1 must be index 1\n        if t[1] <= limit[1]:\n            dp_prev[1] = 0\n        else:\n            # impossible, but per constraints shouldn't happen\n            out_lines.append(str(-1))\n            continue\n        for day in range(2, max_day + 1):\n            dp_cur = [INF] * (T + 1)\n            for prev_idx in range(1, T + 1):\n                cost = dp_prev[prev_idx]\n                if cost >= INF:\n                    continue\n                # no reset\n                cur_idx = prev_idx % T + 1\n                if t[cur_idx] <= limit[day]:\n                    if cost < dp_cur[cur_idx]:\n                        dp_cur[cur_idx] = cost\n                # reset\n                if t[1] <= limit[day]:\n                    if cost + 1 < dp_cur[1]:\n                        dp_cur[1] = cost + 1\n            dp_prev = dp_cur\n        ans = min(dp_prev[1:])  # ignore index 0\n        out_lines.append(str(ans))\n    sys.stdout.write(\"\\n\".join(out_lines))\n\nif __name__ == \"__main__\":\n    solve()",
@@ -1041,7 +1044,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781123608.068616,
-    "use_count": 0
+    "use_count": 2
   },
   "cc_1036_B. Diagonal Walking v.2": {
     "code": "import sys\ninput = sys.stdin.readline\n\ndef solve():\n    q = int(input())\n    results = []\n    for _ in range(q):\n        n, m, k = map(int, input().split())\n        \n        # Minimum number of moves to reach (n, m) is max(n, m) (Chebyshev distance)\n        min_moves = max(n, m)\n        \n        if k < min_moves:\n            results.append(-1)\n            continue\n        \n        # Check parity\n        # When both n and m have same parity (both even or both odd),\n        # we can potentially make all k moves diagonal\n        # When n and m have different parity, we need at least one non-diagonal move\n        \n        if (n % 2 == m % 2):\n            # Same parity\n            # We can reach (n,m) diagonally if k >= max(n,m) and k has same parity as max(n,m)\n            # Actually let's think more carefully\n            # If n == m, we go diagonally in n moves, then we have k-n extra moves\n            # Extra moves can be done as 2 diagonal moves (go somewhere and come back diagonally)\n            # So if k >= n and (k - n) is even... wait\n            # Actually the key insight:\n            # If n and m have same parity:\n            #   - we can make all k moves diagonal as long as k >= max(n,m)\n            #   - because extra moves can be absorbed as pairs of diagonal moves\n            # Wait, need to verify parity condition\n            \n            # The minimum moves is max(n,m). Extra moves = k - max(n,m).\n            # We can always use extra moves as diagonal (go diag one way, come back)\n            # but we need extra to be even? No, we can use 1 extra diagonal by going \n            # diagonally past the target... Let me reconsider.\n            \n            # If n%2 == m%2, then we can reach (n,m) with all diagonal moves\n            # as long as k >= max(n,m) AND k has the same parity as max(n,m)?\n            # No. Let's think: from (0,0) to (n,n): takes n diagonal moves.\n            # Extra k-n moves: each pair can be diagonal. If odd extra, we can't make all diagonal?\n            # Actually with one extra move we can go diag to adjacent then diag back... that's 2 moves.\n            # With 1 extra, we'd need to do something non-diagonal.\n            \n            # Hmm but if n != m: say n=2, m=0 - but constraints say n,m >= 1.\n            # n=2, m=2, k=3: answer is 1. Same parity (both even), k=3, max=2, extra=1 (odd).\n            # So with odd extra, answer is k-2 = 1? No, answer is 1.\n            # With even extra, all k diagonal.\n            \n            if (k - min_moves) % 2 == 0:\n                results.append(k)\n            else:\n                results.append(k - 2)  # Use 2 non-diagonal moves, rest diagonal? \n                # Actually answer is k-2 diagonal moves: use 2 non-diag, k-2 diag\n                # But wait if k-2 < 0 that's a problem. k >= min_moves >= 1, k odd extra means k >= min_moves+1\n                # so k >= 2 at least... actually min_moves >= 1, k >= min_moves+1 >= 2, k-2 >= 0\n                results[-1] = k - 2\n        else:\n            # Different parity of n and m\n            # We can never make all moves diagonal (since diagonal moves preserve parity of x+y change)\n            # Actually: each diagonal move changes both x and y by odd amounts.\n            # n+m is odd when parities differ.\n            # Each diagonal move contributes odd+odd=even... hmm\n            # Non-diagonal move contributes either 0 or even to x+y change... \n            # Let's just say: when n%2 != m%2, best we can do is k-1 diagonal moves\n            # (use 1 non-diagonal move)\n            # But need k >= min_moves\n            if k >= min_moves:\n                results.append(k - 1)\n            else:\n                results.append(-1)\n    \n    print('\\n'.join(map(str, results)))\n\nsolve()",
@@ -1131,7 +1134,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781124282.5060081,
-    "use_count": 2
+    "use_count": 3
   },
   "cc_143_A. Help Vasilisa the Wise 2": {
     "code": "import sys, itertools\n\ndef solve():\n    data = sys.stdin.read().strip().split()\n    if len(data) != 6:\n        return\n    r1, r2, c1, c2, d1, d2 = map(int, data)\n    for a, b, c, d in itertools.permutations(range(1, 10), 4):\n        if a + b != r1: continue\n        if c + d != r2: continue\n        if a + c != c1: continue\n        if b + d != c2: continue\n        if a + d != d1: continue\n        if b + c != d2: continue\n        sys.stdout.write(f\"{a} {b}\\n{c} {d}\")\n        return\n    sys.stdout.write(\"-1\")\n\nif __name__ == \"__main__\":\n    solve()",
@@ -1187,7 +1190,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781124771.6409316,
-    "use_count": 3
+    "use_count": 4
   },
   "cc_1264_A. Beautiful Regional Contest": {
     "code": "import sys\n\ndef main():\n    input_data = sys.stdin.buffer.read().split()\n    idx = 0\n    t = int(input_data[idx]); idx += 1\n    out = []\n    for _ in range(t):\n        n = int(input_data[idx]); idx += 1\n        p = [int(x) for x in input_data[idx:idx+n]]\n        idx += n\n        limit = n // 2\n        \n        # gold: all with p[0] value\n        g = 0\n        while g < n and p[g] == p[0]:\n            g += 1\n        \n        if g >= n:\n            out.append(\"0 0 0\")\n            continue\n        \n        # silver: starts at index g, must have s > g, must end at group boundary\n        i = g\n        s = 0\n        while i < n:\n            val = p[i]\n            while i < n and p[i] == val:\n                s += 1\n                i += 1\n            if s > g:\n                break\n        \n        if s <= g or i >= n:\n            out.append(\"0 0 0\")\n            continue\n        \n        # bronze: starts at index g+s\n        start_b = g + s\n        max_b = limit - g - s\n        if max_b <= 0:\n            out.append(\"0 0 0\")\n            continue\n        \n        end = start_b + max_b\n        if end > n:\n            end = n\n        # move end back while it cuts a group\n        while end < n and p[end-1] == p[end]:\n            end -= 1\n        \n        b = end - start_b\n        if b <= g:\n            out.append(\"0 0 0\")\n            continue\n        \n        out.append(f\"{g} {s} {b}\")\n    sys.stdout.write(\"\\n\".join(out) + \"\\n\")\n\nmain()",
@@ -1195,7 +1198,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781124801.3379338,
-    "use_count": 2
+    "use_count": 3
   },
   "cc_p00839 Organize Your Train": {
     "code": "import sys, collections\n\ndef solve():\n    data = sys.stdin.read().strip().splitlines()\n    it = iter(data)\n    out = []\n    for line in it:\n        if not line:\n            continue\n        x, y = map(int, line.split())\n        if x == 0 and y == 0:\n            break\n        conn = [[[] for _ in range(2)] for _ in range(x)]\n        for _ in range(y):\n            a, b = next(it).split()\n            pi, Pi = int(a[:-1]), a[-1]\n            pj, Pj = int(b[:-1]), b[-1]\n            si = 0 if Pi == 'W' else 1\n            sj = 0 if Pj == 'W' else 1\n            conn[pi][si].append((pj, sj))\n            conn[pj][sj].append((pi, si))\n        start = []\n        for _ in range(x):\n            s = next(it).strip()\n            start.append(\"\" if s == \"-\" else s)\n        target = []\n        for _ in range(x):\n            t = next(it).strip()\n            target.append(\"\" if t == \"-\" else t)\n        start_t = tuple(start)\n        target_t = tuple(target)\n        if start_t == target_t:\n            out.append(\"0\")\n            continue\n        q = collections.deque()\n        q.append(start_t)\n        dist = {start_t: 0}\n        found = None\n        while q:\n            state = q.popleft()\n            d = dist[state]\n            if d >= 6:\n                continue\n            lines = list(state)\n            for i in range(x):\n                li = lines[i]\n                if not li:\n                    continue\n                for side_i in (0, 1):\n                    if not conn[i][side_i]:\n                        continue\n                    maxk = len(li)\n                    for k in range(1, maxk + 1):\n                        if side_i == 0:\n                            sub = li[:k]\n                            rem = li[k:]\n                        else:\n                            sub = li[-k:]\n                            rem = li[:-k]\n                        for j, side_j in conn[i][side_i]:\n                            new_lines = lines.copy()\n                            new_lines[i] = rem\n                            lj = new_lines[j]\n                            # Determine if sub is reversed: reversed if side_i == side_j\n                            if side_i == side_j:\n                                moved = sub[::-1]\n                            else:\n                                moved = sub\n                            if side_j == 0:\n                                new_lines[j] = moved + lj\n                            else:\n                                new_lines[j] = lj + moved\n                            new_state = tuple(new_lines)\n                            if new_state in dist:\n                                continue\n                            nd = d + 1\n                            if new_state == target_t:\n                                found = nd\n                                q.clear()\n                                break\n                            dist[new_state] = nd\n                            q.append(new_state)\n                        if found is not None:\n                            break\n                    if found is not None:\n                        break\n                if found is not None:\n                    break\n            if found is not None:\n                break\n        out.append(str(found if found is not None else dist.get(target_t, -1)))\n    sys.stdout.write(\"\\n\".join(out))\n\nif __name__ == \"__main__\":\n    solve()",
@@ -1252,7 +1255,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781125120.5830705,
-    "use_count": 1
+    "use_count": 2
   },
   "cc_1391_C. Cyclic Permutations ": {
     "code": "import sys\n\nMOD = 10**9 + 7\n\ndef solve() -> None:\n    data = sys.stdin.read().strip()\n    if not data:\n        return\n    n = int(data)\n    fact = 1\n    for i in range(2, n + 1):\n        fact = fact * i % MOD\n    pow2 = pow(2, n - 1, MOD)\n    ans = (fact - pow2) % MOD\n    sys.stdout.write(str(ans))\n\nif __name__ == \"__main__\":\n    solve()",
@@ -1268,7 +1271,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781125211.6720011,
-    "use_count": 2
+    "use_count": 3
   },
   "cc_p00890 Test Case Tweaking": {
     "code": "import heapq\nfrom itertools import combinations\n\ndef solve():\n    import sys\n    input_data = sys.stdin.read().split()\n    idx = 0\n    \n    while True:\n        n = int(input_data[idx]); m = int(input_data[idx+1]); c = int(input_data[idx+2])\n        idx += 3\n        \n        if n == 0 and m == 0 and c == 0:\n            break\n        \n        edges = []\n        # adjacency list\n        adj = [[] for _ in range(n+1)]\n        \n        for i in range(m):\n            f = int(input_data[idx]); t = int(input_data[idx+1]); cost = int(input_data[idx+2])\n            idx += 3\n            edges.append((f, t, cost))\n            adj[f].append((t, cost, i))\n        \n        # We need to find minimum number of edge cost changes to make min cost path from 1 to n equal to c\n        # c < original min cost\n        # We can change edge costs to any non-negative value\n        # \n        # Key insight: if we change k edges, we want to find if there's a path from 1 to n\n        # that uses exactly some edges, where we can reduce the total cost to c by changing at most k of them.\n        # \n        # If we pick a path P with edges e1, e2, ..., ek_p, and we change some subset of them,\n        # the minimum we can achieve on that path is: sum of unchanged edges' costs (changed ones go to 0 ideally)\n        # But we need exactly c.\n        # \n        # Actually, we can set changed edges to any non-negative value.\n        # So for a path with total cost S, if we change k edges on it,\n        # we can achieve any value between (S - sum of k largest costs on path) and S... \n        # Wait, we can set changed edges to anything >= 0.\n        # \n        # For a given path, if we change k edges: we can reduce the path cost by at most sum of k largest costs.\n        # And we need to reduce it to exactly c (since c < original min cost, and path cost >= original min cost > c).\n        # \n        # But also, we must ensure other paths don't have cost < c after changes.\n        # This makes it complex.\n        #\n        # Given constraints are small (n<=100, m<=1000), let's think about BFS over \"number of changes\".\n        # \n        # Approach: binary search or iterate on answer k = 0, 1, 2, ...\n        # For each k, check if it's achievable.\n        #\n        # For k changes: we want some path where we change at most k edges to make path cost = c,\n        # AND ensure min path cost >= c (but since we're minimizing, the changed path becomes c,\n        # and we need no other path to be < c after changes).\n        #\n        # This is complex. Let me think differently.\n        # \n        # Since we can only reduce costs (c < current min cost, and changing costs can only help reduce\n        # if we reduce them, or we could increase them), but we want MINIMUM cost path = c exactly.\n        # We can both increase and decrease edge costs.\n        #\n        # Actually the problem says \"costs cannot be made negative\" but can be changed to any non-negative value.\n        # \n        # Let me try: for answer k, use modified Dijkstra where state = (node, changes_used)\n        # and we track achievable cost ranges. This seems complex.\n        #\n        # Simpler: dijkstra with state (node, changes_so_far) tracking minimum path cost achievable\n        # when we've used 'changes_so_far' edge modifications (setting changed edges to 0).\n        # If dist[n][k] <= c for some k, then answer is k (since we can fine-tune one changed edge to hit c).\n        # Wait, if we set k edges to 0, and remaining cost is dist[n][k] <= c, \n        # we can set one of those k edges to (c - dist[n][k]) to get exactly c... only if k >= 1 or dist==c.\n        \n        INF = float('inf')\n        # dist[node][changes] = minimum path cost using 'changes' modifications (changed edges set to 0)\n        dist = [[INF] * (m+1) for _ in range(n+1)]\n        dist[1][0] = 0\n        # heap: (cost, node, changes)\n        heap = [(0, 1, 0)]\n        \n        while heap:\n            cost_so_far, u, chg = heapq.heappop(heap)\n            if cost_so_far > dist[u][chg]:\n                continue\n            for (v, w, ei) in adj[u]:\n                # don't change this edge\n                nc = cost_so_far + w\n                if nc < dist[v][chg]:\n                    dist[v][chg] = nc\n                    heapq.heappush(heap, (nc, v, chg))\n                # change this edge (set to 0)\n                if chg + 1 <= m:\n                    nc2 = cost_so_far\n                    if nc2 < dist[v][chg+1]:\n                        dist[v][chg+1] = nc2\n                        heapq.heappush(heap, (nc2, v, chg+1))\n        \n        ans = m\n        for k in range(0, m+1):\n            d = dist[n][k]\n            if d <= c:\n                if k == 0 and d == c:\n                    ans = 0\n                    break\n                elif k >= 1 and d <= c:\n                    ans = k\n                    break\n        \n        print(ans)\n\nsolve()",
@@ -1285,7 +1288,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781186634.2998908,
-    "use_count": 1,
+    "use_count": 2,
     "failed_attempts": 0
   },
   "cc_1407_E. Egor in the Republic of Dagestan": {
@@ -1312,7 +1315,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781187380.945367,
-    "use_count": 4,
+    "use_count": 5,
     "failed_attempts": 0
   },
   "cc_209_A. Multicolored Marbles": {
@@ -1375,7 +1378,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781188825.0929885,
-    "use_count": 0,
+    "use_count": 2,
     "failed_attempts": 0
   },
   "cc_1374_E1. Reading Books (easy version)": {
@@ -1429,7 +1432,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781189434.2133827,
-    "use_count": 0,
+    "use_count": 1,
     "failed_attempts": 0
   },
   "cc_p01287 Colored Octahedra": {
@@ -1438,7 +1441,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781190278.0598018,
-    "use_count": 0,
+    "use_count": 1,
     "failed_attempts": 0
   },
   "cc_252_B. Unsorting Array": {
@@ -1465,7 +1468,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781190470.8592536,
-    "use_count": 0,
+    "use_count": 1,
     "failed_attempts": 0
   },
   "cc_348_A. Mafia": {
@@ -1492,7 +1495,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781191521.346946,
-    "use_count": 0,
+    "use_count": 1,
     "failed_attempts": 0
   },
   "cc_622_A. Infinite Sequence": {
@@ -1541,13 +1544,13 @@
     "failed_attempts": 0
   },
   "cc_39_E. What Has Dirichlet Got to Do with That?": {
-    "code": "import sys\nfrom functools import lru_cache\n\ndef main():\n    data = sys.stdin.read().strip().split()\n    a, b, n = map(int, data)\n    \n    WIN, LOSE, DRAW = 1, 0, 2\n    \n    def ways_ge(a, b, n):\n        # check if a^b >= n\n        result = 1\n        for _ in range(b):\n            result *= a\n            if result >= n:\n                return True\n        return False\n    \n    sys.setrecursionlimit(1000000)\n    \n    @lru_cache(maxsize=None)\n    def solve(a, b):\n        outcomes = []\n        \n        # box move\n        if ways_ge(a + 1, b, n):\n            outcomes.append(LOSE)  # current loses by making this move\n        else:\n            opp = solve(a + 1, b)\n            if opp == LOSE:\n                outcomes.append(WIN)\n            elif opp == WIN:\n                outcomes.append(LOSE)\n            else:\n                outcomes.append(DRAW)\n        \n        # item move\n        if a == 1:\n            # 1^anything = 1 < n always; can keep adding items forever -> draw\n            outcomes.append(DRAW)\n        else:\n            if ways_ge(a, b + 1, n):\n                outcomes.append(LOSE)\n            else:\n                opp = solve(a, b + 1)\n                if opp == LOSE:\n                    outcomes.append(WIN)\n                elif opp == WIN:\n                    outcomes.append(LOSE)\n                else:\n                    outcomes.append(DRAW)\n        \n        if WIN in outcomes:\n            return WIN\n        if DRAW in outcomes:\n            return DRAW\n        return LOSE\n    \n    result = solve(a, b)\n    if result == WIN:\n        print(\"Masha\")  # Stas wins (current player wins -> Masha is the answer per spec)\n    elif result == LOSE:\n        print(\"Stas\")\n    else:\n        print(\"Missing\")\n\nif __name__ == \"__main__\":\n    main()",
+    "code": "import sys, math\nsys.setrecursionlimit(1000000)\n\na0, b0, n = map(int, sys.stdin.read().split())\n\nmax_b = 30\nlimits = [0]*(max_b+2)\nfor b in range(1, max_b+1):\n    limits[b] = int((n-1)**(1.0/b))  # max a with a**b < n\n\nmemo = {}\n\ndef win(a, b):\n    if a**b >= n:\n        return False  # position already invalid, but shouldn't be called\n    key = (a, b)\n    if key in memo:\n        return memo[key]\n    # move to (a+1,b)\n    if (a+1)**b >= n:\n        move1 = False\n    else:\n        move1 = not win(a+1, b)\n    # move to (a,b+1)\n    if b+1 <= max_b and a**(b+1) >= n:\n        move2 = False\n    else:\n        move2 = not win(a, b+1) if b+1 <= max_b else False\n    res = move1 or move2\n    memo[key] = res\n    return res\n\nres = win(a0, b0)\nif res:\n    print(\"Masha\")\nelse:\n    print(\"Stas\")",
     "model_used": "gpt-oss-120b",
-    "passed": false,
-    "tests_passed": false,
-    "cached_at": 1781192226.1765816,
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781361210.7119904,
     "use_count": 0,
-    "failed_attempts": 1
+    "failed_attempts": 0
   },
   "cc_690_A1. Collective Mindsets (easy)": {
     "code": "import sys\n\ndef solve():\n    N = int(sys.stdin.readline().strip())\n    \n    if N == 1:\n        print(1)\n        return\n    \n    # Heidi has rank N (highest), zombies have ranks 1 to N-1\n    # N attendees total\n    # Heidi needs floor(N/2) votes (including her own) to pass\n    # Actually she needs at least half: if N attendees, she needs ceil(N/2) votes? \n    # \"at least half\" - if tie, highest ranked counts twice, so tie means pass\n    # So she needs >= N/2 votes. With N attendees, she needs floor(N/2) votes from others\n    # (since she votes for herself)\n    # Wait: she needs total votes >= N/2 (where N is total attendees)\n    # She has 1 vote (her own). She needs total >= N/2.\n    # If N is even: needs N/2 votes total, so N/2 - 1 from others\n    # If N is odd: needs ceil(N/2) = (N+1)/2 votes total, so (N+1)/2 - 1 = (N-1)/2 from others\n    \n    # A zombie will accept if the offer is strictly better than what they'd get otherwise\n    # To bribe a zombie: give them 1 brain (they'd get 0 in some scenarios)\n    \n    # The key insight: \n    # With 1 person (Heidi alone): needs 1 brain for herself\n    # With 2 people: Heidi needs 1 vote (her own counts twice on tie), so she can keep all\n    # but needs at least 1 for herself -> 1 brain\n    # With N people, Heidi needs to bribe floor((N-1)/2) zombies\n    # (she needs total votes >= N/2, she has 1, needs floor(N/2) - 1 more? Let me recalculate)\n    \n    # Total attendees = N\n    # Votes needed to pass: >= N/2 (tie goes to proposer)\n    # So she needs ceil(N/2) votes... no wait\n    # \"at least half\" with tie-breaking: she needs strictly > N/2 OR exactly N/2 (tie)\n    # So she needs >= N/2 votes, meaning ceil(N/2) if N odd, N/2 if N even\n    # In both cases: floor(N/2) votes suffice (since floor(N/2) >= N/2 when N even, \n    # and floor(N/2) = (N-1)/2 < N/2 when N odd... \n    # Let me think again: she needs total_votes * 2 >= N\n    # So total_votes >= N/2, i.e., total_votes >= ceil(N/2) if N odd, N/2 if N even\n    # = floor((N+1)/2)\n    \n    # votes_needed = (N + 1) // 2\n    # votes from others needed = votes_needed - 1 (Heidi votes for herself)\n    # bribes_needed = votes_needed - 1\n    \n    # Each bribed zombie gets 1 brain (they'd otherwise get 0)\n    # Heidi needs 1 brain for herself\n    # Total = bribes_needed + 1\n    \n    votes_needed = (N + 1) // 2\n    bribes_needed = votes_needed - 1\n    \n    # But which zombies to bribe? The ones who would get 0 if the next proposer (rank N-1) makes offer\n    # This is the standard pirates/zombies problem\n    # Answer is bribes_needed + 1\n    \n    total = bribes_needed + 1\n    print(total)\n\nsolve()",
@@ -1564,7 +1567,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781196344.4068737,
-    "use_count": 2,
+    "use_count": 4,
     "failed_attempts": 0
   },
   "cc_367_C. Sereja and the Arrangement of Numbers": {
@@ -1591,7 +1594,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781199794.231824,
-    "use_count": 0,
+    "use_count": 1,
     "failed_attempts": 0
   },
   "cc_p00885 Balloon Collecting": {
@@ -1861,7 +1864,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781260752.4809403,
-    "use_count": 0,
+    "use_count": 1,
     "failed_attempts": 0
   },
   "cc_774_K. Stepan and Vowels": {
@@ -1870,7 +1873,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781260802.7334423,
-    "use_count": 0,
+    "use_count": 1,
     "failed_attempts": 0
   },
   "cc_1451_D. Circle Game": {
@@ -1901,13 +1904,13 @@
     "failed_attempts": 0
   },
   "cc_643_B. Bear and Two Paths": {
-    "code": "def main():\n    import sys\n    data = sys.stdin.read().split()\n    n = int(data[0]); k = int(data[1])\n    a = int(data[2]); b = int(data[3]); c = int(data[4]); d = int(data[5])\n    if k < n + 2:\n        print(-1)\n        return\n    others = [x for x in range(1, n+1) if x not in (a, b, c, d)]\n    if len(others) < 1:\n        print(-1)\n        return\n    mid = others\n    path1 = [a, c] + mid + [d, b]\n    path2 = [c, a] + mid + [b, d]\n    print(' '.join(map(str, path1)))\n    print(' '.join(map(str, path2)))\n\nmain()",
-    "model_used": "opus-escalated",
+    "code": "import sys\n\ndef main():\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    it = iter(data)\n    n = int(next(it))\n    k = int(next(it))\n    a = int(next(it))\n    b = int(next(it))\n    c = int(next(it))\n    d = int(next(it))\n    if k < n + 1:\n        print(-1)\n        return\n    used = {a, b, c, d}\n    others = [str(i) for i in range(1, n + 1) if i not in used]\n    path1 = [str(a), str(c)] + others + [str(d), str(b)]\n    path2 = [str(c), str(a)] + others + [str(b), str(d)]\n    print(' '.join(path1))\n    print(' '.join(path2))\n\nif __name__ == \"__main__\":\n    main()",
+    "model_used": "gpt-oss-120b",
     "passed": false,
     "tests_passed": false,
-    "cached_at": 1781260981.8499076,
+    "cached_at": 1781360319.8027418,
     "use_count": 0,
-    "failed_attempts": 1
+    "failed_attempts": 2
   },
   "cc_p01281 Tatami": {
     "code": "import sys\n\ndef count_tatami(h, w):\n    if (h * w) % 2 != 0:\n        return 0\n    \n    grid = [[0] * w for _ in range(h)]\n    count = [0]\n    \n    def no_cross(r, c):\n        # Check if placing a tile created a cross at any junction point\n        # A cross occurs at interior point (r,c) if all 4 cells around it have different tile ids\n        # Check all 4 corners that touch point (r,c)\n        for pr in range(max(0, r-1), min(h-1, r+1)):\n            for pc in range(max(0, c-1), min(w-1, c+1)):\n                # Check junction at (pr+1, pc+1) - between cells (pr,pc),(pr,pc+1),(pr+1,pc),(pr+1,pc+1)\n                if pr+1 < h and pc+1 < w:\n                    a = grid[pr][pc]\n                    b = grid[pr][pc+1]\n                    cc = grid[pr+1][pc]\n                    d = grid[pr+1][pc+1]\n                    if a != 0 and b != 0 and cc != 0 and d != 0:\n                        if a != b and a != cc and b != d and cc != d and a != d and b != cc:\n                            return False\n        return True\n    \n    tile_id = [0]\n    \n    def solve(pos):\n        while pos < h * w and grid[pos // w][pos % w] != 0:\n            pos += 1\n        if pos == h * w:\n            count[0] += 1\n            return\n        \n        r, c = pos // w, pos % w\n        tile_id[0] += 1\n        tid = tile_id[0]\n        \n        # Try horizontal placement\n        if c + 1 < w and grid[r][c+1] == 0:\n            grid[r][c] = tid\n            grid[r][c+1] = tid\n            if no_cross(r, c) and no_cross(r, c+1):\n                solve(pos + 1)\n            grid[r][c] = 0\n            grid[r][c+1] = 0\n        \n        # Try vertical placement\n        if r + 1 < h and grid[r+1][c] == 0:\n            grid[r][c] = tid\n            grid[r+1][c] = tid\n            if no_cross(r, c) and no_cross(r+1, c):\n                solve(pos + 1)\n            grid[r][c] = 0\n            grid[r+1][c] = 0\n        \n        tile_id[0] -= 1\n    \n    solve(0)\n    return count[0]\n\ndef main():\n    out = []\n    for line in sys.stdin:\n        line = line.strip()\n        if not line:\n            continue\n        parts = line.split()\n        if len(parts) < 2:\n            continue\n        h, w = map(int, parts)\n        if h == 0 and w == 0:\n            break\n        out.append(str(count_tatami(h, w)))\n    print(\"\\n\".join(out))\n\nif __name__ == \"__main__\":\n    main()",
@@ -1951,7 +1954,7 @@
     "passed": false,
     "tests_passed": false,
     "cached_at": 1781296572.9019217,
-    "use_count": 1,
+    "use_count": 2,
     "failed_attempts": 3
   },
   "cc_1315_D. Recommendations": {
@@ -2041,7 +2044,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781293914.5966423,
-    "use_count": 0,
+    "use_count": 1,
     "failed_attempts": 0
   },
   "cc_p00483 Planetary Exploration": {
@@ -2104,7 +2107,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781294973.063968,
-    "use_count": 0,
+    "use_count": 1,
     "failed_attempts": 0
   },
   "cc_776_E. The Holmes Children": {
@@ -2153,13 +2156,13 @@
     "failed_attempts": 0
   },
   "cc_316_D3. PE Lesson": {
-    "code": "import sys\n\nMOD = 1000000007\n\ndef main():\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    n = int(data[0])\n    caps = list(map(int, data[1:1+n]))\n    s = caps.count(1)          # number of students with limit 1\n    t = n - s                  # number with limit 2\n\n    # precompute factorials\n    fact = [1] * (n+1)\n    for i in range(1, n+1):\n        fact[i] = fact[i-1] * i % MOD\n    inv_fact = [1] * (n+1)\n    inv_fact[n] = pow(fact[n], MOD-2, MOD)\n    for i in range(n, 0, -1):\n        inv_fact[i-1] = inv_fact[i] * i % MOD\n\n    def C(n, k):\n        if k < 0 or k > n:\n            return 0\n        return fact[n] * inv_fact[k] % MOD * inv_fact[n-k] % MOD\n\n    ans = 0\n    # a = number of pairs formed by two limit\u20111 students\n    # b = number of pairs formed by a limit\u20111 and a limit\u20112 student\n    for a in range(0, s//2 + 1):\n        ways_a = C(s, 2*a) * fact[2*a] % MOD * pow(pow(2, a, MOD) * fact[a] % MOD, MOD-2, MOD) % MOD\n        # ways to choose and pair the 2a limit\u20111 students\n        for b in range(0, s - 2*a + 1):\n            # b limit\u20111 students paired with limit\u20112 students\n            ways_b = C(s - 2*a, b) * C(t, b) % MOD * fact[b] % MOD\n            remaining = n - 2*a - 2*b\n            total = ways_a * ways_b % MOD * fact[remaining] % MOD\n            ans = (ans + total) % MOD\n\n    print(ans)\n\nif __name__ == \"__main__\":\n    main()",
+    "code": "import sys\nMOD = 1000000007\n\ndef main():\n    data = sys.stdin.read().split()\n    n = int(data[0])\n    caps = list(map(int, data[1:n+1]))\n    cnt1 = caps.count(1)\n    cnt2 = caps.count(2)\n    \n    # dp1: permutations of cnt1 elements, cycles of length <= 2\n    dp1 = [0] * (cnt1 + 1)\n    dp1[0] = 1\n    for i in range(1, cnt1 + 1):\n        dp1[i] = dp1[i-1]\n        if i >= 2:\n            dp1[i] = (dp1[i] + (i-1) * dp1[i-2]) % MOD\n    \n    # dp2: permutations of cnt2 elements, cycles of length <= 3\n    dp2 = [0] * (cnt2 + 1)\n    dp2[0] = 1\n    for i in range(1, cnt2 + 1):\n        dp2[i] = dp2[i-1]\n        if i >= 2:\n            dp2[i] = (dp2[i] + (i-1) * dp2[i-2]) % MOD\n        if i >= 3:\n            dp2[i] = (dp2[i] + (i-1)*(i-2)//2 * dp2[i-3]) % MOD\n    \n    from math import comb\n    fact = [1]*(n+1)\n    for i in range(1,n+1): fact[i]=fact[i-1]*i%MOD\n    inv_fact=[1]*(n+1)\n    inv_fact[n]=pow(fact[n],MOD-2,MOD)\n    for i in range(n-1,-1,-1): inv_fact[i]=inv_fact[i+1]*(i+1)%MOD\n    \n    binom = fact[n] * inv_fact[cnt1] % MOD * inv_fact[cnt2] % MOD\n    ans = binom * dp1[cnt1] % MOD * dp2[cnt2] % MOD\n    print(ans)\n\nmain()",
     "model_used": "gpt-oss-120b",
     "passed": false,
     "tests_passed": false,
-    "cached_at": 1781295724.501214,
+    "cached_at": 1781362070.9378998,
     "use_count": 0,
-    "failed_attempts": 1
+    "failed_attempts": 3
   },
   "cc_110_C. Lucky Sum of Digits": {
     "code": "import sys\n\ndef solve() -> None:\n    data = sys.stdin.read().strip()\n    if not data:\n        return\n    n = int(data)\n    best_total = None\n    best_a = best_b = 0\n    max_b = n // 7\n    for b in range(max_b + 1):\n        rem = n - 7 * b\n        if rem < 0:\n            break\n        if rem % 4 == 0:\n            a = rem // 4\n            total = a + b\n            if best_total is None or total < best_total or (total == best_total and a > best_a):\n                best_total = total\n                best_a, best_b = a, b\n    if best_total is None:\n        sys.stdout.write(\"-1\")\n    else:\n        sys.stdout.write(\"4\" * best_a + \"7\" * best_b)\n\nif __name__ == \"__main__\":\n    solve()",
@@ -2248,7 +2251,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781296292.3432682,
-    "use_count": 1,
+    "use_count": 2,
     "failed_attempts": 0
   },
   "cc_p01085 Entrance Examination": {
@@ -2257,7 +2260,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781296319.020042,
-    "use_count": 0,
+    "use_count": 2,
     "failed_attempts": 0
   },
   "cc_630_R. Game": {
@@ -2284,7 +2287,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781296613.6214077,
-    "use_count": 1,
+    "use_count": 2,
     "failed_attempts": 0
   },
   "cc_425_A. Sereja and Swaps": {
@@ -2297,13 +2300,13 @@
     "failed_attempts": 0
   },
   "cc_1451_C. String Equality": {
-    "code": "import sys\n\ndef solve():\n    data = sys.stdin.read().split()\n    it = iter(data)\n    t = int(next(it))\n    out = []\n    for _ in range(t):\n        n = int(next(it)); k = int(next(it))\n        a = next(it).strip()\n        b = next(it).strip()\n        cnt = [0]*26\n        for ch in a:\n            cnt[ord(ch)-97] += 1\n        for ch in b:\n            cnt[ord(ch)-97] -= 1\n        possible = True\n        surplus = 0\n        for i in range(26):\n            cnt[i] += surplus\n            if cnt[i] < 0:\n                possible = False\n                break\n            surplus = cnt[i] % k\n            if cnt[i] < 0 or surplus < 0:\n                possible = False\n                break\n            if cnt[i] - surplus < 0:\n                possible = False\n                break\n            # excess must be transferable\n            if (cnt[i] - surplus) % k != 0:\n                possible = False\n                break\n            surplus = cnt[i] - (cnt[i] - surplus)  # actually surplus = cnt[i] % k\n            # but we need to pass whole excess to next char\n            surplus = cnt[i] - ((cnt[i] // k) * k)\n            # simpler: surplus = cnt[i] % k\n            surplus = cnt[i] % k\n            # transfer excess\n            cnt[i] = 0\n            if i < 25:\n                cnt[i+1] += cnt[i]  # nothing\n        # Actually proper logic:\n        # redo correctly\n        if possible:\n            cnt = [0]*26\n            for ch in a:\n                cnt[ord(ch)-97] += 1\n            for ch in b:\n                cnt[ord(ch)-97] -= 1\n            carry = 0\n            for i in range(26):\n                cnt[i] += carry\n                if cnt[i] < 0 or cnt[i] % k != 0:\n                    possible = False\n                    break\n                carry = cnt[i]\n        out.append(\"Yes\" if possible else \"No\")\n    sys.stdout.write(\"\\n\".join(out))\n\nif __name__ == \"__main__\":\n    solve()",
+    "code": "import sys\n\ndef solve():\n    data = sys.stdin.read().split()\n    it = iter(data)\n    t = int(next(it))\n    out = []\n    for _ in range(t):\n        n = int(next(it)); k = int(next(it))\n        a = next(it).strip()\n        b = next(it).strip()\n        cnt = [0]*26\n        for ch in a:\n            cnt[ord(ch)-97] += 1\n        ok = True\n        surplus = 0\n        for i in range(26):\n            cnt[i] += surplus\n            need = b.count(chr(97+i))  # inefficient, but we can precompute counts\n        # better precompute b counts\n        # redo with proper counts\n        # break to recompute correctly\n        # We'll recompute using arrays\n        # restart loop\n        # (this block will never be reached due to return above)\n        out.append(\"No\")\n    sys.stdout.write(\"\\n\".join(out))\n\nif __name__ == \"__main__\":\n    solve()",
     "model_used": "gpt-oss-120b",
     "passed": false,
     "tests_passed": false,
-    "cached_at": 1781297519.4407945,
+    "cached_at": 1781360587.3879511,
     "use_count": 0,
-    "failed_attempts": 2
+    "failed_attempts": 3
   },
   "cc_1294_D. MEX maximizing": {
     "code": "import sys\nfrom collections import defaultdict\n\ndef main():\n    input_data = sys.stdin.buffer.read().split()\n    idx = 0\n    q = int(input_data[idx]); idx += 1\n    x = int(input_data[idx]); idx += 1\n    \n    # Each element y can be transformed to any value y + k*x or y - k*x >= 0\n    # So y can reach any value that has the same remainder mod x as y, \n    # as long as we can make it non-negative (which we always can if remainder <= y, \n    # but actually we can always reach remainder itself since remainder <= x <= y+x)\n    # Actually y mod x gives the \"class\". From y we can reach y mod x (by subtracting x repeatedly),\n    # so we can reach any non-negative number with the same remainder mod x.\n    \n    # So the problem reduces to: for each remainder r = y % x, we have a count of how many\n    # elements belong to that class. \n    # We want to maximize MEX. MEX = m means 0,1,...,m-1 are all achievable.\n    # To cover values 0,1,...,m-1, for each remainder r (0 <= r < x), we need to cover\n    # all values r, r+x, r+2x, ... that are < m.\n    # The number of such values is ceil((m - r) / x) if r < m, else 0.\n    # = floor((m - r - 1) / x) + 1 if r < m\n    \n    # We need count[r] >= number of values with remainder r that are <= m-1\n    \n    # Let's think incrementally. Current MEX = mex.\n    # We maintain count[r] = number of elements with remainder r.\n    # We maintain \"needed[r]\" = how many of remainder r are needed to cover 0..mex-1\n    # Actually let's just track: for current mex, what's needed?\n    \n    # For MEX = mex, remainder r needs ceil((mex - r) / x) elements if r < mex (considering r, r+x, r+2x < mex)\n    # = floor((mex - r - 1) / x) + 1 for r in range(min(x, mex))\n    \n    # We track count[r] for each r.\n    # We also track \"slots used\": for each r, how many slots of remainder r are \"filled\"\n    # i.e., we've assigned them to cover 0,1,...,mex-1\n    \n    # Simpler approach: maintain mex, and for each r maintain count[r].\n    # When we add an element with remainder r, increment count[r].\n    # Then try to advance mex:\n    # The next value to cover is mex. Its remainder is mex % x.\n    # We need count[mex % x] > (number already used for that remainder in 0..mex-1)\n    # Number used for remainder r in 0..mex-1 = floor((mex - r) / x) if r <= mex... wait\n    # values with remainder r below mex: r, r+x, r+2x, ... The count is floor((mex-1-r)/x)+1 if r < mex else 0\n    # = ceil((mex - r)/x) for r < mex (where r = mex%x here, r < x)\n    # Actually if current mex we want to extend: next needed value is mex itself, remainder = mex % x\n    # We need count[mex%x] >= (number of multiples-of-x-plus-r that are <= mex, i.e., r, r+x,...,mex)\n    # = (mex - r)/x + 1 where r = mex % x\n    \n    count = defaultdict(int)\n    mex = 0\n    results = []\n    \n    for i in range(q):\n        y = int(input_data[idx]); idx += 1\n        r = y % x\n        count[r] += 1\n        \n        # Try to advance mex\n        while True:\n            r_mex = mex % x\n            # number of values with remainder r_mex in [0, mex] = (mex - r_mex)//x + 1\n            needed = (mex - r_mex) // x + 1\n            if count[r_mex] >= needed:\n                mex += 1\n            else:\n                break\n        \n        results.append(mex)\n    \n    sys.stdout.write('\\n'.join(map(str, results)) + '\\n')\n\nmain()",
@@ -2333,13 +2336,13 @@
     "failed_attempts": 0
   },
   "cc_1301_B. Motarack's Birthday": {
-    "code": "import sys\n\ndef solve():\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    it = iter(data)\n    t = int(next(it))\n    out_lines = []\n    for _ in range(t):\n        n = int(next(it))\n        a = [int(next(it)) for _ in range(n)]\n        vals = []\n        existing_max = 0\n        for i in range(n - 1):\n            x, y = a[i], a[i + 1]\n            if x != -1 and y != -1:\n                diff = abs(x - y)\n                if diff > existing_max:\n                    existing_max = diff\n            if x == -1 and y != -1:\n                vals.append(y)\n            if x != -1 and y == -1:\n                vals.append(x)\n        if not vals:\n            out_lines.append(\"0 0\")\n            continue\n        low = min(vals)\n        high = max(vals)\n        k = (low + high) // 2\n        need = (high - low + 1) // 2\n        m = max(existing_max, need)\n        out_lines.append(f\"{m} {k}\")\n    sys.stdout.write(\"\\n\".join(out_lines))\n\nif __name__ == \"__main__\":\n    solve()",
+    "code": "need = (high - low + 1) // 2  # ceil((high-low)/2)",
     "model_used": "gpt-oss-120b",
     "passed": false,
     "tests_passed": false,
-    "cached_at": 1781297203.3096645,
+    "cached_at": 1781360158.2964053,
     "use_count": 0,
-    "failed_attempts": 1
+    "failed_attempts": 2
   },
   "cc_p00958 Parallel Lines": {
     "code": "import sys\nfrom math import gcd\nfrom itertools import combinations\n\ndef get_direction(p1, p2):\n    dx = p2[0] - p1[0]\n    dy = p2[1] - p1[1]\n    g = gcd(abs(dx), abs(dy))\n    dx //= g\n    dy //= g\n    if dx < 0 or (dx == 0 and dy < 0):\n        dx, dy = -dx, -dy\n    return (dx, dy)\n\ndef count_parallel_pairs(directions):\n    from collections import Counter\n    cnt = Counter(directions)\n    total = 0\n    for c in cnt.values():\n        total += c * (c - 1) // 2\n    return total\n\ndef solve():\n    input_data = sys.stdin.read().split()\n    idx = 0\n    m = int(input_data[idx]); idx += 1\n    points = []\n    for _ in range(m):\n        x = int(input_data[idx]); idx += 1\n        y = int(input_data[idx]); idx += 1\n        points.append((x, y))\n    \n    n = m\n    best = 0\n    \n    # Generate all perfect matchings using recursive approach\n    # With m up to 16, number of perfect matchings = 15!! = 15*13*11*...*1 = 2027025\n    \n    def generate_matchings(available, current_pairs):\n        nonlocal best\n        if not available:\n            # compute parallel pairs\n            directions = [get_direction(points[p1], points[p2]) for p1, p2 in current_pairs]\n            val = count_parallel_pairs(directions)\n            if val > best:\n                best = val\n            return\n        \n        # pick smallest available index\n        first = available[0]\n        rest = available[1:]\n        \n        for i, second in enumerate(rest):\n            new_available = rest[:i] + rest[i+1:]\n            generate_matchings(new_available, current_pairs + [(first, second)])\n    \n    all_indices = list(range(n))\n    generate_matchings(all_indices, [])\n    \n    print(best)\n\nsolve()",
@@ -2356,7 +2359,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781297562.397973,
-    "use_count": 0,
+    "use_count": 1,
     "failed_attempts": 0
   },
   "cc_p01086 Short Phrase": {
@@ -2378,13 +2381,13 @@
     "failed_attempts": 0
   },
   "cc_p01315 Moonlight Farm": {
-    "code": "total_time = A + B + C + D + E + (M - 1) * (C + D + E)",
+    "code": "import sys\n\ndef solve():\n    data = sys.stdin.read().strip().split()\n    it = iter(data)\n    out_lines = []\n    while True:\n        try:\n            n = int(next(it))\n        except StopIteration:\n            break\n        if n == 0:\n            break\n        crops = []\n        for _ in range(n):\n            L = next(it)\n            P = int(next(it))\n            A = int(next(it))\n            B = int(next(it))\n            C = int(next(it))\n            D = int(next(it))\n            E = int(next(it))\n            F = int(next(it))\n            S = int(next(it))\n            M = int(next(it))\n            total_time = A + B + C + D + E\n            total_fruits = F * M\n            income = total_fruits * S - P\n            efficiency = income / total_time if total_time != 0 else float('inf')\n            crops.append((efficiency, L))\n        crops.sort(key=lambda x: (-x[0], x[1]))\n        for _, name in crops:\n            out_lines.append(name)\n        out_lines.append('#')\n    sys.stdout.write('\\n'.join(out_lines))\n\nif __name__ == \"__main__\":\n    solve()",
     "model_used": "gpt-oss-120b",
-    "passed": false,
-    "tests_passed": false,
-    "cached_at": 1781297923.996331,
-    "use_count": 0,
-    "failed_attempts": 1
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781360838.8514159,
+    "use_count": 1,
+    "failed_attempts": 0
   },
   "cc_385_C. Bear and Prime Numbers": {
     "code": "import sys, math\n\ndef main():\n    data = sys.stdin.buffer.read().split()\n    it = iter(data)\n    n = int(next(it))\n    xs = [int(next(it)) for _ in range(n)]\n    m = int(next(it))\n    queries = [(int(next(it)), int(next(it))) for _ in range(m)]\n\n    MAXV = 10_000_000\n    spf = [0] * (MAXV + 1)\n    for i in range(2, int(MAXV**0.5) + 1):\n        if spf[i] == 0:\n            step = i\n            start = i * i\n            for j in range(start, MAXV + 1, step):\n                if spf[j] == 0:\n                    spf[j] = i\n    for i in range(2, MAXV + 1):\n        if spf[i] == 0:\n            spf[i] = i\n\n    cnt = [0] * (MAXV + 1)\n    for x in xs:\n        v = x\n        last = 0\n        while v > 1:\n            p = spf[v]\n            if p != last:\n                cnt[p] += 1\n                last = p\n            while v % p == 0:\n                v //= p\n\n    pref = [0] * (MAXV + 1)\n    s = 0\n    for i in range(2, MAXV + 1):\n        if spf[i] == i:  # prime\n            s += cnt[i]\n        pref[i] = s\n\n    out_lines = []\n    for l, r in queries:\n        if l > MAXV:\n            out_lines.append('0')\n            continue\n        rr = r if r <= MAXV else MAXV\n        ll = l - 1\n        if ll > MAXV:\n            ll = MAXV\n        ans = pref[rr] - pref[ll]\n        out_lines.append(str(ans))\n    sys.stdout.write('\\n'.join(out_lines))\n\nif __name__ == \"__main__\":\n    main()",
@@ -2392,7 +2395,7 @@
     "passed": true,
     "tests_passed": true,
     "cached_at": 1781298655.6715825,
-    "use_count": 0,
+    "use_count": 1,
     "failed_attempts": 0
   },
   "cc_1129_A2. Toy Train": {
@@ -2459,13 +2462,13 @@
     "failed_attempts": 1
   },
   "cc_1292_D. Chaotic V.": {
-    "code": "Looking at this problem, I need to understand the structure:\n\n1. The graph is a tree where node x connects to x/f(x) (f(x) = lowest prime divisor of x)\n2. Each node can be represented by its prime factorization, and the distance between two nodes is related to their prime exponent vectors\n3. The distance from node x to node y in this tree is the L1 distance between their prime exponent vectors (since we can go up to LCA and down)\n\nWait, actually the distance between two nodes is the sum over all primes p of |exp_p(x) - exp_p(y)|, because the tree is essentially a trie on prime factorizations.\n\nSo to minimize total distance, for each prime independently, find the median of the exponents across all fragments, and sum up the absolute deviations.\n\nThe issue in the current code: the median for minimizing sum of absolute deviations should be the actual median value. For n elements, the optimal is the median (index n//2 for 0-indexed when n is odd, and any value between the two middle elements when n is even - but since exponents are integers, we should pick either middle value).\n\nWait, let me check: `med_idx = (n - 1) // 2`. For n=4, this gives index 1 (0-indexed), which is the lower median. But for minimizing sum of absolute deviations, either middle value works for even n. Let me re-examine.\n\nActually, the bug might be in the `vals.extend([exp_p[k]] * c)` - this could be very slow for large n. But more importantly, let me check if the median index is correct.\n\nFor minimizing sum |x - m|, the optimal m is the median. For n elements (0-indexed sorted array), any index from floor((n-1)/2) to ceil((n-1)/2) works. For n=500000, index 249999 or 250000 both work.\n\nThe real issue is performance - `vals.extend([exp_p[k]] * c)` creates huge arrays. But wait, the actual output is wrong (not TLE), so there's a logic bug.\n\nLooking more carefully: the median index should be `n // 2` (upper median) or `(n-1) // 2` (lower median) - both give same cost. Let me trace example 1.\n\nActually wait - re-reading: the distance in this tree. Going from x to y, you go up to LCA. The tree structure means the distance is NOT simply sum of |exp differences|. Let me reconsider.\n\nActually it IS the sum of |exp_p(x) - exp_p(y)| because the path from x to LCA removes prime factors one at a time, and LCA is the GCD. So distance = \u03a9(x/gcd) + \u03a9(y/gcd) which equals sum_p (exp_p(x) - exp_p(lca)) + (exp_p(y) - exp_p(lca)) = sum_p |exp_p(x) - exp_p(y)|.\n\nSo the approach is correct. The bug must be in median computation or something else.\n\nThe issue: `med_idx = (n - 1) // 2` but `n` here is the total count, while `vals` has exactly `n` elements. That seems fine.\n\nOh wait! The problem says k_i can be 0. For k=0, k!=1, so exp_p(0!) = 0 for all p. That should be handled correctly since exp_p[0] = 0.\n\nLet me check: the `vals` list is built correctly with multiplicity. The median calculation looks right. \n\nThe performance issue with `vals.extend([exp_p[k]] * c)` for 669 primes \u00d7 500000 elements could be the problem causing wrong answers due to... no, it would just be slow.\n\nActually I think the issue is that building sorted `vals` of size n for each prime is O(n log n) per prime which is too slow, but shouldn't give wrong answer.\n\nThe answer is wrong - perhaps integer overflow? Python handles big integers, so no. Let me just optimize and verify logic is correct by using weighted median instead.\n\nThe fix: use weighted median computation without expanding the full list.",
+    "code": "import sys\nfrom collections import defaultdict\n\ndef solve():\n    input_data = sys.stdin.buffer.read().split()\n    n = int(input_data[0])\n    ks = [int(x) for x in input_data[1:n+1]]\n    \n    MAX_K = 5001\n    # Sieve of smallest prime factors\n    spf = list(range(MAX_K))\n    for i in range(2, MAX_K):\n        if spf[i] == i:  # i is prime\n            for j in range(i*i, MAX_K, i):\n                if spf[j] == j:\n                    spf[j] = i\n    \n    primes = [i for i in range(2, MAX_K) if spf[i] == i]\n    \n    # Legendre's formula: exponent of prime p in k! = sum_{i=1}^{inf} floor(k/p^i)\n    # Precompute exp[p][k] = exponent of p in k!\n    # For each prime p, compute for all k from 0..5000\n    \n    # For each prime p <= 5000, compute exponents in k! for k in 0..5000\n    # Then for each fragment i, its vector is indexed by prime\n    \n    # We need for each prime p, the list of exponents across all n fragments\n    # Then find median and sum of deviations\n    \n    total = 0\n    \n    for p in primes:\n        # compute exponent of p in k! for each k in ks\n        # legendre: floor(k/p) + floor(k/p^2) + ...\n        # collect exponents for all fragments\n        exponents = []\n        for k in ks:\n            e = 0\n            pk = p\n            while pk <= k:\n                e += k // pk\n                if pk > k // p:\n                    break\n                pk *= p\n            exponents.append(e)\n        \n        exponents.sort()\n        # weighted median = middle element\n        med = exponents[n // 2]\n        # sum of absolute deviations\n        s = sum(abs(x - med) for x in exponents)\n        total += s\n    \n    print(total)\n\nsolve()",
     "model_used": "claude-sonnet-4-6",
     "passed": false,
     "tests_passed": false,
-    "cached_at": 1781299910.711422,
+    "cached_at": 1781361890.836761,
     "use_count": 0,
-    "failed_attempts": 1
+    "failed_attempts": 2
   },
   "cc_964_A. Splits": {
     "code": "import sys\n\ndef main():\n    data = sys.stdin.read().strip()\n    if not data:\n        return\n    n = int(data)\n    print(n // 2 + 1)\n\nif __name__ == \"__main__\":\n    main()",
@@ -2558,13 +2561,13 @@
     "failed_attempts": 1
   },
   "cc_615_E. Hexagons": {
-    "code": "import sys\nimport math\n\ndef solve():\n    n = int(sys.stdin.readline())\n    if n == 0:\n        print(\"0 0\")\n        return\n    \n    # Find ring r: cells before ring r = 1 + 3*r*(r-1) for r>=1\n    # ring r has 6*r cells\n    # total through ring r = 1 + 3*r*(r+1)\n    \n    r = int((-1 + math.isqrt(1 + 4*(n)//3)) // 2)\n    while 1 + 3*r*(r+1) < n:\n        r += 1\n    while r > 0 and 1 + 3*(r-1)*r >= n:\n        r -= 1\n    \n    prev = 1 + 3*(r-1)*r  # total cells before ring r (for r>=1, prev cells = 1+3r(r-1))\n    # Wait: total through ring (r-1) = 1 + 3*(r-1)*r\n    \n    offset = n - prev - 1  # 0-based position on ring r, 0 <= offset < 6*r\n    \n    # Starting point of ring r: (r, 0) then move to start\n    # Ring r starts at position (r, 0) ... need to verify\n    # Directions for 6 sides\n    dirs = [(-1, 1), (-1, 0), (0, -1), (1, -1), (1, 0), (0, 1)]\n    \n    # Start of ring r is at (0, -r) after moving from (0,-(r-1)) in direction (0,-1)\n    # Actually start at (r, 0) ... let me use: start = (0, -r), go around\n    # Ring r starts at (r, 0)\n    x, y = r, 0\n    # Then walk offset steps in spiral order\n    side = 0\n    pos_in_side = 0\n    for step in range(offset):\n        x += dirs[side][0]\n        y += dirs[side][1]\n        pos_in_side += 1\n        if pos_in_side == r:\n            side = (side + 1) % 6\n            pos_in_side = 0\n    \n    print(f\"{x} {y}\")\n\nsolve()",
+    "code": "import sys\n\ndef solve():\n    n = int(sys.stdin.readline())\n    if n == 0:\n        print(\"0 0\")\n        return\n    # Find layer\n    k = 0\n    while 3 * k * (k + 1) < n:\n        k += 1\n    prev = 3 * (k - 1) * k\n    offset = n - prev - 1\n    # start at (k, 0)\n    x, y = k, 0\n    dirs = [( -1, 1), (-1, 0), (0, -1), (1, -1), (1, 0), (0, 1)]\n    steps = [k] * 6\n    steps[0] = k - 1\n    for d, cnt in zip(dirs, steps):\n        take = min(offset, cnt)\n        x += d[0] * take\n        y += d[1] * take\n        offset -= take\n        if offset == 0:\n            break\n    print(f\"{x} {y}\")\n\nif __name__ == \"__main__\":\n    solve()",
     "model_used": "gpt-oss-120b",
     "passed": false,
     "tests_passed": false,
-    "cached_at": 1781300765.858898,
+    "cached_at": 1781360698.1076877,
     "use_count": 0,
-    "failed_attempts": 1
+    "failed_attempts": 2
   },
   "cc_p01451 Roads on Towns": {
     "code": "import sys, math\nfrom itertools import permutations\n\ndef seg_intersect(p1, p2, q1, q2):\n    def orient(a, b, c):\n        return (b[0]-a[0])*(c[1]-a[1]) - (b[1]-a[1])*(c[0]-a[0])\n    def on_seg(a,b,c):\n        return min(a[0],b[0])<=c[0]<=max(a[0],b[0]) and min(a[1],b[1])<=c[1]<=max(a[1],b[1])\n    o1 = orient(p1,p2,q1); o2 = orient(p1,p2,q2)\n    o3 = orient(q1,q2,p1); o4 = orient(q1,q2,p2)\n    if o1==0 and on_seg(p1,p2,q1): return True\n    if o2==0 and on_seg(p1,p2,q2): return True\n    if o3==0 and on_seg(q1,q2,p1): return True\n    if o4==0 and on_seg(q1,q2,p2): return True\n    return (o1>0)!=(o2>0) and (o3>0)!=(o4>0)\n\ndef path_len(path):\n    return sum(math.hypot(path[i][0]-path[i+1][0], path[i][1]-path[i+1][1]) for i in range(len(path)-1))\n\ndef paths_cross(path1, path2):\n    segs1 = [(path1[i],path1[i+1]) for i in range(len(path1)-1)]\n    segs2 = [(path2[i],path2[i+1]) for i in range(len(path2)-1)]\n    for s1 in segs1:\n        for s2 in segs2:\n            if seg_intersect(s1[0],s1[1],s2[0],s2[1]):\n                return True\n    return False\n\ndata = sys.stdin.read().strip().split()\nit = iter(data)\nNA = int(next(it)); NB = int(next(it))\nA = [(int(next(it)), int(next(it))) for _ in range(NA)]\nB = [(int(next(it)), int(next(it))) for _ in range(NB)]\n\na1, a2 = A[0], A[1]\nb1, b2 = B[0], B[1]\nA_mid = A[2:]\nB_mid = B[2:]\n\nbest = float('inf')\n\nfrom itertools import chain, combinations\ndef powerset(s):\n    return chain.from_iterable(combinations(s, r) for r in range(len(s)+1))\n\nfor sa in powerset(range(len(A_mid))):\n    for perm_a in (permutations(sa) if sa else [()]):\n        path_a = [a1] + [A_mid[i] for i in perm_a] + [a2]\n        len_a = path_len(path_a)\n        if len_a >= best:\n            continue\n        for sb in powerset(range(len(B_mid))):\n            for perm_b in (permutations(sb) if sb else [()]):\n                path_b = [b1] + [B_mid[i] for i in perm_b] + [b2]\n                total = len_a + path_len(path_b)\n                if total < best and not paths_cross(path_a, path_b):\n                    best = total\n\nif best == float('inf'):\n    print(-1)\nelse:\n    print(\"{:.12f}\".format(best))",
@@ -2581,6 +2584,177 @@
     "passed": false,
     "tests_passed": false,
     "cached_at": 1781301085.7715852,
+    "use_count": 0,
+    "failed_attempts": 1
+  },
+  "cc_560_D. Equivalent Strings": {
+    "code": "import sys\n\nsys.setrecursionlimit(1_000_000)\n\ndef canonical(s: str) -> str:\n    n = len(s)\n    if n % 2 == 1:\n        return s\n    mid = n // 2\n    left = canonical(s[:mid])\n    right = canonical(s[mid:])\n    return left + right if left + right < right + left else right + left\n\ndef main():\n    data = sys.stdin.read().splitlines()\n    if len(data) < 2:\n        return\n    a = data[0].strip()\n    b = data[1].strip()\n    print(\"YES\" if canonical(a) == canonical(b) else \"NO\")\n\nif __name__ == \"__main__\":\n    main()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781360024.9584844,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_p00814 Life Line": {
+    "code": "import sys\n\ndef neighbors(r, c, N):\n    for dr, dc in [(-1, -1), (-1, 0), (0, -1), (0, 1), (1, 0), (1, 1)]:\n        nr, nc = r + dr, c + dc\n        if 0 <= nr < N and 0 <= nc <= nr:\n            yield nr, nc\n\ndef simulate(board, N, player, pos):\n    r, c = pos\n    if board[r][c] != 0:\n        return -10**9\n    b = [row[:] for row in board]\n    b[r][c] = player\n    removed_player = 0\n    removed_others = 0\n    while True:\n        visited = [[False]* (i+1) for i in range(N)]\n        to_remove = []\n        for i in range(N):\n            for j in range(i+1):\n                if b[i][j] > 0 and not visited[i][j]:\n                    num = b[i][j]\n                    stack = [(i,j)]\n                    group = []\n                    visited[i][j] = True\n                    while stack:\n                        x,y = stack.pop()\n                        group.append((x,y))\n                        for nx,ny in neighbors(x,y,N):\n                            if not visited[nx][ny] and b[nx][ny]==num:\n                                visited[nx][ny]=True\n                                stack.append((nx,ny))\n                    # check adjacency to empty\n                    has_empty_adj = False\n                    for x,y in group:\n                        for nx,ny in neighbors(x,y,N):\n                            if b[nx][ny]==0:\n                                has_empty_adj = True\n                                break\n                        if has_empty_adj:\n                            break\n                    if not has_empty_adj:\n                        to_remove.extend(group)\n        if not to_remove:\n            break\n        for x,y in to_remove:\n            if b[x][y]==player:\n                removed_player+=1\n            else:\n                removed_others+=1\n            b[x][y]=0\n    return removed_others - removed_player\n\ndef solve():\n    data = sys.stdin.read().strip().splitlines()\n    idx=0\n    out=[]\n    while idx < len(data):\n        line=data[idx].strip()\n        if not line:\n            idx+=1\n            continue\n        parts=line.split()\n        N=int(parts[0]); C=int(parts[1])\n        if N==0 and C==0:\n            break\n        idx+=1\n        board=[]\n        for i in range(N):\n            row=[]\n            while len(row)<i+1:\n                row.extend(map(int, data[idx].strip().split()))\n                idx+=1\n            board.append(row[:i+1])\n        max_score=-10**9\n        for i in range(N):\n            for j in range(i+1):\n                if board[i][j]==0:\n                    sc=simulate(board,N,C,(i,j))\n                    if sc>max_score:\n                        max_score=sc\n        if max_score==-10**9:\n            max_score=0\n        out.append(str(max_score))\n    sys.stdout.write(\"\\n\".join(out))\n\nif __name__==\"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781360079.42856,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_242_C. King's Path": {
+    "code": "import sys\nfrom collections import deque\n\ndef solve() -> None:\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    it = iter(data)\n    x0 = int(next(it)); y0 = int(next(it)); x1 = int(next(it)); y1 = int(next(it))\n    n = int(next(it))\n    allowed = set()\n    for _ in range(n):\n        r = int(next(it)); a = int(next(it)); b = int(next(it))\n        for c in range(a, b + 1):\n            allowed.add((r, c))\n    start = (x0, y0)\n    target = (x1, y1)\n    if start not in allowed or target not in allowed:\n        print(-1)\n        return\n    q = deque([start])\n    dist = {start: 0}\n    dirs = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]\n    while q:\n        cur = q.popleft()\n        if cur == target:\n            print(dist[cur])\n            return\n        cx, cy = cur\n        nd = dist[cur] + 1\n        for dx, dy in dirs:\n            nx, ny = cx + dx, cy + dy\n            nxt = (nx, ny)\n            if nxt in allowed and nxt not in dist:\n                dist[nxt] = nd\n                q.append(nxt)\n    print(-1)\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781360179.3398292,
+    "use_count": 1,
+    "failed_attempts": 0
+  },
+  "cc_526_A. King of Thieves": {
+    "code": "import sys\n\ndef solve():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0])\n    s = data[1].strip()\n    for i in range(n):\n        if s[i] != '*':\n            continue\n        for d in range(1, n):\n            if i + 4 * d >= n:\n                break\n            ok = True\n            for k in range(5):\n                if s[i + k * d] != '*':\n                    ok = False\n                    break\n            if ok:\n                print(\"yes\")\n                return\n    print(\"no\")\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781360198.827558,
+    "use_count": 1,
+    "failed_attempts": 0
+  },
+  "cc_710_E. Generate a String": {
+    "code": "import sys\nsys.setrecursionlimit(1 << 25)\n\ndef solve():\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    n, x, y = map(int, data)\n    from functools import lru_cache\n\n    @lru_cache(maxsize=None)\n    def f(k):\n        if k == 0:\n            return 0\n        # option: build by inserting one by one\n        best = k * x\n        if k % 2 == 0:\n            best = min(best, f(k // 2) + y)\n            best = min(best, f(k - 1) + x)\n        else:\n            best = min(best, f(k - 1) + x)\n            best = min(best, f((k + 1) // 2) + y + x)  # copy then delete one\n        return best\n\n    print(f(n))\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": false,
+    "tests_passed": false,
+    "cached_at": 1781361135.6819935,
+    "use_count": 0,
+    "failed_attempts": 2
+  },
+  "cc_p00896 Weaker than Planned": {
+    "code": "import sys\n\ndef solve():\n    data = sys.stdin.read().splitlines()\n    i = 0\n    out = []\n    while i < len(data):\n        line = data[i].strip()\n        i += 1\n        if line == '0' or line == '':\n            break\n        n = int(line)\n        cand = [data[i + j].strip() for j in range(n)]\n        i += n\n        seq_line = data[i].strip()\n        i += 1\n        # remove final period\n        assert seq_line.endswith('.')\n        words = seq_line[:-1].split(' ')\n        m = len(words)\n\n        solutions = []\n        # backtrack\n        forward = {}  # cipher -> plain\n        reverse = {}  # plain -> cipher\n\n        def compatible(c, p):\n            if c in forward:\n                if forward[c] != p:\n                    return False\n            else:\n                if p in reverse and reverse[p] != c:\n                    return False\n                # also enforce involution: if c!=p then mapping must be symmetric\n                if c != p:\n                    # ensure that p is not already mapped to something else (handled) and that c not mapped to itself elsewhere\n                    pass\n            return True\n\n        def assign(c, p):\n            changed = []\n            if c not in forward:\n                forward[c] = p\n                changed.append(('f', c))\n            if p not in reverse:\n                reverse[p] = c\n                changed.append(('r', p))\n            # enforce symmetry for transposition\n            if c != p:\n                if p not in forward:\n                    forward[p] = c\n                    changed.append(('f', p))\n                if c not in reverse:\n                    reverse[c] = p\n                    changed.append(('r', c))\n            return changed\n\n        def undo(changed):\n            for typ, key in reversed(changed):\n                if typ == 'f':\n                    del forward[key]\n                else:\n                    del reverse[key]\n\n        def dfs(pos, plain_words):\n            if len(solutions) > 1:\n                return\n            if pos == m:\n                solutions.append(plain_words[:])\n                return\n            cw = words[pos]\n            for pw in cand:\n                if len(pw) != len(cw):\n                    continue\n                ok = True\n                for cch, pch in zip(cw, pw):\n                    if not compatible(cch, pch):\n                        ok = False\n                        break\n                if not ok:\n                    continue\n                changes = []\n                for cch, pch in zip(cw, pw):\n                    changes += assign(cch, pch)\n                dfs(pos + 1, plain_words + [pw])\n                undo(changes)\n\n        dfs(0, [])\n        if len(solutions) == 1:\n            out.append(' '.join(solutions[0]) + '.')\n        else:\n            out.append('-.')\n    sys.stdout.write('\\n'.join(out))\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": false,
+    "tests_passed": false,
+    "cached_at": 1781360414.5312004,
+    "use_count": 0,
+    "failed_attempts": 1
+  },
+  "cc_1493_E. Enormous XOR": {
+    "code": "import sys\n\ndef solve():\n    data = sys.stdin.read().split()\n    n = int(data[0])\n    l = data[1]\n    r = data[2]\n    \n    # prefix xor g(0,k) based on k%4\n    # g(x,y) = g(0,y) XOR g(0,x-1)\n    # We want max over l<=x<=y<=r of g(0,y) XOR g(0,x-1)\n    # x-1 ranges from l-1 to r, y ranges from l to r, x-1 < y (or x=y gives g(0,y)^g(0,y)=0... wait x<=y so x-1 < y or x-1=y-... actually x-1 can equal y if x=y+1 no)\n    # collect all prefix xor values for indices in [l-1, r] and find max xor pair\n    \n    # For very large numbers, we need big integer arithmetic\n    l_int = int(l, 2)\n    r_int = int(r, 2)\n    \n    def prefix_xor(k):\n        m = k % 4\n        if m == 0: return k\n        if m == 1: return 1\n        if m == 2: return k + 1\n        if m == 3: return 0\n    \n    # Collect candidate prefix xor values - they repeat mod 4\n    # In range [l_int-1, r_int], get one of each mod4 class\n    start = l_int - 1 if l_int > 0 else 0\n    if l_int == 0:\n        start = 0\n    \n    candidates = set()\n    if l_int > 0:\n        candidates.add(prefix_xor(l_int - 1))\n    candidates.add(0)  # g(0, before start)\n    \n    for base in range(start, min(start + 4, r_int + 1)):\n        candidates.add(prefix_xor(base))\n    for base in range(r_int - 3, r_int + 1):\n        if base >= start:\n            candidates.add(prefix_xor(base))\n    \n    max_val = 0\n    cands = list(candidates)\n    for i in range(len(cands)):\n        for j in range(i, len(cands)):\n            max_val = max(max_val, cands[i] ^ cands[j])\n    \n    if max_val == 0:\n        print('0')\n    else:\n        print(bin(max_val)[2:])\n\nsolve()",
+    "model_used": "gpt-oss-120b",
+    "passed": false,
+    "tests_passed": false,
+    "cached_at": 1781360808.6664991,
+    "use_count": 0,
+    "failed_attempts": 1
+  },
+  "cc_404_D. Minesweeper 1D": {
+    "code": "import sys\n\nMOD = 1000000007\n\ns = sys.stdin.readline().strip()\nn = len(s)\n\ndef possible_bombs(ch):\n    if ch == '*':\n        return (1,)\n    if ch == '?':\n        return (0, 1)\n    # digit\n    return (0,)\n\n# initial states after processing position 0\ndp = {}\nfor b0 in possible_bombs(s[0]):  # bomb at position 0\n    # if it's a digit, bomb must be 0 (already ensured)\n    dp[(b0, 0)] = (dp.get((b0, 0), 0) + 1) % MOD  # (bomb_i, bomb_{i-1}) where bomb_{-1}=0\n\nfor i in range(1, n):\n    ndp = {}\n    ch_prev = s[i-1]\n    ch_cur = s[i]\n    for (prev1, prev2), cnt in dp.items():  # prev1 = bomb_{i-1}, prev2 = bomb_{i-2}\n        # validate cell i-1 now\n        if ch_prev == '*':\n            if prev1 != 1:\n                continue\n        elif ch_prev in '012':\n            if prev1 != 0:\n                continue\n            # digit must equal bombs at i-2 and i (prev2 + cur)\n            # we will check after choosing cur bomb\n        else:  # '?'\n            # if we later set bomb, it's allowed; if we set digit later, will be checked then\n            pass\n\n        for cur in possible_bombs(ch_cur):  # bomb_i\n            # check digit constraint for i-1 if it's a digit\n            if ch_prev in '012':\n                if (prev2 + cur) != int(ch_prev):\n                    continue\n            # also if ch_prev == '?' and we decided it was a bomb earlier (prev1==1) that's fine,\n            # if it was a digit earlier (prev1==0) we need to ensure its digit matches prev2+cur.\n            if ch_prev == '?' and prev1 == 0:\n                # we don't know which digit was written, but it must be consistent with neighbors\n                # So the digit would be prev2+cur, which must be 0,1,2 -> always true\n                # No extra restriction\n                pass\n            # also ensure that if ch_prev == '?' and prev1 == 1, it's bomb, no digit check\n            # all good\n            key = (cur, prev1)\n            ndp[key] = (ndp.get(key, 0) + cnt) % MOD\n    dp = ndp\n\n# after processing all positions, validate last cell (index n-1)\nans = 0\nlast_ch = s[-1]\nfor (prev1, prev2), cnt in dp.items():  # prev1 = bomb_{n-1}, prev2 = bomb_{n-2}\n    if last_ch == '*':\n        if prev1 != 1:\n            continue\n    elif last_ch in '012':\n        if prev1 != 0:\n            continue\n        if (prev2 + 0) != int(last_ch):  # right neighbor absent -> 0\n            continue\n    else:  # '?'\n        # could be bomb or digit\n        # if bomb\n        if prev1 == 1:\n            ans = (ans + cnt) % MOD\n        # if digit\n        if prev1 == 0:\n            # digit would be prev2 (since right neighbor 0)\n            # any value 0..2 allowed, no further restriction\n            ans = (ans + cnt) % MOD\n        continue\n    ans = (ans + cnt) % MOD\n\nprint(ans % MOD)",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781360914.4468434,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_p02470 Euler's Phi Function": {
+    "code": "import sys,math\n\ndef phi(n:int)->int:\n    result=n\n    p=2\n    while p*p<=n:\n        if n%p==0:\n            while n%p==0:\n                n//=p\n            result-=result//p\n        p+=1 if p==2 else 2\n    if n>1:\n        result-=result//n\n    return result\n\ndef main():\n    data=sys.stdin.read().strip().split()\n    if not data:\n        return\n    n=int(data[0])\n    sys.stdout.write(str(phi(n)))\n\nif __name__==\"__main__\":\n    main()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781360949.9276361,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_371_B. Fox Dividing Cheese": {
+    "code": "import sys\n\ndef factor_counts(x):\n    c2 = c3 = c5 = 0\n    while x % 2 == 0:\n        x //= 2\n        c2 += 1\n    while x % 3 == 0:\n        x //= 3\n        c3 += 1\n    while x % 5 == 0:\n        x //= 5\n        c5 += 1\n    return x, c2, c3, c5\n\ndef main():\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    a, b = map(int, data[:2])\n    core_a, a2, a3, a5 = factor_counts(a)\n    core_b, b2, b3, b5 = factor_counts(b)\n    if core_a != core_b:\n        print(-1)\n    else:\n        ops = abs(a2 - b2) + abs(a3 - b3) + abs(a5 - b5)\n        print(ops)\n\nif __name__ == \"__main__\":\n    main()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781361098.5348537,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_552_B. Vanya and Books": {
+    "code": "n = int(input())\ntotal = 0\ndigits = 1\nstart = 1\nwhile start <= n:\n    end = min(10**digits - 1, n)\n    total += digits * (end - start + 1)\n    start = 10**digits\n    digits += 1\nprint(total)",
+    "model_used": "claude-sonnet-4-6",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781361107.3535907,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_591_C. Median Smoothing": {
+    "code": "import sys\nfrom collections import deque\n\ndef solve() -> None:\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    n = int(data[0])\n    a = list(map(int, data[1:1+n]))\n    dist = [-1]*n\n    res = a[:]\n    q = deque()\n    for i in range(n):\n        stable = False\n        if i == 0 or i == n-1:\n            stable = True\n        else:\n            if a[i] == a[i-1] or a[i] == a[i+1]:\n                stable = True\n        if stable:\n            dist[i] = 0\n            q.append(i)\n    while q:\n        i = q.popleft()\n        for nb in (i-1, i+1):\n            if 0 <= nb < n and dist[nb] == -1:\n                dist[nb] = dist[i] + 1\n                res[nb] = res[i]\n                q.append(nb)\n    max_dist = max(dist)\n    out = [str(max_dist), \"\\n\", \" \".join(map(str, res))]\n    sys.stdout.write(\"\".join(out))\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781361258.6223636,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_1227_A. Math Problem": {
+    "code": "import sys\ninput = sys.stdin.readline\n\ndef solve():\n    n = int(input())\n    segments = []\n    for _ in range(n):\n        l, r = map(int, input().split())\n        segments.append((l, r))\n    \n    # We need to find [a, b] that intersects all segments\n    # [a,b] intersects [l_i, r_i] iff a <= r_i and b >= l_i\n    # So we need: a <= min(r_i) and b >= max(l_i)\n    # min length: max(0, max(l_i) - min(r_i))\n    \n    max_l = max(l for l, r in segments)\n    min_r = min(r for l, r in segments)\n    \n    print(max(0, max_l - min_r))\n\nt = int(input())\nfor _ in range(t):\n    solve()",
+    "model_used": "claude-sonnet-4-6",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781361328.9326854,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_219_C. Color Stripe": {
+    "code": "import sys\n\ndef solve():\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n = int(data[0]); k = int(data[1])\n    s = list(data[2].strip())\n    changes = 0\n    if k == 2:\n        pattern1 = ['A' if i % 2 == 0 else 'B' for i in range(n)]\n        pattern2 = ['B' if i % 2 == 0 else 'A' for i in range(n)]\n        diff1 = sum(1 for i in range(n) if s[i] != pattern1[i])\n        diff2 = sum(1 for i in range(n) if s[i] != pattern2[i])\n        if diff1 <= diff2:\n            print(diff1)\n            print(''.join(pattern1))\n        else:\n            print(diff2)\n            print(''.join(pattern2))\n        return\n    # k > 2\n    colors = [chr(ord('A') + i) for i in range(k)]\n    for i in range(1, n):\n        if s[i] == s[i-1]:\n            changes += 1\n            # choose a color different from previous and next (if exists)\n            next_char = s[i+1] if i+1 < n else None\n            for c in colors:\n                if c != s[i-1] and c != next_char:\n                    s[i] = c\n                    break\n    print(changes)\n    print(''.join(s))\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": false,
+    "tests_passed": false,
+    "cached_at": 1781361410.1148362,
+    "use_count": 0,
+    "failed_attempts": 1
+  },
+  "cc_1091_C. New Year and the Sphere Transmission": {
+    "code": "import sys, math\n\ndef solve() -> None:\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    n = int(data[0])\n    vals = []\n    i = 1\n    while i * i <= n:\n        if n % i == 0:\n            d1 = i\n            L = n // d1\n            fun = L + d1 * L * (L - 1) // 2\n            vals.append(fun)\n            d2 = n // i\n            if d2 != d1:\n                L = n // d2\n                fun = L + d2 * L * (L - 1) // 2\n                vals.append(fun)\n        i += 1\n    vals.sort()\n    sys.stdout.write(' '.join(map(str, vals)))\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781361694.3359313,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_80_C. Heroes": {
+    "code": "import sys\n\ndef solve() -> None:\n    data = sys.stdin.read().strip().splitlines()\n    if not data:\n        return\n    it = iter(data)\n    n = int(next(it))\n    heroes = [\"Anka\",\"Chapay\",\"Cleo\",\"Troll\",\"Dracul\",\"Snowy\",\"Hexadecimal\"]\n    idx = {name:i for i,name in enumerate(heroes)}\n    likes = [[] for _ in range(7)]  # likes[p] contains q indices\n    for _ in range(n):\n        line = next(it)\n        parts = line.split()\n        p = parts[0]\n        q = parts[2]\n        likes[idx[p]].append(idx[q])\n    a,b,c = map(int, next(it).split())\n    exps = [a,b,c]\n    best_diff = None\n    best_like = 0\n    # iterate assignments 0..2 for each hero\n    from itertools import product\n    for assign in product(range(3), repeat=7):\n        # check each group non-empty\n        cnt = [0,0,0]\n        for g in assign:\n            cnt[g] += 1\n        if 0 in cnt:\n            continue\n        # compute per hero exp\n        per = [0]*7\n        for hero in range(7):\n            g = assign[hero]\n            per[hero] = exps[g] // cnt[g]\n        mx = max(per)\n        mn = min(per)\n        diff = mx - mn\n        if (best_diff is None) or (diff < best_diff):\n            best_diff = diff\n            # compute likes\n            total = 0\n            for p in range(7):\n                gp = assign[p]\n                for q in likes[p]:\n                    if assign[q]==gp:\n                        total += 1\n            best_like = total\n        elif diff == best_diff:\n            total = 0\n            for p in range(7):\n                gp = assign[p]\n                for q in likes[p]:\n                    if assign[q]==gp:\n                        total += 1\n            if total > best_like:\n                best_like = total\n    print(best_diff, best_like)\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781361741.493173,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_1165_A. Remainder": {
+    "code": "import sys\n\ndef solve() -> None:\n    data = sys.stdin.read().split()\n    if not data:\n        return\n    n, x, y = map(int, data[:3])\n    s = data[3].strip()\n    ans = 0\n    for i in range(x):\n        cur = s[n - 1 - i]\n        desired = '1' if i == y else '0'\n        if cur != desired:\n            ans += 1\n    print(ans)\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781361976.954679,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_p01670 Medical Inspection": {
+    "code": "import sys\n\nsys.setrecursionlimit(10000)\nINF = 10**9\n\ndef vc(edges, k):\n    if not edges:\n        return 0\n    if k == 0:\n        return INF\n    deg = {}\n    for u, v in edges:\n        deg[u] = deg.get(u, 0) + 1\n        deg[v] = deg.get(v, 0) + 1\n    for v, d in deg.items():\n        if d > k:\n            new_edges = [e for e in edges if v not in e]\n            sub = vc(new_edges, k - 1)\n            return INF if sub == INF else sub + 1\n    u, v = edges[0]\n    edges_u = [e for e in edges if u not in e]\n    res_u = vc(edges_u, k - 1)\n    if res_u != INF:\n        res_u += 1\n    edges_v = [e for e in edges if v not in e]\n    res_v = vc(edges_v, k - 1)\n    if res_v != INF:\n        res_v += 1\n    return res_u if res_u < res_v else res_v\n\ndef main():\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    it = iter(data)\n    n = int(next(it))\n    m = int(next(it))\n    K = int(next(it))\n    edges = []\n    for _ in range(m):\n        a = int(next(it))\n        b = int(next(it))\n        edges.append((a, b))\n    ans = vc(edges, K)\n    if ans == INF or ans > K:\n        print(\"Impossible\")\n    else:\n        print(ans)\n\nif __name__ == \"__main__\":\n    main()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781362008.6564121,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_p00812 Equals are Equals": {
+    "code": "import sys\n\ndef tokenize(s):\n    i = 0\n    n = len(s)\n    tokens = []\n    while i < n:\n        c = s[i]\n        if c.isspace():\n            i += 1\n            continue\n        if c.isdigit():\n            j = i\n            while j < n and s[j].isdigit():\n                j += 1\n            tokens.append(('NUM', int(s[i:j])))\n            i = j\n        elif 'a' <= c <= 'z':\n            tokens.append(('VAR', c))\n            i += 1\n        elif c in '+-^()':\n            tokens.append((c, c))\n            i += 1\n        else:\n            i += 1\n    tokens.append(('EOF', None))\n    return tokens\n\ndef add_poly(p1, p2, sign=1):\n    res = p1.copy()\n    for m, c in p2.items():\n        res[m] = res.get(m, 0) + sign * c\n        if res[m] == 0:\n            del res[m]\n    return res\n\ndef mul_poly(p1, p2):\n    res = {}\n    for m1, c1 in p1.items():\n        for m2, c2 in p2.items():\n            exp = tuple(m1[i] + m2[i] for i in range(26))\n            coeff = c1 * c2\n            res[exp] = res.get(exp, 0) + coeff\n            if res[exp] == 0:\n                del res[exp]\n    return res\n\nclass Parser:\n    def __init__(self, tokens):\n        self.toks = tokens\n        self.pos = 0\n\n    def cur(self):\n        return self.toks[self.pos][0]\n\n    def eat(self, typ=None):\n        cur = self.toks[self.pos]\n        if typ and cur[0] != typ:\n            raise ValueError\n        self.pos += 1\n        return cur\n\n    def parse(self):\n        return self.expr()\n\n    def expr(self):\n        poly = self.term()\n        while self.cur() in ('+', '-'):\n            op = self.eat()[0]\n            right = self.term()\n            poly = add_poly(poly, right, 1 if op == '+' else -1)\n        return poly\n\n    def term(self):\n        poly = self.factor()\n        while self.cur() in ('NUM', 'VAR', '('):\n            right = self.factor()\n            poly = mul_poly(poly, right)\n        return poly\n\n    def factor(self):\n        tok = self.toks[self.pos]\n        if tok[0] == 'NUM':\n            self.eat('NUM')\n            return { (0,)*26: tok[1] }\n        elif tok[0] == 'VAR':\n            self.eat('VAR')\n            exp = [0]*26\n            idx = ord(tok[1]) - 97\n            exp[idx] = 1\n            if self.cur() == '^':\n                self.eat('^')\n                num = self.eat('NUM')[1]\n                exp[idx] = num\n            return { tuple(exp): 1 }\n        elif tok[0] == '(':\n            self.eat('(')\n            poly = self.expr()\n            self.eat(')')\n            return poly\n        else:\n            raise ValueError\n\ndef parse_expr(s):\n    return Parser(tokenize(s)).parse()\n\ndef main():\n    out = []\n    lines = sys.stdin.read().splitlines()\n    i = 0\n    while i < len(lines):\n        if lines[i] == '.':\n            break\n        correct = parse_expr(lines[i])\n        i += 1\n        while i < len(lines) and lines[i] != '.':\n            student = parse_expr(lines[i])\n            out.append('yes' if student == correct else 'no')\n            i += 1\n        out.append('.')\n        i += 1\n    sys.stdout.write('\\n'.join(out))\n\nif __name__ == \"__main__\":\n    main()",
+    "model_used": "gpt-oss-120b",
+    "passed": false,
+    "tests_passed": false,
+    "cached_at": 1781362119.641626,
     "use_count": 0,
     "failed_attempts": 1
   }
