@@ -351,15 +351,18 @@ class DiscreteSACAgent:
     def save(self, path: str) -> None:
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         torch.save({
-            "actor":     self.actor.state_dict(),
-            "critic1":   self.critic1.state_dict(),
-            "critic2":   self.critic2.state_dict(),
-            "target1":   self.target1.state_dict(),
-            "target2":   self.target2.state_dict(),
-            "log_alpha": self.log_alpha,
+            "actor":      self.actor.state_dict(),
+            "critic1":    self.critic1.state_dict(),
+            "critic2":    self.critic2.state_dict(),
+            "target1":    self.target1.state_dict(),
+            "target2":    self.target2.state_dict(),
+            "log_alpha":  self.log_alpha,
+            "actor_opt":  self.actor_opt.state_dict(),
+            "critic_opt": self.critic_opt.state_dict(),
+            "alpha_opt":  self.alpha_opt.state_dict(),
         }, path)
 
-    def load(self, path: str) -> None:
+    def load(self, path: str, cfg: dict = None) -> None:
         ckpt = torch.load(path, map_location="cpu")
         self.actor.load_state_dict(ckpt["actor"])
         self.critic1.load_state_dict(ckpt["critic1"])
@@ -367,3 +370,18 @@ class DiscreteSACAgent:
         self.target1.load_state_dict(ckpt["target1"])
         self.target2.load_state_dict(ckpt["target2"])
         self.log_alpha = ckpt["log_alpha"]
+
+        if "actor_opt" in ckpt:
+            self.actor_opt.load_state_dict(ckpt["actor_opt"])
+        if "critic_opt" in ckpt:
+            self.critic_opt.load_state_dict(ckpt["critic_opt"])
+        if "alpha_opt" in ckpt:
+            self.alpha_opt.load_state_dict(ckpt["alpha_opt"])
+
+        if cfg is not None:
+            for pg in self.actor_opt.param_groups:
+                pg["lr"] = cfg["lr_actor"]
+            for pg in self.critic_opt.param_groups:
+                pg["lr"] = cfg["lr_critic"]
+            for pg in self.alpha_opt.param_groups:
+                pg["lr"] = cfg["lr_alpha"]

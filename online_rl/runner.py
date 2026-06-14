@@ -1,6 +1,8 @@
 import argparse
 import json
+import math
 import os
+import torch
 import pickle
 import random
 import subprocess
@@ -78,6 +80,8 @@ def main():
                         help="Override Agent 2 timeout ms")
     parser.add_argument("--refresh-cache", action="store_true", dest="refresh_cache",
                         help="Clear the code cache and regenerate all codes from scratch")
+    parser.add_argument("--checkpoint",    type=str, default=None,
+                        help="Load a specific res_ep_NNNNN.pt checkpoint and continue from that episode")
     args = parser.parse_args()
     verbose = args.task is not None
 
@@ -95,13 +99,39 @@ def main():
     bandit     = LLMBandit()
 
     start_ep = 0
-    if args.resume:
+    if args.checkpoint:
+        ckpt_path = Path(args.checkpoint)
+        try:
+            res_agent.load(str(ckpt_path), cfg=RES_SAC_CONFIG)
+            start_ep = int(ckpt_path.stem.split("_")[-1])
+            print(f"[runner] agent loaded from {ckpt_path.name}, continuing from ep {start_ep}")
+        except Exception as e:
+            print(f"[runner] WARNING: could not load checkpoint ({e}) — starting fresh weights")
+        buf_path = ckpt_path.parent / ckpt_path.name.replace("res_ep_", "res_buf_").replace(".pt", ".pkl")
+        if buf_path.exists():
+            try:
+                with open(buf_path, "rb") as f:
+                    res_buffer = pickle.load(f)
+                print(f"[runner] buffer restored: {len(res_buffer)} transitions")
+            except Exception as e:
+                print(f"[runner] WARNING: could not load buffer ({e})")
+        ep_str = ckpt_path.stem.split("_")[-1]
+        bandit_path = ckpt_path.parent / f"bandit_ep_{ep_str}.json"
+        if bandit_path.exists():
+            bandit.load(str(bandit_path))
+            print(f"[runner] bandit resumed from {bandit_path.name}")
+        if os.path.exists(PATHS["online_scaler"]):
+            with open(PATHS["online_scaler"], "rb") as f:
+                scaler = pickle.load(f)
+            scaler_fitted = True
+            print(f"[runner] loaded online scaler from {PATHS['online_scaler']}")
+    elif args.resume:
         ckpt_dir      = Path(PATHS["checkpoints"])
         res_ckpts     = sorted(ckpt_dir.glob("res_ep_*.pt"))
         res_buf_ckpts = sorted(ckpt_dir.glob("res_buf_*.pkl"))
         if res_ckpts:
             try:
-                res_agent.load(str(res_ckpts[-1]))
+                res_agent.load(str(res_ckpts[-1]), cfg=RES_SAC_CONFIG)
                 start_ep = int(res_ckpts[-1].stem.split("_")[2])
                 print(f"[runner] agent resumed from ep {start_ep}")
             except Exception as e:
@@ -141,7 +171,9 @@ def main():
         "recent_mean_cpu_used": 0.0,
         "recent_mean_mem_used": 0.0,
     }
-    reward_window = []
+    reward_window   = []
+    reward_window50 = []
+    best_avg50      = -float("inf")
 
     for ep in range(start_ep, start_ep + args.episodes):
         if args.task:
@@ -368,6 +400,12 @@ def main():
                         res_reward, next_state_vec, True)
         if res_buffer.is_ready(max(RES_SAC_CONFIG["warmup"], RES_SAC_CONFIG["batch_size"])):
             res_agent.update(res_buffer.sample(RES_SAC_CONFIG["batch_size"]))
+            if ep > 500 and ep % 10 == 0:
+                with torch.no_grad():
+                    res_agent.log_alpha.data = torch.clamp(
+                        res_agent.log_alpha.data * 0.995,
+                        min=math.log(0.01),
+                    )
 
         # ── Update rolling history ────────────────────────────────────────────
         rolling = next_rolling
@@ -391,6 +429,16 @@ def main():
         if len(reward_window) > 10:
             reward_window.pop(0)
         avg10 = round(sum(reward_window) / len(reward_window), 3)
+
+        reward_window50.append(res_reward)
+        if len(reward_window50) > 50:
+            reward_window50.pop(0)
+        if len(reward_window50) == 50:
+            avg50 = sum(reward_window50) / 50
+            if avg50 > best_avg50:
+                best_avg50 = avg50
+                res_agent.save(f"{PATHS['checkpoints']}sac_best.pt")
+                print(f"[runner] new best model at ep {ep} | avg50={avg50:.3f}")
 
         transition = {
             "episode":    ep,

@@ -488,3 +488,56 @@ python3 online_rl/runner.py --force-cpu 200 --force-mem 128 --force-timeout 5000
 python3 -m online_rl.prepare_inputs --add-new 50
 python3 online_rl/runner.py --pool 444
 ```
+
+Episodes:
+ep 600-695 breakdown:
+
+ep 600-619: -2.316, 1/20 positive, 5 failures
+ep 620-639: -2.538, 1/20 positive, 6 failures
+ep 640-659: -1.972, 3/20 positive, 2 failures
+ep 660-679: -1.869, 2/20 positive, 2 failures
+ep 680-699: -2.248, 0/20 positive, 2 failures
+The positive rate has dropped significantly from the 5-6/20 we were seeing earlier.
+
+Block	Avg	Positive
+ep 0-99 (warmup)	-2.490	5/100
+ep 100-199 (warmup)	-2.380	6/100
+ep 200-299 (early train)	-2.307	8/100
+ep 300-399	-1.682	12/100
+ep 400-499 (entropy↓)	-1.973	16/100
+ep 500-599	-1.884	17/100
+
+after chanhes
+config.py
+
+Reduced target entropy from 98% to 70% of maximum at ep 400 to shift from exploration toward exploitation after the reward plateau
+Lowered all learning rates by 3x (actor/alpha: 3e-4→1e-4, critic: 5e-4→2e-4) to stabilise training at later episodes
+sac_agent.py
+
+Save now includes optimizer states so momentum is preserved across restarts, not just network weights
+Load accepts a config to overwrite learning rates after restoring momentum — keeps Adam's accumulated gradients but uses the new lower rates
+runner.py
+
+--checkpoint flag to resume from a specific checkpoint file, with episode counter continuing from the number in the filename and matching buffer/bandit/scaler loaded automatically
+Entropy annealing: after ep 500, alpha decays by 0.5% every 10 episodes, down to a floor of 0.01, so the policy gradually commits rather than staying at fixed entropy
+Best model tracking: saves sac_best.pt whenever the 50-episode rolling average reward improves, so the best policy seen during training is always preserved
+supervisor_update.md
+
+Progress report covering the two datasets, the two-agent design (bandit for LLM selection, discrete SAC for resource allocation), methodology diagram, reward function breakdown, and the learning curve from 600 episodes
+
+Block	Avg	Positive	Failures
+ep 560-579	-2.218	1/20	6 (cold start)
+ep 580-599	-2.130	1/20	3
+ep 600-619	-2.170	1/20	2
+ep 620-639	-1.905	2/20	1
+ep 640-659	-1.808	4/20	4 (peak)
+ep 660-679	-1.964	1/20	4
+ep 680-699	-2.323	0/20	3
+ep 700-719	-1.838	3/20	2
+ep 720-739	-1.996	1/20	3
+ep 740-759	-2.112	1/20	2
+ep 760-779	-2.595	0/20	4
+ep 780-799	-2.088	1/20	2
+ep 800-819	-1.972	3/20	3
+ep 820-839	-1.639	4/20	2
+ep 840-859	-1.580	2/20	4

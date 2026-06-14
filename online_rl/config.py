@@ -36,9 +36,9 @@ PREP_CONFIG = {
 
 # Agent 2 — Resource Allocator: discrete SAC over CPU/memory/timeout bins
 RES_SAC_CONFIG = {
-    "lr_actor":             3e-4,
-    "lr_critic":            5e-4,
-    "lr_alpha":             3e-4,
+    "lr_actor":             1e-4,
+    "lr_critic":            2e-4,
+    "lr_alpha":             1e-4,
     "gamma":                0.99,
     "tau":                  0.005,
     "batch_size":           256,

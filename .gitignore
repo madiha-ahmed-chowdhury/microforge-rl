@@ -17,3 +17,6 @@ __pycache__/
 venv/
 .claude/
 .env
+
+# Supervisor notes
+supervisor_update.md
