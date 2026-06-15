@@ -50,20 +50,21 @@ def _build_pool_from_hf(min_rating: int, max_rating: int, pool_size: int) -> lis
     return problems
 
 
-def load_cc_problems() -> list:
-    if os.path.exists(_CACHE_PATH):
-        with open(_CACHE_PATH) as f:
+def load_cc_problems(cache_path: str = None) -> list:
+    path = cache_path or _CACHE_PATH
+    if os.path.exists(path):
+        with open(path) as f:
             cache = json.load(f)
         cached = cache.get("problems", [])
         if cached:
-            print(f"[loader] loaded {len(cached)} problems from cache ({_CACHE_PATH})")
+            print(f"[loader] loaded {len(cached)} problems from cache ({path})")
             return cached
 
     print(f"[loader] streaming from HuggingFace (first time only)...")
     problems = _build_pool_from_hf(min_rating, max_rating, pool_size)
 
-    with open(_CACHE_PATH, "w") as f:
+    with open(path, "w") as f:
         json.dump({"meta": {"min_rating": min_rating, "max_rating": max_rating}, "problems": problems}, f)
-    print(f"[loader] cached {len(problems)} problems to {_CACHE_PATH}")
+    print(f"[loader] cached {len(problems)} problems to {path}")
 
     return problems

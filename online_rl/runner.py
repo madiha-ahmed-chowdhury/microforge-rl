@@ -82,12 +82,30 @@ def main():
                         help="Clear the code cache and regenerate all codes from scratch")
     parser.add_argument("--checkpoint",    type=str, default=None,
                         help="Load a specific res_ep_NNNNN.pt checkpoint and continue from that episode")
+    parser.add_argument("--eval",          action="store_true",
+                        help="Evaluation mode: deterministic actions, no SAC updates, logs to eval_transitions.jsonl")
+    parser.add_argument("--eval-problems", type=str, default=None,
+                        help="Path to JSON file with list of task_ids to use for evaluation")
+    parser.add_argument("--pool-cache",    type=str, default=None,
+                        help="Path to alternate pool cache JSON (default: cc_pool_cache.json)")
+    parser.add_argument("--no-code-cache", action="store_true", dest="no_code_cache",
+                        help="Skip code cache — always call LLM fresh (for evaluation)")
+    parser.add_argument("--use-ref", action="store_true", dest="use_ref",
+                        help="Skip LLM entirely — use ref_solution as code (for RL2-only eval)")
     args = parser.parse_args()
     verbose = args.task is not None
 
     print(f"[runner] loading all problems from pool cache")
-    problems = load_cc_problems()
+    problems = load_cc_problems(cache_path=args.pool_cache)
     print(f"[runner] pool ready: {len(problems)} problems")
+
+    if args.eval_problems:
+        with open(args.eval_problems) as f:
+            eval_ids = set(json.load(f))
+        problems = [p for p in problems if p["task_id"] in eval_ids]
+        print(f"[runner] eval mode: filtered to {len(problems)} problems from {args.eval_problems}")
+    elif args.eval:
+        print(f"[runner] eval mode: using full problem pool (no --eval-problems specified)")
 
     from sklearn.preprocessing import StandardScaler
     scaler        = StandardScaler()
@@ -232,7 +250,13 @@ def main():
         else:
             print(f"[runner] ep {ep:04d} | task={task_id}")
 
-            if cache.has(task_id) and not cache.should_refresh(task_id):
+            if args.use_ref:
+                code             = ref_solution
+                llm_model        = "ref"
+                llm_tier         = "ref"
+                llm_tests_passed = True
+                llm_reward       = 0.0
+            elif not args.no_code_cache and cache.has(task_id) and not cache.should_refresh(task_id):
                 cached           = cache.get(task_id)
                 code             = cached["code"]
                 llm_model        = cached["model_used"]
@@ -294,7 +318,7 @@ def main():
             # Agent 2: select resources based on generated code features
             code_features       = static_analyse(code)
             current_state_vec   = build_state_vec(code_features, rolling, active_scaler)
-            current_action_dict = res_agent.select_action(current_state_vec)
+            current_action_dict = res_agent.select_action(current_state_vec, deterministic=args.eval)
             final_action        = dict(current_action_dict)
 
             # Override with forced values if provided
@@ -393,12 +417,13 @@ def main():
         res_reward    = compute_res_reward(final_exec, final_action)
         next_rolling  = update_rolling(rolling, final_exec)
         next_state_vec = build_state_vec(code_features, next_rolling, active_scaler)
-        res_buffer.push(current_state_vec,
-                        current_action_dict["cpu_idx"],
-                        current_action_dict["mem_idx"],
-                        current_action_dict["timeout_idx"],
-                        res_reward, next_state_vec, True)
-        if res_buffer.is_ready(max(RES_SAC_CONFIG["warmup"], RES_SAC_CONFIG["batch_size"])):
+        if not args.eval:
+            res_buffer.push(current_state_vec,
+                            current_action_dict["cpu_idx"],
+                            current_action_dict["mem_idx"],
+                            current_action_dict["timeout_idx"],
+                            res_reward, next_state_vec, True)
+        if not args.eval and res_buffer.is_ready(max(RES_SAC_CONFIG["warmup"], RES_SAC_CONFIG["batch_size"])):
             res_agent.update(res_buffer.sample(RES_SAC_CONFIG["batch_size"]))
             if ep > 500 and ep % 10 == 0:
                 with torch.no_grad():
@@ -463,7 +488,8 @@ def main():
             "avg10":      avg10,
             "buf":        len(res_buffer),
         }
-        with open(PATHS["transitions"], "a") as f:
+        transitions_path = PATHS["transitions"] if not args.eval else PATHS["results"] + "eval_transitions.jsonl"
+        with open(transitions_path, "a") as f:
             f.write(json.dumps(transition) + "\n")
 
         last_ep = ep == start_ep + args.episodes - 1

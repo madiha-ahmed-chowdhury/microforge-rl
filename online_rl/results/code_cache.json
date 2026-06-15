@@ -3324,5 +3324,149 @@
     "cached_at": 1781400488.7587504,
     "use_count": 0,
     "failed_attempts": 0
+  },
+  "cc_593_C. Beautiful Function": {
+    "code": "t\nt",
+    "model_used": "gpt-oss-120b",
+    "passed": false,
+    "tests_passed": false,
+    "cached_at": 1781548649.0799685,
+    "use_count": 0,
+    "failed_attempts": 1
+  },
+  "cc_1497_D. Genius": {
+    "code": "import sys\n\ndef main():\n    input_data = sys.stdin.buffer.read().split()\n    idx = 0\n    t = int(input_data[idx]); idx += 1\n    out = []\n    for _ in range(t):\n        n = int(input_data[idx]); idx += 1\n        tag = [int(input_data[idx+i]) for i in range(n)]; idx += n\n        s = [int(input_data[idx+i]) for i in range(n)]; idx += n\n        \n        dp = [0] * n\n        \n        pairs = []\n        for i in range(n):\n            for j in range(i+1, n):\n                pairs.append((j-i, i, j))\n        pairs.sort()\n        \n        for d, i, j in pairs:\n            if tag[i] != tag[j]:\n                gain = abs(s[i] - s[j])\n                old_i = dp[i]\n                old_j = dp[j]\n                ndp_i = old_j + gain\n                ndp_j = old_i + gain\n                if ndp_i > dp[i]:\n                    dp[i] = ndp_i\n                if ndp_j > dp[j]:\n                    dp[j] = ndp_j\n        \n        out.append(str(max(dp)))\n    sys.stdout.write(\"\\n\".join(out) + \"\\n\")\n\nmain()",
+    "model_used": "claude-opus-4-8",
+    "passed": false,
+    "tests_passed": false,
+    "cached_at": 1781548689.8790512,
+    "use_count": 0,
+    "failed_attempts": 1
+  },
+  "cc_578_C. Weakness and Poorness": {
+    "code": "import sys\nfrom scipy.optimize import minimize_scalar\n\ndef max_subarray_sum(arr):\n    max_sum = float('-inf')\n    current = 0\n    for x in arr:\n        current += x\n        if current > max_sum:\n            max_sum = current\n        if current < 0:\n            current = 0\n    return max_sum\n\ndef min_subarray_sum(arr):\n    min_sum = float('inf')\n    current = 0\n    for x in arr:\n        current += x\n        if current < min_sum:\n            min_sum = current\n        if current > 0:\n            current = 0\n    return min_sum\n\ndef weakness(x, a):\n    shifted = [ai - x for ai in a]\n    max_s = max_subarray_sum(shifted)\n    min_s = min_subarray_sum(shifted)\n    return max(abs(max_s), abs(min_s))\n\ndef main():\n    input_data = sys.stdin.read().split()\n    n = int(input_data[0])\n    a = list(map(int, input_data[1:n+1]))\n    \n    result = minimize_scalar(weakness, bounds=(min(a)-1, max(a)+1), method='bounded', args=(a,), \n                             options={'xatol': 1e-9, 'maxiter': 10000})\n    \n    print(\"{:.15f}\".format(result.fun))\n\nmain()",
+    "model_used": "claude-sonnet-4-6",
+    "passed": false,
+    "tests_passed": false,
+    "cached_at": 1781548720.3364017,
+    "use_count": 0,
+    "failed_attempts": 1
+  },
+  "cc_776_A. A Serial Killer": {
+    "code": "import sys\n\ndef main():\n    data = sys.stdin.read().split()\n    idx = 0\n    a = data[idx]; idx+=1\n    b = data[idx]; idx+=1\n    n = int(data[idx]); idx+=1\n    out = []\n    out.append(a + \" \" + b)\n    cur = [a, b]\n    for _ in range(n):\n        killed = data[idx]; idx+=1\n        new = data[idx]; idx+=1\n        if cur[0] == killed:\n            cur[0] = new\n        else:\n            cur[1] = new\n        out.append(cur[0] + \" \" + cur[1])\n    print(\"\\n\".join(out))\n\nmain()",
+    "model_used": "claude-opus-4-8",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781549220.740301,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_1076_B. Divisor Subtraction": {
+    "code": "import sys, math\n\ndef smallest_prime_divisor(x: int) -> int:\n    if x % 2 == 0:\n        return 2\n    limit = int(math.isqrt(x))\n    i = 3\n    while i <= limit:\n        if x % i == 0:\n            return i\n        i += 2\n    return x\n\ndef main():\n    data = sys.stdin.read().strip()\n    if not data:\n        return\n    n = int(data)\n    if n % 2 == 0:\n        ans = n // 2\n    else:\n        d = smallest_prime_divisor(n)\n        ans = 1 + (n - d) // 2\n    sys.stdout.write(str(ans))\n\nif __name__ == \"__main__\":\n    main()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781548792.7891643,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_278_B. New Problem": {
+    "code": "import sys, itertools\n\ndef main():\n    data = sys.stdin.read().splitlines()\n    if not data:\n        return\n    n = int(data[0])\n    titles = data[1:1+n]\n    max_len = 4  # safe upper bound\n    substrings = set()\n    for t in titles:\n        L = len(t)\n        for i in range(L):\n            for l in range(1, max_len+1):\n                if i + l <= L:\n                    substrings.add(t[i:i+l])\n    alphabet = [chr(ord('a') + i) for i in range(26)]\n    for length in range(1, max_len+1):\n        for prod in itertools.product(alphabet, repeat=length):\n            s = ''.join(prod)\n            if s not in substrings:\n                sys.stdout.write(s)\n                return\n\nif __name__ == \"__main__\":\n    main()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781548771.823659,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_730_J. Bottles": {
+    "code": "import sys\n\ndef solve() -> None:\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    it = iter(data)\n    n = int(next(it))\n    a = [int(next(it)) for _ in range(n)]\n    b = [int(next(it)) for _ in range(n)]\n    total = sum(a)\n\n    # minimal k such that sum of largest k capacities >= total\n    caps_sorted = sorted(b, reverse=True)\n    cur = 0\n    k = 0\n    for cap in caps_sorted:\n        cur += cap\n        k += 1\n        if cur >= total:\n            break\n\n    # DP to maximize kept soda using exactly k bottles with total capacity >= total\n    A = total\n    dp = [[-1] * (A + 1) for _ in range(k + 1)]\n    dp[0][0] = 0\n    for ai, bi in zip(a, b):\n        for j in range(k - 1, -1, -1):\n            row = dp[j]\n            nxt = dp[j + 1]\n            for c in range(A + 1):\n                kept = row[c]\n                if kept < 0:\n                    continue\n                nc = c + bi\n                if nc > A:\n                    nc = A\n                if nxt[nc] < kept + ai:\n                    nxt[nc] = kept + ai\n\n    max_kept = dp[k][A]\n    t = total - max_kept\n    print(k, t)\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781548977.985773,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_747_C. Servers": {
+    "code": "import sys, heapq\n\ndef solve() -> None:\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    it = iter(data)\n    n = int(next(it))\n    q = int(next(it))\n    tasks = [(int(next(it)), int(next(it)), int(next(it))) for _ in range(q)]\n\n    free = list(range(1, n + 1))\n    heapq.heapify(free)\n    busy = []  # (release_time, server_id)\n\n    out_lines = []\n    cur_time = 0\n    for t, k, d in tasks:\n        # release servers up to time t\n        while busy and busy[0][0] <= t:\n            rel_time, sid = heapq.heappop(busy)\n            heapq.heappush(free, sid)\n        if len(free) < k:\n            out_lines.append(\"-1\")\n        else:\n            taken = [heapq.heappop(free) for _ in range(k)]\n            s = sum(taken)\n            release_time = t + d\n            for sid in taken:\n                heapq.heappush(busy, (release_time, sid))\n            out_lines.append(str(s))\n    sys.stdout.write(\"\\n\".join(out_lines))\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781548874.1397214,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_1311_F. Moving Points": {
+    "code": "import sys\nfrom sortedcontainers import SortedList\n\ndef solve():\n    data = sys.stdin.buffer.read().split()\n    n = int(data[0])\n    xs = [int(data[i+1]) for i in range(n)]\n    vs = [int(data[i+1+n]) for i in range(n)]\n    \n    points = sorted(zip(xs, vs))\n    \n    # For pairs (i,j) with x_i < x_j: contribute x_j - x_i if v_i <= v_j\n    # Sum over j of: x_j * count(v_i <= v_j for i<j) - sum(x_i for i<j with v_i <= v_j)\n    \n    total = 0\n    sl = SortedList()  # stores (v, x)\n    xs_by_v = SortedList()  # sorted list of v values seen\n    \n    from sortedcontainers import SortedList\n    vs_seen = SortedList()\n    xs_prefix = SortedList()  # need sum, use a BIT\n    \n    # Use a BIT on compressed velocities\n    vs_all = sorted(set(vs))\n    v_rank = {v: i+1 for i, v in enumerate(vs_all)}\n    m = len(vs_all)\n    \n    bit_count = [0] * (m+1)\n    bit_sum = [0] * (m+1)\n    \n    def update(i, x):\n        while i <= m:\n            bit_count[i] += 1\n            bit_sum[i] += x\n            i += i & (-i)\n    \n    def query(i):\n        c, s = 0, 0\n        while i > 0:\n            c += bit_count[i]\n            s += bit_sum[i]\n            i -= i & (-i)\n        return c, s\n    \n    for x, v in points:\n        r = v_rank[v]\n        cnt, sm = query(r)\n        total += x * cnt - sm\n        update(r, x)\n    \n    print(total)\n\nsolve()",
+    "model_used": "gpt-oss-120b",
+    "passed": false,
+    "tests_passed": false,
+    "cached_at": 1781548924.1785262,
+    "use_count": 0,
+    "failed_attempts": 1
+  },
+  "cc_42_A. Guilty \u2014 to the kitchen!": {
+    "code": "n, V = map(int, input().split())\na = list(map(int, input().split()))\nb = list(map(int, input().split()))\n\ntotal_a = sum(a)\nx = V / total_a\n\nfor i in range(n):\n    if a[i] > 0:\n        x = min(x, b[i] / a[i])\n\nresult = x * total_a\nprint(result)",
+    "model_used": "claude-sonnet-4-6",
+    "passed": false,
+    "tests_passed": false,
+    "cached_at": 1781549006.7529576,
+    "use_count": 0,
+    "failed_attempts": 1
+  },
+  "cc_996_F. Game": {
+    "code": "import sys\nimport math\n\ndef main():\n    data = sys.stdin.buffer.read().split()\n    if not data:\n        return\n    it = iter(data)\n    n = int(next(it))\n    r = int(next(it))\n    m = 1 << n\n    vals = [int(next(it)) for _ in range(m)]\n    total = math.fsum(vals)\n    out_lines = []\n    out_lines.append(f\"{total / m:.6f}\")\n    for _ in range(r):\n        z = int(next(it))\n        g = int(next(it))\n        diff = g - vals[z]\n        total += diff\n        vals[z] = g\n        out_lines.append(f\"{total / m:.6f}\")\n    sys.stdout.write(\"\\n\".join(out_lines) + \"\\n\")\n\nif __name__ == \"__main__\":\n    main()",
+    "model_used": "gpt-oss-120b",
+    "passed": false,
+    "tests_passed": false,
+    "cached_at": 1781549082.8029006,
+    "use_count": 0,
+    "failed_attempts": 1
+  },
+  "cc_621_D. Rat Kwesh and Cheese": {
+    "code": "import sys, math\n\ndef val(a, b, c, assoc):\n    if assoc == 'right':\n        return a ** (b ** c)\n    else:  # left\n        return (a ** b) ** c\n\ndef main():\n    data = sys.stdin.read().strip().split()\n    if len(data) != 3:\n        return\n    x, y, z = map(float, data)\n    exprs = [\n        (\"x^y^z\", lambda: val(x, y, z, 'right')),\n        (\"x^z^y\", lambda: val(x, z, y, 'right')),\n        (\"(x^y)^z\", lambda: val(x, y, z, 'left')),\n        (\"(x^z)^y\", lambda: val(x, z, y, 'left')),\n        (\"y^x^z\", lambda: val(y, x, z, 'right')),\n        (\"y^z^x\", lambda: val(y, z, x, 'right')),\n        (\"(y^x)^z\", lambda: val(y, x, z, 'left')),\n        (\"(y^z)^x\", lambda: val(y, z, x, 'left')),\n        (\"z^x^y\", lambda: val(z, x, y, 'right')),\n        (\"z^y^x\", lambda: val(z, y, x, 'right')),\n        (\"(z^x)^y\", lambda: val(z, x, y, 'left')),\n        (\"(z^y)^x\", lambda: val(z, y, x, 'left')),\n    ]\n    max_val = -float('inf')\n    best_expr = \"\"\n    for s, f in exprs:\n        v = f()\n        if v > max_val:\n            max_val = v\n            best_expr = s\n    sys.stdout.write(best_expr)\n\nif __name__ == \"__main__\":\n    main()",
+    "model_used": "gpt-oss-120b",
+    "passed": false,
+    "tests_passed": false,
+    "cached_at": 1781549110.862448,
+    "use_count": 0,
+    "failed_attempts": 1
+  },
+  "cc_963_B. Destruction of a Tree": {
+    "code": "import sys\nfrom collections import deque\n\ndef solve() -> None:\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    it = iter(data)\n    n = int(next(it))\n    adj = [[] for _ in range(n + 1)]\n    for i in range(1, n + 1):\n        p = int(next(it))\n        if p != 0:\n            adj[i].append(p)\n            adj[p].append(i)\n\n    degree = [len(adj[i]) for i in range(n + 1)]\n    q = deque([i for i in range(1, n + 1) if degree[i] % 2 == 0])\n    removed = [False] * (n + 1)\n    order = []\n\n    while q:\n        v = q.popleft()\n        if removed[v] or degree[v] % 2 != 0:\n            continue\n        removed[v] = True\n        order.append(v)\n        for u in adj[v]:\n            if not removed[u]:\n                degree[u] -= 1\n                if degree[u] % 2 == 0:\n                    q.append(u)\n\n    if len(order) == n:\n        out = [\"YES\"] + [str(v) for v in order]\n    else:\n        out = [\"NO\"]\n    sys.stdout.write(\"\\n\".join(out) + \"\\n\")\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": false,
+    "tests_passed": false,
+    "cached_at": 1781549179.9197116,
+    "use_count": 0,
+    "failed_attempts": 1
+  },
+  "cc_1176_F. Destroy it!": {
+    "code": "import sys\nfrom functools import lru_cache\n\ndef solve():\n    input_data = sys.stdin.buffer.read().split()\n    idx = 0\n    n = int(input_data[idx]); idx += 1\n    \n    # For each turn, we need to find the best subsets of cards we can play\n    # Cost constraint: total cost <= 3\n    # We want to maximize damage, but we also need to track how many cards we play\n    # because every 10th card deals double damage\n    \n    # For each turn, enumerate all valid subsets (cost <= 3)\n    # and for each possible number of cards played, find max damage\n    # Also consider: if one of those cards is the 10th, it deals double damage\n    # So we need to track: given that we've played 'r' cards so far (mod 10),\n    # what's the best we can do?\n    \n    # State: dp[r] = max damage when total cards played so far \u2261 r (mod 10)\n    # Transition: for each turn, for each valid subset (num_cards, base_damage),\n    # we can potentially get a bonus if playing num_cards cards crosses a multiple of 10\n    \n    # For a turn where we play m cards starting from position r (0-indexed within mod 10):\n    # The cards played are at positions r, r+1, ..., r+m-1 (mod 10)\n    # If any of these is position 9 (0-indexed), i.e., the 10th card, we get bonus\n    # The bonus card should be the one with maximum damage among those played\n    # Wait - we can choose the ORDER, so if one slot is the 10th card (bonus),\n    # we want to assign the highest damage card to that slot\n    \n    # For each turn, enumerate valid subsets with cost <= 3\n    # For a subset with m cards and damages sorted descending,\n    # given starting position r (mod 10), check if any position r..r+m-1 hits 9 (mod 10)\n    # If yes, the best card to put there is the maximum damage card\n    # Bonus = max_damage (we count it double, so extra = max_damage)\n    \n    # Let's precompute for each turn: list of (num_cards, total_damage, max_damage_in_subset)\n    # for all valid subsets\n    \n    # Then dp over turns\n    \n    NEG_INF = -float('inf')\n    dp = [NEG_INF] * 10\n    dp[0] = 0\n    \n    for _ in range(n):\n        k = int(input_data[idx]); idx += 1\n        cards = []\n        for _ in range(k):\n            c = int(input_data[idx]); idx += 1\n            d = int(input_data[idx]); idx += 1\n            cards.append((c, d))\n        \n        # Enumerate valid subsets with total cost <= 3\n        # For each subset: (num_cards, total_damage, max_damage)\n        # We want for each (num_cards), the best (total_damage, max_damage) combinations\n        # Actually we need: for fixed num_cards m, the set of (total_damage, max_damage) Pareto front\n        # But this is complex. Let's just enumerate subsets.\n        \n        # Since cost <= 3 total, and each cost >= 1, max cards = 3\n        # So we can enumerate subsets of size 0, 1, 2, 3\n        \n        # Separate cards by cost\n        cost1 = sorted([d for c,d in cards if c==1], reverse=True)\n        cost2 = sorted([d for c,d in cards if c==2], reverse=True)\n        cost3 = sorted([d for c,d in cards if c==3], reverse=True)\n        \n        # Valid combinations: enumerate (a cards of cost1, b cards of cost2, c cards of cost3)\n        # with a + 2b + 3c <= 3\n        \n        subsets = []  # (num_cards, total_damage, max_damage)\n        subsets.append((0, 0, 0))\n        \n        # c=1: a+2b+3=a+2b<=0 => only a=0,b=0\n        for nc3 in range(min(1, len(cost3)) + 1):\n            for nb in range(min((3 - 3*nc3)//2 + 1, len(cost2)+1)):\n                rem = 3 - 3*nc3 - 2*nb\n                for na in range(min(rem+1, len(cost1)+1)):\n                    if na == 0 and nb == 0 and nc3 == 0:\n                        continue\n                    total_cost = na + 2*nb + 3*nc3\n                    if total_cost > 3:\n                        continue\n                    total_dmg = sum(cost1[:na]) + sum(cost2[:nb]) + sum(cost3[:nc3])\n                    num_cards = na + nb + nc3\n                    max_dmg = 0\n                    if na > 0: max_dmg = max(max_dmg, cost1[0])\n                    if nb > 0: max_dmg = max(max_dmg, cost2[0])\n                    if nc3 > 0: max_dmg = max(max_dmg, cost3[0])\n                    subsets.append((num_cards, total_dmg, max_dmg))\n        \n        new_dp = [NEG_INF] * 10\n        for r in range(10):\n            if dp[r] == NEG_INF:\n                continue\n            for (m, total_dmg, max_dmg) in subsets:\n                bonus = 0\n                # Check if any of positions r, r+1, ..., r+m-1 (mod 10) == 9\n                for i in range(m):\n                    if (r + i) % 10 == 9:\n                        bonus = max_dmg\n                        break\n                new_r = (r + m) % 10\n                val = dp[r] + total_dmg + bonus\n                if val > new_dp[new_r]:\n                    new_dp[new_r] = val\n        \n        dp = new_dp\n    \n    print(max(dp))\n\nsolve()",
+    "model_used": "claude-sonnet-4-6",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781549211.190596,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_673_C. Bear and Colors": {
+    "code": "import sys\n\ndef solve() -> None:\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    n = int(data[0])\n    t = list(map(int, data[1:1 + n]))\n    ans = [0] * (n + 1)  # 1-indexed\n\n    for l in range(n):\n        cnt = [0] * (n + 1)\n        best_color = 0\n        best_cnt = 0\n        for r in range(l, n):\n            c = t[r]\n            cnt[c] += 1\n            if cnt[c] > best_cnt or (cnt[c] == best_cnt and c < best_color):\n                best_cnt = cnt[c]\n                best_color = c\n            ans[best_color] += 1\n\n    sys.stdout.write(' '.join(str(ans[i]) for i in range(1, n + 1)) + ' ')\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781549238.5763962,
+    "use_count": 0,
+    "failed_attempts": 0
+  },
+  "cc_920_E. Connected Components?": {
+    "code": "import sys, collections\n\ndef solve() -> None:\n    data = sys.stdin.read().strip().split()\n    if not data:\n        return\n    it = iter(data)\n    n = int(next(it))\n    m = int(next(it))\n    missing = [set() for _ in range(n + 1)]\n    for _ in range(m):\n        x = int(next(it)); y = int(next(it))\n        missing[x].add(y)\n        missing[y].add(x)\n\n    unvisited = set(range(1, n + 1))\n    components = []\n\n    while unvisited:\n        start = unvisited.pop()\n        q = collections.deque([start])\n        size = 1\n        while q:\n            v = q.popleft()\n            # collect neighbors in complement graph\n            to_add = []\n            for u in list(unvisited):\n                if u not in missing[v]:\n                    to_add.append(u)\n            for u in to_add:\n                unvisited.remove(u)\n                q.append(u)\n                size += 1\n        components.append(size)\n\n    components.sort()\n    out = [str(len(components)), \" \".join(map(str, components))]\n    sys.stdout.write(\"\\n\".join(out))\n\nif __name__ == \"__main__\":\n    solve()",
+    "model_used": "gpt-oss-120b",
+    "passed": true,
+    "tests_passed": true,
+    "cached_at": 1781549365.5517507,
+    "use_count": 0,
+    "failed_attempts": 0
   }
 }

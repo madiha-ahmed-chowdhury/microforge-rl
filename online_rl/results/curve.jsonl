@@ -142,3 +142,10 @@
 {"ep": 1040, "llm_r": 0.0, "res_r": -2.7054, "avg10": -1.503, "llm_tier": "cached"}
 {"ep": 1050, "llm_r": 0.0, "res_r": -2.5049, "avg10": -1.91, "llm_tier": "cached"}
 {"ep": 1060, "llm_r": 0.0, "res_r": -2.5054, "avg10": -2.29, "llm_tier": "cached"}
+{"ep": 10, "llm_r": -1.5, "res_r": 0.0803, "avg10": -1.117, "llm_tier": "free"}
+{"ep": 10, "llm_r": 0.0, "res_r": -4.0, "avg10": -1.93, "llm_tier": "ref"}
+{"ep": 20, "llm_r": 0.0, "res_r": -1.9077, "avg10": -1.114, "llm_tier": "ref"}
+{"ep": 30, "llm_r": 0.0, "res_r": 0.1148, "avg10": -1.028, "llm_tier": "ref"}
+{"ep": 40, "llm_r": 0.0, "res_r": -4.0, "avg10": -2.77, "llm_tier": "ref"}
+{"ep": 50, "llm_r": 0.0, "res_r": 0.1946, "avg10": -1.187, "llm_tier": "ref"}
+{"ep": 60, "llm_r": 0.0, "res_r": -1.9054, "avg10": -1.996, "llm_tier": "ref"}
