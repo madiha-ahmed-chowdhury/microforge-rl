@@ -26,9 +26,10 @@ from online_rl.config import (
     RES_SAC_CONFIG,
     CPU_BINS, MEMORY_BINS, TIMEOUT_BINS,
 )
-from online_rl.replay_buffer  import DiscreteReplayBuffer
-from online_rl.sac_agent      import DiscreteSACAgent
-from online_rl.llm_bandit     import LLMBandit
+from online_rl.replay_buffer         import DiscreteReplayBuffer
+from online_rl.sac_agent             import DiscreteSACAgent
+from online_rl.sac_agent_factored    import DiscreteSACAgentFactored
+from online_rl.llm_bandit            import LLMBandit
 
 
 def _nearest_idx(value: float, bins: list) -> int:
@@ -92,7 +93,12 @@ def main():
                         help="Skip code cache — always call LLM fresh (for evaluation)")
     parser.add_argument("--use-ref", action="store_true", dest="use_ref",
                         help="Skip LLM entirely — use ref_solution as code (for RL2-only eval)")
+    parser.add_argument("--agent", choices=["shared", "factored"], default="shared",
+                        help="Agent architecture: shared (one trunk) or factored (separate trunks per action head)")
     args = parser.parse_args()
+
+    _ckpt_dir         = f"online_rl/checkpoints/{args.agent}/"
+    _transitions_path = PATHS["transitions"] if args.agent == "shared" else f"online_rl/results/transitions_{args.agent}.jsonl"
     verbose = args.task is not None
 
     print(f"[runner] loading all problems from pool cache")
@@ -112,7 +118,10 @@ def main():
     scaler_fitted = False
     scaler_buffer = []
 
-    res_agent  = DiscreteSACAgent(RES_SAC_CONFIG)
+    if args.agent == "factored":
+        res_agent = DiscreteSACAgentFactored(RES_SAC_CONFIG)
+    else:
+        res_agent = DiscreteSACAgent(RES_SAC_CONFIG)
     res_buffer = DiscreteReplayBuffer(RES_SAC_CONFIG["buffer_size"])
     bandit     = LLMBandit()
 
@@ -144,7 +153,7 @@ def main():
             scaler_fitted = True
             print(f"[runner] loaded online scaler from {PATHS['online_scaler']}")
     elif args.resume:
-        ckpt_dir      = Path(PATHS["checkpoints"])
+        ckpt_dir      = Path(_ckpt_dir)
         res_ckpts     = sorted(ckpt_dir.glob("res_ep_*.pt"))
         res_buf_ckpts = sorted(ckpt_dir.glob("res_buf_*.pkl"))
         if res_ckpts:
@@ -171,7 +180,7 @@ def main():
             scaler_fitted = True
             print(f"[runner] loaded online scaler from {PATHS['online_scaler']}")
 
-    os.makedirs(PATHS["checkpoints"], exist_ok=True)
+    os.makedirs(_ckpt_dir, exist_ok=True)
     os.makedirs(PATHS["results"],     exist_ok=True)
 
     if args.refresh_cache:
@@ -251,11 +260,28 @@ def main():
             print(f"[runner] ep {ep:04d} | task={task_id}")
 
             if args.use_ref:
-                code             = ref_solution
-                llm_model        = "ref"
-                llm_tier         = "ref"
-                llm_tests_passed = True
-                llm_reward       = 0.0
+                code      = ref_solution
+                llm_model = "ref"
+                llm_tier  = "ref"
+                llm_reward = 0.0
+                # PREP VM: run ref_solution with generated stdin to get oracle expected output
+                prep_vm = boot_vm(f"prep-{ep}", PREP_CONFIG["cpu_millicores"], PREP_CONFIG["memory_mb"])
+                if prep_vm is None:
+                    print(f"[runner] PREP VM failed — skipping ep {ep}")
+                    continue
+                prep_exec = run_code_on_vm(
+                    prep_vm, ref_solution, stdin,
+                    PREP_CONFIG["timeout_ms"],
+                    memory_limit_mb=PREP_CONFIG["memory_mb"],
+                )
+                _stop_vm(prep_vm)
+                if prep_exec.get("exit_code") == 0 and prep_exec.get("stdout", "").strip():
+                    expected         = prep_exec["stdout"]
+                    llm_tests_passed = True
+                else:
+                    llm_tests_passed = False
+                    print(f"[runner] ref PREP failed exit={prep_exec.get('exit_code')} — tests_passed=False")
+                print(f"[runner] ep={ep} task={task_id} stdin_len={len(stdin)} chars ref=True")
             elif not args.no_code_cache and cache.has(task_id) and not cache.should_refresh(task_id):
                 cached           = cache.get(task_id)
                 code             = cached["code"]
@@ -462,7 +488,7 @@ def main():
             avg50 = sum(reward_window50) / 50
             if avg50 > best_avg50:
                 best_avg50 = avg50
-                res_agent.save(f"{PATHS['checkpoints']}sac_best.pt")
+                res_agent.save(f"{_ckpt_dir}sac_best.pt")
                 print(f"[runner] new best model at ep {ep} | avg50={avg50:.3f}")
 
         transition = {
@@ -488,7 +514,8 @@ def main():
             "avg10":      avg10,
             "buf":        len(res_buffer),
         }
-        transitions_path = PATHS["transitions"] if not args.eval else PATHS["results"] + "eval_transitions.jsonl"
+        _eval_suffix = "" if args.agent == "shared" else f"_{args.agent}"
+        transitions_path = _transitions_path if not args.eval else PATHS["results"] + f"eval_transitions{_eval_suffix}.jsonl"
         with open(transitions_path, "a") as f:
             f.write(json.dumps(transition) + "\n")
 
@@ -512,7 +539,7 @@ def main():
                                     "avg10": avg10, "llm_tier": llm_tier}) + "\n")
 
         if (ep + 1) % 10 == 0:
-            ck = PATHS["checkpoints"]
+            ck = _ckpt_dir
             res_agent.save(f"{ck}res_ep_{ep+1:05d}.pt")
             with open(f"{ck}res_buf_{ep+1:05d}.pkl", "wb") as f:
                 pickle.dump(res_buffer, f)

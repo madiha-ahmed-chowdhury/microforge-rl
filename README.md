@@ -114,6 +114,18 @@ efficiency = -(wasted_cpu_ratio + wasted_mem_ratio) * 0.5
 
 Training was stopped at **1060 episodes** after the reward plateau. Best checkpoint saved as `online_rl/checkpoints/sac_best.pt`.
 
+### Policy Churn at ep 560–599 (Shared SAC)
+
+**What was observed:** The policy peaked in the ep 560–599 window — 6/20 positive rewards, avg around -1.5. After ep 600 it regressed. The action distribution spread back out: timeout returned to 3000ms dominating instead of 200ms, memory went back to 128MB+ at 43% of picks despite having found tighter configs.
+
+**Diagnosis — policy churn:** The entropy term kept encouraging exploration even after the agent had found good behaviour, pulling it away from the tight configs it had learned. High alpha was fighting the learned policy rather than helping it.
+
+**Interventions applied:**
+
+1. **Learning rate reduction** — applied at ep 400 in the changelog above; reduced gradient step size so the policy cannot drift far from good weights between updates
+2. **Entropy annealing** — starting from ep 500, `log_alpha` decays by 0.5% every 10 episodes (floor 0.01). At ep 560 the agent had already found good configs; continued high entropy was causing churn. Annealing gradually reduces exploration pressure so the agent exploits what it learned rather than wandering
+3. **Resume from ep 560 not ep 600+** — the ep 600+ checkpoint had already drifted; the good policy was captured at ep 560, so that was used as the resumption point via `--checkpoint` rather than `--resume`
+
 ---
 
 ## Evaluation
@@ -163,6 +175,33 @@ python3 -m online_rl.runner \
 - `high_memory` is the weakest category — graph/tree/DP problems have less predictable memory footprints and the SAC agent over-allocates or misses
 - `hard` (1600+ rating) achieves the best res_reward (-0.346) despite being the highest-rated — reference solutions for hard problems tend to be clean and predictable, making resource allocation easier
 - **Zero timeouts** across all 60 eval episodes — SAC never under-allocates time
+
+### Reward Range
+
+| Direction | Value | Scenario |
+|---|---|---|
+| Max positive | ≈ +1.0 | Correct code, tight allocation (0 bins wasted), very fast wall time |
+| Max negative (boot fail) | -4.0 | VM never started (early return) |
+| Max negative (normal path) | ≈ -12.6 | Timed out (-5) + maximum waste on all 3 bins: mem (-2.7) + timeout (-2.8) + CPU (-1.6) + latency (-0.5) |
+
+### Are the Results Good?
+
+**The good:**
+- Started at **-2.49** (random warmup), ended at **-1.67** — an improvement of ~0.82, not noise
+- **Zero timeouts on eval** — the agent never starved a VM of time, so it is safe on that dimension
+- **Generalised** — train -1.70 ≈ eval -1.67, meaning it did not overfit to training problems
+
+**The bad:**
+- Max possible reward is ~+1.0. Current average is -1.67. The agent is still net negative — it is not getting the efficiency bonus most of the time, meaning it regularly over-allocates by 2+ bins
+- **38% of eval episodes failed** even with the correct reference solution — SAC chose too little memory or CPU, a pure resource allocation failure
+- `high_memory` is especially weak: **41% pass rate, -3.08 reward** — the agent learned nothing useful about graph/tree/DP memory patterns
+
+**What it means in practice:**
+- The agent learned "don't time out" (good) and "prefer more CPU" (useful but blunt)
+- It has not learned to distinguish between a 10-line easy problem and a 200-line DP problem in terms of memory needs
+- The shared trunk issue (all three action heads competing for the same representation) explains why timeout and memory never developed strong independent signals
+
+**Verdict:** Proof of concept that SAC can learn something about resource allocation from code features, but not yet good enough to replace a simple heuristic. Separate network trunks per action head would likely push it meaningfully closer to +1.0.
 
 ### Resource Bin Distribution (eval)
 
