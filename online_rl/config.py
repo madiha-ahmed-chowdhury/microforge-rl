@@ -50,6 +50,16 @@ RES_SAC_CONFIG = {
 
 SAC_CONFIG = RES_SAC_CONFIG  # keep backward compat
 
+DQN_CONFIG = {
+    "lr":          2e-4,
+    "gamma":       0.99,
+    "tau":         0.005,
+    "batch_size":  256,
+    "buffer_size": 20000,
+    "warmup":      200,
+    "state_dim":   9,
+}
+
 REWARD_CONFIG = {
     "r_timeout":    -5.0,
     "r_oom":        -3.0,

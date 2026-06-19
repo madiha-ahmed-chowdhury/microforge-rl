@@ -23,12 +23,13 @@ if _env_file.exists():
 from online_rl.config import (
     SAC_FEATURE_COLS, PATHS, PREP_CONFIG,
     MAX_RESOURCE_RETRIES,
-    RES_SAC_CONFIG,
+    RES_SAC_CONFIG, DQN_CONFIG,
     CPU_BINS, MEMORY_BINS, TIMEOUT_BINS,
 )
 from online_rl.replay_buffer         import DiscreteReplayBuffer
 from online_rl.sac_agent             import DiscreteSACAgent
 from online_rl.sac_agent_factored    import DiscreteSACAgentFactored
+from online_rl.dqn_agent             import DQNAgent
 from online_rl.llm_bandit            import LLMBandit
 
 
@@ -93,12 +94,13 @@ def main():
                         help="Skip code cache — always call LLM fresh (for evaluation)")
     parser.add_argument("--use-ref", action="store_true", dest="use_ref",
                         help="Skip LLM entirely — use ref_solution as code (for RL2-only eval)")
-    parser.add_argument("--agent", choices=["shared", "factored"], default="shared",
-                        help="Agent architecture: shared (one trunk) or factored (separate trunks per action head)")
+    parser.add_argument("--agent", choices=["shared", "factored", "dqn"], default="shared",
+                        help="Agent architecture: shared, factored (separate trunks per action head), or dqn")
     args = parser.parse_args()
 
     _ckpt_dir         = f"online_rl/checkpoints/{args.agent}/"
     _transitions_path = PATHS["transitions"] if args.agent == "shared" else f"online_rl/results/transitions_{args.agent}.jsonl"
+    _agent_cfg        = DQN_CONFIG if args.agent == "dqn" else RES_SAC_CONFIG
     verbose = args.task is not None
 
     print(f"[runner] loading all problems from pool cache")
@@ -119,17 +121,19 @@ def main():
     scaler_buffer = []
 
     if args.agent == "factored":
-        res_agent = DiscreteSACAgentFactored(RES_SAC_CONFIG)
+        res_agent = DiscreteSACAgentFactored(_agent_cfg)
+    elif args.agent == "dqn":
+        res_agent = DQNAgent(_agent_cfg)
     else:
-        res_agent = DiscreteSACAgent(RES_SAC_CONFIG)
-    res_buffer = DiscreteReplayBuffer(RES_SAC_CONFIG["buffer_size"])
+        res_agent = DiscreteSACAgent(_agent_cfg)
+    res_buffer = DiscreteReplayBuffer(_agent_cfg["buffer_size"])
     bandit     = LLMBandit()
 
     start_ep = 0
     if args.checkpoint:
         ckpt_path = Path(args.checkpoint)
         try:
-            res_agent.load(str(ckpt_path), cfg=RES_SAC_CONFIG)
+            res_agent.load(str(ckpt_path), cfg=_agent_cfg)
             start_ep = int(ckpt_path.stem.split("_")[-1])
             print(f"[runner] agent loaded from {ckpt_path.name}, continuing from ep {start_ep}")
         except Exception as e:
@@ -158,7 +162,7 @@ def main():
         res_buf_ckpts = sorted(ckpt_dir.glob("res_buf_*.pkl"))
         if res_ckpts:
             try:
-                res_agent.load(str(res_ckpts[-1]), cfg=RES_SAC_CONFIG)
+                res_agent.load(str(res_ckpts[-1]), cfg=_agent_cfg)
                 start_ep = int(res_ckpts[-1].stem.split("_")[2])
                 print(f"[runner] agent resumed from ep {start_ep}")
             except Exception as e:
@@ -449,14 +453,16 @@ def main():
                             current_action_dict["mem_idx"],
                             current_action_dict["timeout_idx"],
                             res_reward, next_state_vec, True)
-        if not args.eval and res_buffer.is_ready(max(RES_SAC_CONFIG["warmup"], RES_SAC_CONFIG["batch_size"])):
-            res_agent.update(res_buffer.sample(RES_SAC_CONFIG["batch_size"]))
-            if ep > 500 and ep % 10 == 0:
+        if not args.eval and res_buffer.is_ready(max(_agent_cfg["warmup"], _agent_cfg["batch_size"])):
+            res_agent.update(res_buffer.sample(_agent_cfg["batch_size"]))
+            if args.agent in ("shared", "factored") and ep > 500 and ep % 10 == 0:
                 with torch.no_grad():
                     res_agent.log_alpha.data = torch.clamp(
                         res_agent.log_alpha.data * 0.995,
                         min=math.log(0.01),
                     )
+            if args.agent == "dqn" and ep >= _agent_cfg["warmup"]:
+                res_agent.decay_epsilon()
 
         # ── Update rolling history ────────────────────────────────────────────
         rolling = next_rolling

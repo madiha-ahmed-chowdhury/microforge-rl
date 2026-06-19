@@ -56,13 +56,36 @@ Problem from pool
 - **Reward signal**: `llm_reward` — +1.0 for correct code, penalised for cost tier and fallback
 - **Code cache**: generated code is cached per `task_id`; on a cache hit the bandit is skipped (no LLM call, no cost)
 
-### Agent 2 — Discrete SAC
+### Agent 2 — Discrete SAC (shared trunk)
 
 - **Algorithm**: Discrete Soft Actor-Critic
-- **Action space**: `cpu_idx` (9 bins) × `mem_idx` (8 bins) × `timeout_idx` (15 bins)
+- **Action space**: `cpu_idx` (9 bins) × `mem_idx` (10 bins) × `timeout_idx` (15 bins)
+- **Architecture**: one shared `256→256→128` trunk feeding all three action heads (cpu, mem, timeout)
 - **State vector** (9 features): line count, cyclomatic complexity, has_recursion, has_sort, rolling avg wall time, rolling avg mem, rolling success rate, CF rating (normalised), CF tag embedding
 - **Reward signal**: `res_reward` — penalises over-allocation and failure; bonus for tight fit
 - **Exploration**: entropy annealing after episode 500 (alpha decays 0.5% per 10 episodes, floor 0.01)
+
+### Agent 2b — Discrete SAC (factored trunks)
+
+- **Algorithm**: Discrete Soft Actor-Critic — same as shared, different architecture
+- **Architecture**: three independent `256→128` trunks, one per action dimension — CPU, memory and timeout each learn their own representation without competing for capacity
+- **Motivation**: in the shared agent, timeout and memory never developed strong independent signals because all three heads shared the same 128-dim bottleneck. Separate trunks allow each head to specialise
+- **Exploration**: same entropy annealing schedule; LR started at `1e-4/2e-4/1e-4`, reduced to `5e-5/1e-4/5e-5` at ep 600
+
+### Agent 2c — DQN (three independent Q-networks)
+
+- **Algorithm**: Deep Q-Network with soft target updates (no actor, no entropy term)
+- **Architecture**: three separate Q-networks, one per action dimension:
+  ```
+  _QNetwork: state(9) → Linear(256) → ReLU → Dropout(0.1) → Linear(128) → ReLU → Linear(N_actions)
+  cpu_q  / cpu_target   (N_CPU=9 actions)    — 36,617 params
+  mem_q  / mem_target   (N_MEMORY=10 actions) — 36,746 params
+  tms_q  / tms_target   (N_TIMEOUT=15 actions) — 37,391 params
+  Total: 110,754 params across 3 Q-networks
+  ```
+- **Exploration**: epsilon-greedy; ε starts at 1.0, decays ×0.995 per episode after warmup (200 ep), floor 0.05. Reaches minimum around ep 1000
+- **Target update**: soft update τ=0.005 every gradient step (same as SAC)
+- **Key difference from SAC**: no entropy regularisation, no actor network — simpler signal, less stable but fewer moving parts
 
 ---
 
@@ -125,6 +148,47 @@ Training was stopped at **1060 episodes** after the reward plateau. Best checkpo
 1. **Learning rate reduction** — applied at ep 400 in the changelog above; reduced gradient step size so the policy cannot drift far from good weights between updates
 2. **Entropy annealing** — starting from ep 500, `log_alpha` decays by 0.5% every 10 episodes (floor 0.01). At ep 560 the agent had already found good configs; continued high entropy was causing churn. Annealing gradually reduces exploration pressure so the agent exploits what it learned rather than wandering
 3. **Resume from ep 560 not ep 600+** — the ep 600+ checkpoint had already drifted; the good policy was captured at ep 560, so that was used as the resumption point via `--checkpoint` rather than `--resume`
+
+---
+
+## SAC Factored — Training Results (1300 episodes)
+
+Factored trunks were introduced to address the shared trunk bottleneck identified above. Each action head (cpu, mem, timeout) gets its own `256→128` trunk.
+
+**Learning rate schedule:**
+- ep 1–600: `lr_actor=1e-4, lr_critic=2e-4, lr_alpha=1e-4` (same as shared)
+- ep 601–1300: `lr_actor=5e-5, lr_critic=1e-4, lr_alpha=5e-5` — halved to stabilise after observed churn
+
+**Training trend (per-20 episode blocks):**
+
+| Phase | Avg res_reward | Boot fails | Notes |
+|---|---|---|---|
+| ep 1–100 | -2.42 | 22% | warmup / random |
+| ep 101–300 | -2.33 | 16% | early learning |
+| ep 301–600 | -2.09 | 19% | improving, oscillation |
+| ep 601–800 | -1.76 | 9% | **LR cut — boot fails halve** |
+| ep 801–1000 | -1.79 | 7% | stabilising |
+| ep 1061–1080 | **-1.28** | **0%** | **all-time best window** |
+| ep 1200–1300 | -2.20 | 18% | regression / churn |
+
+Training stopped at **1300 episodes**. Best checkpoint saved as `online_rl/checkpoints/factored/sac_best.pt`.
+
+### Policy Churn at ep 1200+ (Factored SAC)
+
+Same pattern as shared SAC: after hitting its best window at ep 1061–1080 (avg -1.28, 0 boot failures), the policy regressed hard at ep 1201–1220 (avg -2.88, 7/20 boot failures). The SAC entropy term kept pushing exploration even after the policy had converged. The `sac_best.pt` captures the pre-churn peak.
+
+### Eval Results — SAC Factored vs SAC Shared
+
+Both evaluated on the same 60 unseen problems (`cc_pool_cache_test.json`) using `--use-ref` (reference solutions, no LLM calls).
+
+| Metric | SAC Shared | SAC Factored |
+|---|---|---|
+| Avg res_reward | **-1.671** | -1.747 |
+| Boot failures | **0 / 60 (0%)** | 12 / 60 (20%) |
+| Best training window | -1.58 (ep 840–859) | **-1.28 (ep 1061–1080)** |
+
+**Why factored is worse on eval despite a better training peak:**
+The factored agent learned a more aggressive (tighter) memory policy — it frequently chose 96MB or less. This works on training problems it has seen but under-allocates on unseen eval problems. The shared agent's conservative over-allocation generalises better. The factored trunks specialised to training distribution at the cost of robustness.
 
 ---
 
@@ -211,6 +275,57 @@ Mem idx : {0:4, 1:12, 2:35, 3:2, 4:4, 6:1, 7:2}             ← clusters around 
 ```
 
 The SAC agent strongly prefers the highest CPU bin (idx 8, 27/60 episodes) — it learned during training that CPU is the main bottleneck for passing tests.
+
+---
+
+## Full Agent Comparison
+
+### Training Performance
+
+| Metric | SAC Shared | SAC Factored | DQN |
+|---|---|---|---|
+| Total episodes | 1060 | 1300 | 1200 (200 warmup) |
+| Overall avg res_reward | -2.038 | -2.016 | **-1.499** |
+| Positive rewards | 117 / 1454 (8.0%) | 105 / 1300 (8.1%) | **167 / 1000 (16.7%)** |
+| Boot failures (training) | 283 / 1454 (19.5%) | 205 / 1300 (15.8%) | **143 / 1000 (14.3%)** |
+| Best 20-ep window | -0.83 | -1.17 | **-0.69** |
+| All-time best single window | -1.58 (ep 840–859) | -1.28 (ep 1061–1080) | **-0.75 (ep 1021–1040)** |
+
+**DQN wins training** — more than double the positive reward rate (16.7% vs 8%), lower boot failure rate, and a better best window.
+
+### Evaluation Performance (60 unseen problems, `--use-ref`)
+
+| Metric | SAC Shared | SAC Factored | DQN |
+|---|---|---|---|
+| Avg res_reward | **-1.671** | -1.747 | -1.959 |
+| Positive rewards (eval) | **23 / 60 (38.3%)** | 6 / 60 (10.0%) | 7 / 60 (11.7%) |
+| Boot failures (eval) | 19 / 60 (31.7%) | 12 / 60 (20.0%) | 21 / 60 (35.0%) |
+| Best single episode | +0.994 | +0.800 | +0.294 |
+| Zero timeouts | ✓ | ✓ | ✓ |
+
+**SAC shared wins eval** — best avg reward, most positive episodes, and despite having boot failures it still generalises the best to unseen problems.
+
+### Boot Failure Analysis
+
+Boot failures (exit=-1, reward ≈ -4.0) happen when the Firecracker microVM cannot start, almost always because the memory allocation is too low to boot the guest OS + Python runtime (~65 MB fixed overhead).
+
+| Agent | Main cause | Memory range in failures |
+|---|---|---|
+| SAC shared | Occasionally picks 64–96 MB on easy problems it over-confidently under-allocates | 64–256 MB (spread) |
+| SAC factored | Aggressively chose 64–96 MB — factored trunks specialised to tight training configs | 64–96 MB (concentrated) |
+| DQN | Same aggressive low-memory policy, worse at generalising to unseen problems | 64–160 MB |
+
+All boot failures have the same signature: `exit_code = -1`, `timed_out = False`, `wall_time_ms = 0`.
+
+### Why SAC Shared Generalises Best
+
+SAC's **entropy regularisation** (`log_alpha` term) keeps the policy stochastic throughout training — even after convergence, the agent doesn't fully commit to the tightest configs it found. This acts as an implicit regulariser: the policy stays slightly conservative and generalises to unseen problem distributions.
+
+DQN and SAC Factored both found tighter (better) training configs but overfit to the training problem distribution:
+- **DQN**: once epsilon hit its floor (~ep 1000), Q-values kept specialising to the 394 training problems. On unseen eval problems it defaulted to the same aggressive memory allocations that worked in training but failed on harder/different eval problems
+- **SAC Factored**: separate trunks allowed each head to specialise independently, which produced tighter training configs but the same overfitting effect — the memory head learned training-specific patterns
+
+**Key insight for the thesis:** entropy regularisation in SAC does more than encourage exploration — it prevents distribution overfitting by keeping the policy stochastic. DQN without an equivalent mechanism achieves better training performance but fails to generalise.
 
 ---
 
