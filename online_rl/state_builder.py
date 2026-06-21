@@ -17,6 +17,17 @@ def static_analyse(code: str) -> dict:
         "has_external_calls":    0,
         "line_count":            0,
         "estimated_complexity":  0,
+        # memory-signal features
+        "uses_defaultdict":    0,
+        "uses_deque":          0,
+        "uses_heapq":          0,
+        "has_array_mult":      0,  # [x]*N — segment trees, BIT, large arrays
+        "has_collection_list": 0,  # [[] for _ in range(n)] — adjacency/set graphs
+        # timeout-signal features
+        "uses_itertools":      0,  # permutations/combinations → exponential time
+        "has_lru_cache":       0,  # memoization present → recursive but cached
+        "sort_call_count":     0,  # number of sort/sorted calls → O(n log n) passes
+        "has_while_true":      0,  # while True → unbounded loop risk
     }
     features["line_count"] = len([l for l in code.splitlines() if l.strip()])
 
@@ -26,6 +37,75 @@ def static_analyse(code: str) -> dict:
         return features
 
     features["ast_node_count"] = sum(1 for _ in _ast.walk(tree))
+
+    # memory-signal detection via imports
+    imported_names = set()
+    for node in _ast.walk(tree):
+        if isinstance(node, _ast.Import):
+            for alias in node.names:
+                imported_names.add(alias.name.split('.')[0])
+        elif isinstance(node, _ast.ImportFrom):
+            if node.module:
+                imported_names.add(node.module.split('.')[0])
+            for alias in node.names:
+                imported_names.add(alias.name)
+
+    features["uses_heapq"]       = int("heapq" in imported_names)
+    features["uses_defaultdict"]  = int("defaultdict" in imported_names or "defaultdict" in code)
+    features["uses_deque"]        = int("deque" in imported_names or "deque" in code)
+
+    # [x]*N — covers [0]*n, [0]*(4*n+10) (segment tree), [None]*(n+1) (BIT)
+    features["has_array_mult"] = int(any(
+        isinstance(node, _ast.BinOp) and
+        isinstance(node.op, _ast.Mult) and
+        (isinstance(node.left, _ast.List) or isinstance(node.right, _ast.List))
+        for node in _ast.walk(tree)
+    ))
+
+    # [[] for _ in range(n)], [{x} for _ in range(n)] — adjacency/set graphs
+    # also catches sys.setrecursionlimit → deep tree recursion
+    features["has_collection_list"] = int(
+        any(
+            isinstance(node, _ast.ListComp) and
+            isinstance(node.elt, (_ast.List, _ast.Set, _ast.Dict))
+            for node in _ast.walk(tree)
+        ) or any(
+            isinstance(node, _ast.Call) and
+            isinstance(node.func, _ast.Attribute) and
+            node.func.attr == "setrecursionlimit"
+            for node in _ast.walk(tree)
+        )
+    )
+
+    # timeout-signal detection
+    features["uses_itertools"] = int("itertools" in imported_names)
+
+    features["has_lru_cache"] = int(
+        "lru_cache" in imported_names or
+        "cache" in imported_names or
+        any(
+            isinstance(node, _ast.Call) and
+            isinstance(node.func, _ast.Attribute) and
+            node.func.attr in ("lru_cache", "cache")
+            for node in _ast.walk(tree)
+        )
+    )
+
+    features["sort_call_count"] = sum(
+        1 for node in _ast.walk(tree)
+        if isinstance(node, _ast.Call) and (
+            (isinstance(node.func, _ast.Name) and node.func.id == "sorted") or
+            (isinstance(node.func, _ast.Attribute) and node.func.attr == "sort")
+        )
+    )
+
+    features["has_while_true"] = int(any(
+        isinstance(node, _ast.While) and (
+            (isinstance(node.test, _ast.Constant) and node.test.value is True) or
+            (isinstance(node.test, _ast.NameConstant) and node.test.value is True)
+        )
+        for node in _ast.walk(tree)
+    ))
 
     branch_types = (
         _ast.If, _ast.For, _ast.While, _ast.ExceptHandler, _ast.With, _ast.Assert,
@@ -67,7 +147,9 @@ def static_analyse(code: str) -> dict:
     return features
 
 
-_RAW_SCALES = [50.0, 10.0, 5.0, 1.0, 1000.0, 200.0, 1.0, 200.0, 50000.0]
+_RAW_SCALES = [50.0, 10.0, 5.0, 1.0, 1000.0, 200.0, 1.0, 200.0, 50000.0,
+               1.0, 1.0, 1.0, 1.0, 1.0,   # memory-signal features (binary)
+               1.0, 1.0, 10.0, 1.0]        # timeout-signal features
 
 def build_state_vec(code_features: dict, rolling: dict, scaler) -> list:
     merged = {}

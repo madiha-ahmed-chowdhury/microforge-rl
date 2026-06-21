@@ -23,13 +23,14 @@ if _env_file.exists():
 from online_rl.config import (
     SAC_FEATURE_COLS, PATHS, PREP_CONFIG,
     MAX_RESOURCE_RETRIES,
-    RES_SAC_CONFIG, DQN_CONFIG,
+    RES_SAC_CONFIG, DQN_CONFIG, PPO_CONFIG,
     CPU_BINS, MEMORY_BINS, TIMEOUT_BINS,
 )
 from online_rl.replay_buffer         import DiscreteReplayBuffer
 from online_rl.sac_agent             import DiscreteSACAgent
 from online_rl.sac_agent_factored    import DiscreteSACAgentFactored
 from online_rl.dqn_agent             import DQNAgent
+from online_rl.ppo_agent             import PPOAgent
 from online_rl.llm_bandit            import LLMBandit
 
 
@@ -94,13 +95,13 @@ def main():
                         help="Skip code cache — always call LLM fresh (for evaluation)")
     parser.add_argument("--use-ref", action="store_true", dest="use_ref",
                         help="Skip LLM entirely — use ref_solution as code (for RL2-only eval)")
-    parser.add_argument("--agent", choices=["shared", "factored", "dqn"], default="shared",
-                        help="Agent architecture: shared, factored (separate trunks per action head), or dqn")
+    parser.add_argument("--agent", choices=["shared", "factored", "dqn", "ppo"], default="shared",
+                        help="Agent architecture: shared, factored, dqn, or ppo")
     args = parser.parse_args()
 
     _ckpt_dir         = f"online_rl/checkpoints/{args.agent}/"
     _transitions_path = PATHS["transitions"] if args.agent == "shared" else f"online_rl/results/transitions_{args.agent}.jsonl"
-    _agent_cfg        = DQN_CONFIG if args.agent == "dqn" else RES_SAC_CONFIG
+    _agent_cfg        = DQN_CONFIG if args.agent == "dqn" else (PPO_CONFIG if args.agent == "ppo" else RES_SAC_CONFIG)
     verbose = args.task is not None
 
     print(f"[runner] loading all problems from pool cache")
@@ -124,9 +125,11 @@ def main():
         res_agent = DiscreteSACAgentFactored(_agent_cfg)
     elif args.agent == "dqn":
         res_agent = DQNAgent(_agent_cfg)
+    elif args.agent == "ppo":
+        res_agent = PPOAgent(_agent_cfg)
     else:
         res_agent = DiscreteSACAgent(_agent_cfg)
-    res_buffer = DiscreteReplayBuffer(_agent_cfg["buffer_size"])
+    res_buffer = DiscreteReplayBuffer(_agent_cfg["buffer_size"]) if args.agent != "ppo" else None
     bandit     = LLMBandit()
 
     start_ep = 0
@@ -138,14 +141,15 @@ def main():
             print(f"[runner] agent loaded from {ckpt_path.name}, continuing from ep {start_ep}")
         except Exception as e:
             print(f"[runner] WARNING: could not load checkpoint ({e}) — starting fresh weights")
-        buf_path = ckpt_path.parent / ckpt_path.name.replace("res_ep_", "res_buf_").replace(".pt", ".pkl")
-        if buf_path.exists():
-            try:
-                with open(buf_path, "rb") as f:
-                    res_buffer = pickle.load(f)
-                print(f"[runner] buffer restored: {len(res_buffer)} transitions")
-            except Exception as e:
-                print(f"[runner] WARNING: could not load buffer ({e})")
+        if args.agent != "ppo":
+            buf_path = ckpt_path.parent / ckpt_path.name.replace("res_ep_", "res_buf_").replace(".pt", ".pkl")
+            if buf_path.exists():
+                try:
+                    with open(buf_path, "rb") as f:
+                        res_buffer = pickle.load(f)
+                    print(f"[runner] buffer restored: {len(res_buffer)} transitions")
+                except Exception as e:
+                    print(f"[runner] WARNING: could not load buffer ({e})")
         ep_str = ckpt_path.stem.split("_")[-1]
         bandit_path = ckpt_path.parent / f"bandit_ep_{ep_str}.json"
         if bandit_path.exists():
@@ -167,7 +171,7 @@ def main():
                 print(f"[runner] agent resumed from ep {start_ep}")
             except Exception as e:
                 print(f"[runner] WARNING: could not load agent checkpoint ({e}) — starting fresh weights")
-        if res_buf_ckpts:
+        if res_buf_ckpts and args.agent != "ppo":
             try:
                 with open(res_buf_ckpts[-1], "rb") as f:
                     res_buffer = pickle.load(f)
@@ -389,11 +393,12 @@ def main():
                     attempt_reward  = compute_res_reward(exec_result, final_action)
                     next_rolling    = update_rolling(attempt_rolling, exec_result)
                     next_state_vec  = build_state_vec(code_features, next_rolling, active_scaler)
-                    res_buffer.push(current_state_vec,
-                                    current_action_dict["cpu_idx"],
-                                    current_action_dict["mem_idx"],
-                                    current_action_dict["timeout_idx"],
-                                    attempt_reward, next_state_vec, False)
+                    if args.agent != "ppo":
+                        res_buffer.push(current_state_vec,
+                                        current_action_dict["cpu_idx"],
+                                        current_action_dict["mem_idx"],
+                                        current_action_dict["timeout_idx"],
+                                        attempt_reward, next_state_vec, False)
                     attempt_rolling["recent_success_rate"] *= 0.9
                     current_state_vec   = build_state_vec(code_features, attempt_rolling, active_scaler)
                     current_action_dict = res_agent.select_action(current_state_vec)
@@ -406,11 +411,12 @@ def main():
                     attempt_reward  = compute_res_reward(exec_result, final_action)
                     next_rolling    = update_rolling(attempt_rolling, exec_result)
                     next_state_vec  = build_state_vec(code_features, next_rolling, active_scaler)
-                    res_buffer.push(current_state_vec,
-                                    current_action_dict["cpu_idx"],
-                                    current_action_dict["mem_idx"],
-                                    current_action_dict["timeout_idx"],
-                                    attempt_reward, next_state_vec, False)
+                    if args.agent != "ppo":
+                        res_buffer.push(current_state_vec,
+                                        current_action_dict["cpu_idx"],
+                                        current_action_dict["mem_idx"],
+                                        current_action_dict["timeout_idx"],
+                                        attempt_reward, next_state_vec, False)
                     attempt_rolling["recent_mean_mem_used"] *= 1.2
                     current_state_vec   = build_state_vec(code_features, attempt_rolling, active_scaler)
                     current_action_dict = res_agent.select_action(current_state_vec)
@@ -448,21 +454,34 @@ def main():
         next_rolling  = update_rolling(rolling, final_exec)
         next_state_vec = build_state_vec(code_features, next_rolling, active_scaler)
         if not args.eval:
-            res_buffer.push(current_state_vec,
-                            current_action_dict["cpu_idx"],
-                            current_action_dict["mem_idx"],
-                            current_action_dict["timeout_idx"],
-                            res_reward, next_state_vec, True)
-        if not args.eval and res_buffer.is_ready(max(_agent_cfg["warmup"], _agent_cfg["batch_size"])):
-            res_agent.update(res_buffer.sample(_agent_cfg["batch_size"]))
-            if args.agent in ("shared", "factored") and ep > 500 and ep % 10 == 0:
-                with torch.no_grad():
-                    res_agent.log_alpha.data = torch.clamp(
-                        res_agent.log_alpha.data * 0.995,
-                        min=math.log(0.01),
-                    )
-            if args.agent == "dqn" and ep >= _agent_cfg["warmup"]:
-                res_agent.decay_epsilon()
+            if args.agent == "ppo":
+                res_agent.store(
+                    current_state_vec,
+                    current_action_dict["cpu_idx"],
+                    current_action_dict["mem_idx"],
+                    current_action_dict["timeout_idx"],
+                    current_action_dict.get("log_prob", 0.0),
+                    current_action_dict.get("value", 0.0),
+                    res_reward, True,
+                )
+                if res_agent.ready_to_update():
+                    res_agent.update()
+            else:
+                res_buffer.push(current_state_vec,
+                                current_action_dict["cpu_idx"],
+                                current_action_dict["mem_idx"],
+                                current_action_dict["timeout_idx"],
+                                res_reward, next_state_vec, True)
+                if res_buffer.is_ready(max(_agent_cfg["warmup"], _agent_cfg["batch_size"])):
+                    res_agent.update(res_buffer.sample(_agent_cfg["batch_size"]))
+                    if args.agent in ("shared", "factored") and ep > 500 and ep % 10 == 0:
+                        with torch.no_grad():
+                            res_agent.log_alpha.data = torch.clamp(
+                                res_agent.log_alpha.data * 0.995,
+                                min=math.log(0.01),
+                            )
+                    if args.agent == "dqn" and ep >= _agent_cfg["warmup"]:
+                        res_agent.decay_epsilon()
 
         # ── Update rolling history ────────────────────────────────────────────
         rolling = next_rolling
@@ -470,8 +489,8 @@ def main():
         # ── Fit scaler after warmup ───────────────────────────────────────────
         if not scaler_fitted:
             import numpy as np
-            raw = [float(code_features.get(k, 0.0)) for k in SAC_FEATURE_COLS[:6]] \
-                + [rolling[k] for k in SAC_FEATURE_COLS[6:]]
+            merged = {**code_features, **rolling}
+            raw = [float(merged.get(k, 0.0)) for k in SAC_FEATURE_COLS]
             scaler_buffer.append(raw)
             if len(scaler_buffer) >= 200:
                 scaler.fit(np.array(scaler_buffer))
@@ -518,7 +537,7 @@ def main():
             },
             "res_reward": res_reward,
             "avg10":      avg10,
-            "buf":        len(res_buffer),
+            "buf":        len(res_agent._rollout) if args.agent == "ppo" else len(res_buffer),
         }
         _eval_suffix = "" if args.agent == "shared" else f"_{args.agent}"
         transitions_path = _transitions_path if not args.eval else PATHS["results"] + f"eval_transitions{_eval_suffix}.jsonl"
@@ -538,17 +557,18 @@ def main():
                 f"correct={correct} oom={final_exec.get('oom_killed', False)} | "
                 f"llm_r={'+' if llm_reward>=0 else ''}{llm_reward:.2f} "
                 f"res_r={sign}{res_reward:.2f} avg10={'+' if avg10>=0 else ''}{avg10:.2f} | "
-                f"buf={len(res_buffer)}"
+                f"buf={len(res_agent._rollout) if args.agent == 'ppo' else len(res_buffer)}"
             )
             with open(PATHS["curve"], "a") as f:
                 f.write(json.dumps({"ep": ep+1, "llm_r": llm_reward, "res_r": res_reward,
                                     "avg10": avg10, "llm_tier": llm_tier}) + "\n")
 
-        if (ep + 1) % 10 == 0:
+        if not args.eval and (ep + 1) % 10 == 0:
             ck = _ckpt_dir
             res_agent.save(f"{ck}res_ep_{ep+1:05d}.pt")
-            with open(f"{ck}res_buf_{ep+1:05d}.pkl", "wb") as f:
-                pickle.dump(res_buffer, f)
+            if args.agent != "ppo":
+                with open(f"{ck}res_buf_{ep+1:05d}.pkl", "wb") as f:
+                    pickle.dump(res_buffer, f)
             bandit.save(f"{ck}bandit_ep_{ep+1:05d}.json")
             print(f"[runner] checkpoint saved at ep {ep+1}")
             if (ep + 1) % 100 == 0:
