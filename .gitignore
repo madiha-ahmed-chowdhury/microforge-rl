@@ -20,3 +20,5 @@ venv/
 
 # Supervisor notes
 supervisor_update.md
+online_rl/cc_pool_cache_mixed581.json
+online_rl/synthetic_highmem_pool.json

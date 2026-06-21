@@ -97,10 +97,15 @@ def main():
                         help="Skip LLM entirely — use ref_solution as code (for RL2-only eval)")
     parser.add_argument("--agent", choices=["shared", "factored", "dqn", "ppo"], default="shared",
                         help="Agent architecture: shared, factored, dqn, or ppo")
+    parser.add_argument("--run-name", type=str, default=None,
+                        help="Named run: transitions saved to results/transitions_{run_name}.jsonl, "
+                             "checkpoints to checkpoints/{run_name}/")
     args = parser.parse_args()
 
-    _ckpt_dir         = f"online_rl/checkpoints/{args.agent}/"
-    _transitions_path = PATHS["transitions"] if args.agent == "shared" else f"online_rl/results/transitions_{args.agent}.jsonl"
+    _run_tag          = args.run_name if args.run_name else args.agent
+    _ckpt_dir         = f"online_rl/checkpoints/{_run_tag}/"
+    _transitions_path = f"online_rl/results/transitions_{_run_tag}.jsonl" if args.run_name \
+                        else (PATHS["transitions"] if args.agent == "shared" else f"online_rl/results/transitions_{args.agent}.jsonl")
     _agent_cfg        = DQN_CONFIG if args.agent == "dqn" else (PPO_CONFIG if args.agent == "ppo" else RES_SAC_CONFIG)
     verbose = args.task is not None
 
@@ -539,7 +544,7 @@ def main():
             "avg10":      avg10,
             "buf":        len(res_agent._rollout) if args.agent == "ppo" else len(res_buffer),
         }
-        _eval_suffix = "" if args.agent == "shared" else f"_{args.agent}"
+        _eval_suffix = f"_{_run_tag}"
         transitions_path = _transitions_path if not args.eval else PATHS["results"] + f"eval_transitions{_eval_suffix}.jsonl"
         with open(transitions_path, "a") as f:
             f.write(json.dumps(transition) + "\n")
