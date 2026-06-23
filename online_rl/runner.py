@@ -36,6 +36,17 @@ from online_rl.llm_bandit            import LLMBandit
 
 def _nearest_idx(value: float, bins: list) -> int:
     return min(range(len(bins)), key=lambda i: abs(bins[i] - value))
+
+# Synthetic transitions are pushed this many times to the replay buffer so
+# the sparse high-memory success signal isn't drowned out by CC episodes.
+# Override at runtime with --syn-factor N (pass 1 to disable oversampling).
+SYN_REPLAY_FACTOR = 3
+
+def _buf_push(buf, task_id: str, syn_factor: int, *args):
+    """Push a transition; repeat syn_factor times for synthetic problems."""
+    k = syn_factor if task_id.startswith("synth_") else 1
+    for _ in range(k):
+        buf.push(*args)
 from online_rl.problem_loader import load_cc_problems
 from online_rl.state_builder  import static_analyse, build_state_vec, update_rolling
 from online_rl.rewards        import compute_llm_reward, compute_res_reward
@@ -100,7 +111,11 @@ def main():
     parser.add_argument("--run-name", type=str, default=None,
                         help="Named run: transitions saved to results/transitions_{run_name}.jsonl, "
                              "checkpoints to checkpoints/{run_name}/")
+    parser.add_argument("--syn-factor", type=int, default=None,
+                        help="How many times to push synthetic transitions to the replay buffer "
+                             "(default: SYN_REPLAY_FACTOR constant = 3). Pass 1 to disable oversampling.")
     args = parser.parse_args()
+    _syn_factor = args.syn_factor if args.syn_factor is not None else SYN_REPLAY_FACTOR
 
     _run_tag          = args.run_name if args.run_name else args.agent
     _ckpt_dir         = f"online_rl/checkpoints/{_run_tag}/"
@@ -215,6 +230,8 @@ def main():
     reward_window50 = []
     best_avg50      = -float("inf")
 
+    # In eval mode, shuffle problems and cycle through them in order (each seen once per cycle)
+    _eval_queue = []
     for ep in range(start_ep, start_ep + args.episodes):
         if args.task:
             match = [p for p in problems if args.task in p["task_id"]]
@@ -222,6 +239,11 @@ def main():
                 print(f"[runner] ERROR: no problem matching '{args.task}'")
                 break
             problem = match[0]
+        elif args.eval:
+            if not _eval_queue:
+                _eval_queue = problems.copy()
+                random.shuffle(_eval_queue)
+            problem = _eval_queue.pop()
         else:
             problem = random.choice(problems)
 
@@ -277,24 +299,29 @@ def main():
                 llm_model = "ref"
                 llm_tier  = "ref"
                 llm_reward = 0.0
-                # PREP VM: run ref_solution with generated stdin to get oracle expected output
-                prep_vm = boot_vm(f"prep-{ep}", PREP_CONFIG["cpu_millicores"], PREP_CONFIG["memory_mb"])
-                if prep_vm is None:
-                    print(f"[runner] PREP VM failed — skipping ep {ep}")
-                    continue
-                prep_exec = run_code_on_vm(
-                    prep_vm, ref_solution, stdin,
-                    PREP_CONFIG["timeout_ms"],
-                    memory_limit_mb=PREP_CONFIG["memory_mb"],
-                )
-                _stop_vm(prep_vm)
-                if prep_exec.get("exit_code") == 0 and prep_exec.get("stdout", "").strip():
-                    expected         = prep_exec["stdout"]
+                if task_id.startswith("synth_"):
+                    # synthetic problems have verified stdin+expected pre-embedded — skip PREP VM
                     llm_tests_passed = True
+                    print(f"[runner] ep={ep} task={task_id} stdin_len={len(stdin)} chars ref=True (synthetic, skipping PREP)")
                 else:
-                    llm_tests_passed = False
-                    print(f"[runner] ref PREP failed exit={prep_exec.get('exit_code')} — tests_passed=False")
-                print(f"[runner] ep={ep} task={task_id} stdin_len={len(stdin)} chars ref=True")
+                    # PREP VM: run ref_solution with generated stdin to get oracle expected output
+                    prep_vm = boot_vm(f"prep-{ep}", PREP_CONFIG["cpu_millicores"], PREP_CONFIG["memory_mb"])
+                    if prep_vm is None:
+                        print(f"[runner] PREP VM failed — skipping ep {ep}")
+                        continue
+                    prep_exec = run_code_on_vm(
+                        prep_vm, ref_solution, stdin,
+                        PREP_CONFIG["timeout_ms"],
+                        memory_limit_mb=PREP_CONFIG["memory_mb"],
+                    )
+                    _stop_vm(prep_vm)
+                    if prep_exec.get("exit_code") == 0 and prep_exec.get("stdout", "").strip():
+                        expected         = prep_exec["stdout"]
+                        llm_tests_passed = True
+                    else:
+                        llm_tests_passed = False
+                        print(f"[runner] ref PREP failed exit={prep_exec.get('exit_code')} — tests_passed=False")
+                    print(f"[runner] ep={ep} task={task_id} stdin_len={len(stdin)} chars ref=True")
             elif not args.no_code_cache and cache.has(task_id) and not cache.should_refresh(task_id):
                 cached           = cache.get(task_id)
                 code             = cached["code"]
@@ -399,11 +426,12 @@ def main():
                     next_rolling    = update_rolling(attempt_rolling, exec_result)
                     next_state_vec  = build_state_vec(code_features, next_rolling, active_scaler)
                     if args.agent != "ppo":
-                        res_buffer.push(current_state_vec,
-                                        current_action_dict["cpu_idx"],
-                                        current_action_dict["mem_idx"],
-                                        current_action_dict["timeout_idx"],
-                                        attempt_reward, next_state_vec, False)
+                        _buf_push(res_buffer, task_id, _syn_factor,
+                                  current_state_vec,
+                                  current_action_dict["cpu_idx"],
+                                  current_action_dict["mem_idx"],
+                                  current_action_dict["timeout_idx"],
+                                  attempt_reward, next_state_vec, False)
                     attempt_rolling["recent_success_rate"] *= 0.9
                     current_state_vec   = build_state_vec(code_features, attempt_rolling, active_scaler)
                     current_action_dict = res_agent.select_action(current_state_vec)
@@ -417,11 +445,12 @@ def main():
                     next_rolling    = update_rolling(attempt_rolling, exec_result)
                     next_state_vec  = build_state_vec(code_features, next_rolling, active_scaler)
                     if args.agent != "ppo":
-                        res_buffer.push(current_state_vec,
-                                        current_action_dict["cpu_idx"],
-                                        current_action_dict["mem_idx"],
-                                        current_action_dict["timeout_idx"],
-                                        attempt_reward, next_state_vec, False)
+                        _buf_push(res_buffer, task_id, _syn_factor,
+                                  current_state_vec,
+                                  current_action_dict["cpu_idx"],
+                                  current_action_dict["mem_idx"],
+                                  current_action_dict["timeout_idx"],
+                                  attempt_reward, next_state_vec, False)
                     attempt_rolling["recent_mean_mem_used"] *= 1.2
                     current_state_vec   = build_state_vec(code_features, attempt_rolling, active_scaler)
                     current_action_dict = res_agent.select_action(current_state_vec)
@@ -472,11 +501,12 @@ def main():
                 if res_agent.ready_to_update():
                     res_agent.update()
             else:
-                res_buffer.push(current_state_vec,
-                                current_action_dict["cpu_idx"],
-                                current_action_dict["mem_idx"],
-                                current_action_dict["timeout_idx"],
-                                res_reward, next_state_vec, True)
+                _buf_push(res_buffer, task_id, _syn_factor,
+                          current_state_vec,
+                          current_action_dict["cpu_idx"],
+                          current_action_dict["mem_idx"],
+                          current_action_dict["timeout_idx"],
+                          res_reward, next_state_vec, True)
                 if res_buffer.is_ready(max(_agent_cfg["warmup"], _agent_cfg["batch_size"])):
                     res_agent.update(res_buffer.sample(_agent_cfg["batch_size"]))
                     if args.agent in ("shared", "factored") and ep > 500 and ep % 10 == 0:
@@ -524,8 +554,8 @@ def main():
         transition = {
             "episode":    ep,
             "task_id":    task_id,
-            "cf_rating":  problem["cf_rating"],
-            "cf_tags":    problem["cf_tags"],
+            "cf_rating":  problem.get("cf_rating"),
+            "cf_tags":    problem.get("cf_tags"),
             "llm_tier":   llm_tier,
             "llm_model":  llm_model,
             "bucket":     bandit.get_bucket(problem),
@@ -555,7 +585,7 @@ def main():
             correct = "✓" if tp is True else ("✗" if tp is False else "?")
             sign    = "+" if res_reward >= 0 else ""
             print(
-                f"ep {ep+1:04d} | {task_id} cf={problem['cf_rating']} | tier={llm_tier}({llm_model}) | "
+                f"ep {ep+1:04d} | {task_id} cf={problem.get('cf_rating','?')} | tier={llm_tier}({llm_model}) | "
                 f"cpu={final_action['cpu_millicores']}mc mem={final_action['memory_mb']}MB "
                 f"t={final_action['timeout_ms']//1000}s | "
                 f"exit={final_exec.get('exit_code')} wall={final_exec.get('wall_time_ms')}ms "

@@ -947,6 +947,489 @@
       "time_limit": 2,
       "eval_category": "hard",
       "test_case_generator": "import random\nrandom.seed(42)\nt = 100\nprint(t)\nfor _ in range(t):\n    # ref iterates O(n) per case; use small odd n to avoid TLE\n    n = random.randrange(3, 1000, 2)\n    print(n)\n"
+    },
+    {
+      "task_id": "synth_ba_clist_mb128_s14",
+      "description": "Allocate n_mb megabytes and print byte count modulo 1000000007. Input: one integer n_mb.",
+      "ref_solution": "import sys\nn_mb = int(sys.stdin.readline())\n_sig = [[] for _ in range(min(n_mb, 1))]\ndata = bytearray(n_mb * 1024 * 1024)\nprint(len(data) % 1000000007)\n",
+      "stdin": "128\n",
+      "expected": "134217728\n",
+      "cf_rating": null,
+      "cf_tags": [
+        "synthetic",
+        "high_memory"
+      ],
+      "time_limit": 5000,
+      "eval_category": "synthetic_highmem",
+      "test_case_generator": "print(128)\n",
+      "_measured_rss_mb": 137.3
+    },
+    {
+      "task_id": "synth_ba_clist_mb150_s14",
+      "description": "Allocate n_mb megabytes and print byte count modulo 1000000007. Input: one integer n_mb.",
+      "ref_solution": "import sys\nn_mb = int(sys.stdin.readline())\n_sig = [[] for _ in range(min(n_mb, 1))]\ndata = bytearray(n_mb * 1024 * 1024)\nprint(len(data) % 1000000007)\n",
+      "stdin": "150\n",
+      "expected": "157286400\n",
+      "cf_rating": null,
+      "cf_tags": [
+        "synthetic",
+        "high_memory"
+      ],
+      "time_limit": 5000,
+      "eval_category": "synthetic_highmem",
+      "test_case_generator": "print(150)\n",
+      "_measured_rss_mb": 159.3
+    },
+    {
+      "task_id": "synth_ba_clist_mb192_s14",
+      "description": "Allocate n_mb megabytes and print byte count modulo 1000000007. Input: one integer n_mb.",
+      "ref_solution": "import sys\nn_mb = int(sys.stdin.readline())\n_sig = [[] for _ in range(min(n_mb, 1))]\ndata = bytearray(n_mb * 1024 * 1024)\nprint(len(data) % 1000000007)\n",
+      "stdin": "192\n",
+      "expected": "201326592\n",
+      "cf_rating": null,
+      "cf_tags": [
+        "synthetic",
+        "high_memory"
+      ],
+      "time_limit": 5000,
+      "eval_category": "synthetic_highmem",
+      "test_case_generator": "print(192)\n",
+      "_measured_rss_mb": 201.3
+    },
+    {
+      "task_id": "synth_ba_clist_mb224_s14",
+      "description": "Allocate n_mb megabytes and print byte count modulo 1000000007. Input: one integer n_mb.",
+      "ref_solution": "import sys\nn_mb = int(sys.stdin.readline())\n_sig = [[] for _ in range(min(n_mb, 1))]\ndata = bytearray(n_mb * 1024 * 1024)\nprint(len(data) % 1000000007)\n",
+      "stdin": "224\n",
+      "expected": "234881024\n",
+      "cf_rating": null,
+      "cf_tags": [
+        "synthetic",
+        "high_memory"
+      ],
+      "time_limit": 5000,
+      "eval_category": "synthetic_highmem",
+      "test_case_generator": "print(224)\n",
+      "_measured_rss_mb": 233.3
+    },
+    {
+      "task_id": "synth_ba_amult_mb128_s14",
+      "description": "Allocate n_mb megabytes using a byte array and print total byte count modulo 1000000007. Input: one integer n_mb.",
+      "ref_solution": "import sys\nn_mb = int(sys.stdin.readline())\n_sig = [0] * min(n_mb, 1)\ndata = bytearray(n_mb * 1024 * 1024)\nprint(len(data) % 1000000007)\n",
+      "stdin": "128\n",
+      "expected": "134217728\n",
+      "cf_rating": null,
+      "cf_tags": [
+        "synthetic",
+        "high_memory"
+      ],
+      "time_limit": 5000,
+      "eval_category": "synthetic_highmem",
+      "test_case_generator": "print(128)\n",
+      "_measured_rss_mb": 137.5
+    },
+    {
+      "task_id": "synth_ba_amult_mb150_s14",
+      "description": "Allocate n_mb megabytes using a byte array and print total byte count modulo 1000000007. Input: one integer n_mb.",
+      "ref_solution": "import sys\nn_mb = int(sys.stdin.readline())\n_sig = [0] * min(n_mb, 1)\ndata = bytearray(n_mb * 1024 * 1024)\nprint(len(data) % 1000000007)\n",
+      "stdin": "150\n",
+      "expected": "157286400\n",
+      "cf_rating": null,
+      "cf_tags": [
+        "synthetic",
+        "high_memory"
+      ],
+      "time_limit": 5000,
+      "eval_category": "synthetic_highmem",
+      "test_case_generator": "print(150)\n",
+      "_measured_rss_mb": 159.3
+    },
+    {
+      "task_id": "synth_ba_amult_mb192_s14",
+      "description": "Allocate n_mb megabytes using a byte array and print total byte count modulo 1000000007. Input: one integer n_mb.",
+      "ref_solution": "import sys\nn_mb = int(sys.stdin.readline())\n_sig = [0] * min(n_mb, 1)\ndata = bytearray(n_mb * 1024 * 1024)\nprint(len(data) % 1000000007)\n",
+      "stdin": "192\n",
+      "expected": "201326592\n",
+      "cf_rating": null,
+      "cf_tags": [
+        "synthetic",
+        "high_memory"
+      ],
+      "time_limit": 5000,
+      "eval_category": "synthetic_highmem",
+      "test_case_generator": "print(192)\n",
+      "_measured_rss_mb": 201.3
+    },
+    {
+      "task_id": "synth_ba_amult_mb224_s14",
+      "description": "Allocate n_mb megabytes using a byte array and print total byte count modulo 1000000007. Input: one integer n_mb.",
+      "ref_solution": "import sys\nn_mb = int(sys.stdin.readline())\n_sig = [0] * min(n_mb, 1)\ndata = bytearray(n_mb * 1024 * 1024)\nprint(len(data) % 1000000007)\n",
+      "stdin": "224\n",
+      "expected": "234881024\n",
+      "cf_rating": null,
+      "cf_tags": [
+        "synthetic",
+        "high_memory"
+      ],
+      "time_limit": 5000,
+      "eval_category": "synthetic_highmem",
+      "test_case_generator": "print(224)\n",
+      "_measured_rss_mb": 233.3
+    },
+    {
+      "task_id": "synth_ba_clist_mb128_s15",
+      "description": "Allocate n_mb megabytes and print byte count modulo 1000000007. Input: one integer n_mb.",
+      "ref_solution": "import sys\nn_mb = int(sys.stdin.readline())\n_sig = [[] for _ in range(min(n_mb, 1))]\ndata = bytearray(n_mb * 1024 * 1024)\nprint(len(data) % 1000000007)\n",
+      "stdin": "128\n",
+      "expected": "134217728\n",
+      "cf_rating": null,
+      "cf_tags": [
+        "synthetic",
+        "high_memory"
+      ],
+      "time_limit": 5000,
+      "eval_category": "synthetic_highmem",
+      "test_case_generator": "print(128)\n",
+      "_measured_rss_mb": 137.3
+    },
+    {
+      "task_id": "synth_ba_clist_mb150_s15",
+      "description": "Allocate n_mb megabytes and print byte count modulo 1000000007. Input: one integer n_mb.",
+      "ref_solution": "import sys\nn_mb = int(sys.stdin.readline())\n_sig = [[] for _ in range(min(n_mb, 1))]\ndata = bytearray(n_mb * 1024 * 1024)\nprint(len(data) % 1000000007)\n",
+      "stdin": "150\n",
+      "expected": "157286400\n",
+      "cf_rating": null,
+      "cf_tags": [
+        "synthetic",
+        "high_memory"
+      ],
+      "time_limit": 5000,
+      "eval_category": "synthetic_highmem",
+      "test_case_generator": "print(150)\n",
+      "_measured_rss_mb": 159.3
+    },
+    {
+      "task_id": "cc_1436_A. Reorder",
+      "description": "For a given array a consisting of n integers and a given integer m find if it is possible to reorder elements of the array a in such a way that \u2211_{i=1}^{n}{\u2211_{j=i}^{n}{(a_j)/(j)}} equals m? It is forbidden to delete elements as well as insert new elements. Please note that no rounding occurs during division, for example, 5/2=2.5.\n\nInput\n\nThe first line contains a single integer t \u2014 the number of test cases (1 \u2264 t \u2264 100). The test cases follow, each in two lines.\n\nThe first line of a test case contains two integers n and m (1 \u2264 n \u2264 100, 0 \u2264 m \u2264 10^6). The second line contains integers a_1, a_2, \u2026, a_n (0 \u2264 a_i \u2264 10^6) \u2014 the elements of the array.\n\nOutput\n\nFor each test case print \"YES\", if it is possible to reorder the elements of the array in such a way that the given formula gives the given value, and \"NO\" otherwise.\n\nExample\n\nInput\n\n\n2\n3 8\n2 5 1\n4 4\n0 1 2 3\n\n\nOutput\n\n\nYES\nNO\n\nNote\n\nIn the first test case one of the reorders could be [1, 2, 5]. The sum is equal to (1/1 + 2/2 + 5/3) + (2/2 + 5/3) + (5/3) = 8. The brackets denote the inner sum \u2211_{j=i}^{n}{(a_j)/(j)}, while the summation of brackets corresponds to the sum over i.",
+      "ref_solution": "#import numpy as np\n#import collections\n#import sys\n# =============================================================================\n#def get_primeFactor(n):\n#    res=[1]\n#    x=2\n#    while x*x<=n:\n#        while n%x==0:\n#            res.append(x)\n#            n//=x\n#        x+=1\n#    if n>1:res.append(n)\n#    return res\n#\n#def getFactor(n):\n#    res={1,n}\n#    x=2\n#    while x*x<=n:\n#        if n%x==0:\n#            res.add(x)\n#            res.add(n//x)\n#        x+=1\n#    return res\n\n#for _ in range(int(input())):\n#     r,b,g,w=tuple(map(int,input().split()))\n#     f=tuple(filter(lambda x:x%2!=0,(r,b,g,w)))\n#     if len(f)<=1 or len(f)==4:print(\"Yes\")\n#     elif len(f)==2:print(\"No\")\n#     else:\n#         if w%2==0:print(\"Yes\")\n#         elif all(t!=0 for t in (r,b,g) ):print(\"Yes\")\n#         else :print(\"No\")\n#         \n         \nfor _ in range(int(input())):\n    n,m=map(int,input().split())\n    ar=map(int,input().split())\n    total=sum(ar)\n    if total != m:print(\"NO\")\n    else: print(\"YES\")\n\n\n",
+      "stdin": "5\n4 10\n5 5 5 5\n3 5\n5 5 5\n3 4\n10 1 1\n4 5\n5 5 1 5\n5 5\n5 5 5 10 5\n",
+      "expected": "NO\nNO\nNO\nNO\nNO\n",
+      "cf_rating": 800,
+      "cf_tags": [
+        "math"
+      ],
+      "time_limit": 1,
+      "test_case_generator": "import random\nrandom.seed(42)\nprint(1)\nprint(100, 100)\nprint(*[random.randint(1, 10**9) for _ in range(100)])\n",
+      "eval_category": "easy"
+    },
+    {
+      "task_id": "cc_964_A. Splits",
+      "description": "Let's define a split of n as a nonincreasing sequence of positive integers, the sum of which is n. \n\nFor example, the following sequences are splits of 8: [4, 4], [3, 3, 2], [2, 2, 1, 1, 1, 1], [5, 2, 1].\n\nThe following sequences aren't splits of 8: [1, 7], [5, 4], [11, -3], [1, 1, 4, 1, 1].\n\nThe weight of a split is the number of elements in the split that are equal to the first element. For example, the weight of the split [1, 1, 1, 1, 1] is 5, the weight of the split [5, 5, 3, 3, 3] is 2 and the weight of the split [9] equals 1.\n\nFor a given n, find out the number of different weights of its splits.\n\nInput\n\nThe first line contains one integer n (1 \u2264 n \u2264 10^9).\n\nOutput\n\nOutput one integer \u2014 the answer to the problem.\n\nExamples\n\nInput\n\n7\n\n\nOutput\n\n4\n\n\nInput\n\n8\n\n\nOutput\n\n5\n\n\nInput\n\n9\n\n\nOutput\n\n5\n\nNote\n\nIn the first sample, there are following possible weights of splits of 7:\n\nWeight 1: [\\textbf 7] \n\nWeight 2: [\\textbf 3, \\textbf 3, 1] \n\nWeight 3: [\\textbf 2, \\textbf 2, \\textbf 2, 1] \n\nWeight 7: [\\textbf 1, \\textbf 1, \\textbf 1, \\textbf 1, \\textbf 1, \\textbf 1, \\textbf 1]",
+      "ref_solution": "from collections import deque\nimport math\nimport os\nimport random\nimport re\nimport sys\n#n=list(map(int, input().split()))\n#n=map(int, input().split())\n\ndef main():\n\tn=int(input())\n\tans=n//2+1\n\tprint(ans)\nmain()\n",
+      "stdin": "1223796969\n",
+      "expected": "611898485\n",
+      "cf_rating": 800,
+      "cf_tags": [
+        "math"
+      ],
+      "memory_limit_bytes": 256000000,
+      "max_n": 1000000000,
+      "test_case_generator": "print(1000000000)\n",
+      "eval_category": "easy",
+      "time_limit": 2000
+    },
+    {
+      "task_id": "cc_478_A. Initial Bet",
+      "description": "There are five people playing a game called \"Generosity\". Each person gives some non-zero number of coins b as an initial bet. After all players make their bets of b coins, the following operation is repeated for several times: a coin is passed from one player to some other player.\n\nYour task is to write a program that can, given the number of coins each player has at the end of the game, determine the size b of the initial bet or find out that such outcome of the game cannot be obtained for any positive number of coins b in the initial bet.\n\nInput\n\nThe input consists of a single line containing five integers c1, c2, c3, c4 and c5 \u2014 the number of coins that the first, second, third, fourth and fifth players respectively have at the end of the game (0 \u2264 c1, c2, c3, c4, c5 \u2264 100).\n\nOutput\n\nPrint the only line containing a single positive integer b \u2014 the number of coins in the initial bet of each player. If there is no such value of b, then print the only value \"-1\" (quotes for clarity).\n\nExamples\n\nInput\n\n2 5 4 0 4\n\n\nOutput\n\n3\n\n\nInput\n\n4 5 9 2 1\n\n\nOutput\n\n-1\n\nNote\n\nIn the first sample the following sequence of operations is possible:\n\n  1. One coin is passed from the fourth player to the second player; \n  2. One coin is passed from the fourth player to the fifth player; \n  3. One coin is passed from the first player to the third player; \n  4. One coin is passed from the fourth player to the second player. ",
+      "ref_solution": "l=list(map(int,input().split()))\nx=sum(l)\nif(x%5==0 and x!=0):\n    print(int(x/5))\nelse:\n    print(-1)\n",
+      "stdin": "180 100 100 100 100\n",
+      "expected": "116\n",
+      "cf_rating": 1100,
+      "cf_tags": [
+        "implementation"
+      ],
+      "test_case_generator": "import random\nvals = [random.randint(1, 200) for _ in range(5)]\nprint(*vals)\n",
+      "eval_category": "easy",
+      "time_limit": 2000
+    },
+    {
+      "task_id": "cc_513_A. Game",
+      "description": "Two players play a simple game. Each player is provided with a box with balls. First player's box contains exactly n1 balls and second player's box contains exactly n2 balls. In one move first player can take from 1 to k1 balls from his box and throw them away. Similarly, the second player can take from 1 to k2 balls from his box in his move. Players alternate turns and the first player starts the game. The one who can't make a move loses. Your task is to determine who wins if both players play optimally.\n\nInput\n\nThe first line contains four integers n1, n2, k1, k2. All numbers in the input are from 1 to 50.\n\nThis problem doesn't have subproblems. You will get 3 points for the correct submission.\n\nOutput\n\nOutput \"First\" if the first player wins and \"Second\" otherwise.\n\nExamples\n\nInput\n\n2 2 1 2\n\n\nOutput\n\nSecond\n\n\nInput\n\n2 1 1 1\n\n\nOutput\n\nFirst\n\nNote\n\nConsider the first sample test. Each player has a box with 2 balls. The first player draws a single ball from his box in one move and the second player can either take 1 or 2 balls from his box in one move. No matter how the first player acts, the second player can always win if he plays wisely.",
+      "ref_solution": "n1 , n2 , k1 , k2 = map(int , (input().split(\" \")))\nif n1 <= n2:\n    print('Second')\nelse:\n    print('First')",
+      "stdin": "115 50 87 41\n",
+      "expected": "First\n",
+      "cf_rating": 800,
+      "cf_tags": [
+        "constructive algorithms",
+        "math"
+      ],
+      "time_limit": 2,
+      "test_case_generator": "import random\nrandom.seed(42)\nprint(*[random.randint(1, 10**9) for _ in range(4)])\n",
+      "eval_category": "easy"
+    },
+    {
+      "task_id": "cc_870_A. Search for Pretty Integers",
+      "description": "You are given two lists of non-zero digits.\n\nLet's call an integer pretty if its (base 10) representation has at least one digit from the first list and at least one digit from the second list. What is the smallest positive pretty integer?\n\nInput\n\nThe first line contains two integers n and m (1 \u2264 n, m \u2264 9) \u2014 the lengths of the first and the second lists, respectively.\n\nThe second line contains n distinct digits a1, a2, ..., an (1 \u2264 ai \u2264 9) \u2014 the elements of the first list.\n\nThe third line contains m distinct digits b1, b2, ..., bm (1 \u2264 bi \u2264 9) \u2014 the elements of the second list.\n\nOutput\n\nPrint the smallest pretty integer.\n\nExamples\n\nInput\n\n2 3\n4 2\n5 7 6\n\n\nOutput\n\n25\n\n\nInput\n\n8 8\n1 2 3 4 5 6 7 8\n8 7 6 5 4 3 2 1\n\n\nOutput\n\n1\n\nNote\n\nIn the first example 25, 46, 24567 are pretty, as well as many other integers. The smallest among them is 25. 42 and 24 are not pretty because they don't have digits from the second list.\n\nIn the second example all integers that have at least one digit different from 9 are pretty. It's obvious that the smallest among them is 1, because it's the smallest positive integer.",
+      "ref_solution": "a,b=map(int,input().split())\ns=input().split()\nx=list(map(int,s))\ns=input().split()\ny=list(map(int,s))\no=10\nfor i in range(a):\n    for j in range(b):\n        if x[i]==y[j]:\n            if x[i]<o:\n                o=x[i]\nx1=min(x)\ny1=min(y)\nif o<10:\n    print(o)\nelse:\n    print(min(y1,x1)*10+max(x1,y1))\n",
+      "stdin": "9 9\n9 8 7 6 5 4 3 2 1\n9 8 7 6 5 4 5 2 1\n",
+      "expected": "1\n",
+      "cf_rating": 900,
+      "cf_tags": [
+        "brute force",
+        "implementation"
+      ],
+      "time_limit": 1,
+      "test_case_generator": "import random\nrandom.seed(42)\nn, m = 9, 9\na = random.sample(range(1, 100), n)\nb = random.sample(range(1, 100), m)\nprint(n, m)\nprint(*a)\nprint(*b)\n",
+      "eval_category": "easy"
+    },
+    {
+      "task_id": "cc_1152_A. Neko Finds Grapes",
+      "description": "On a random day, Neko found n treasure chests and m keys. The i-th chest has an integer a_i written on it and the j-th key has an integer b_j on it. Neko knows those chests contain the powerful mysterious green Grapes, thus Neko wants to open as many treasure chests as possible.\n\nThe j-th key can be used to unlock the i-th chest if and only if the sum of the key number and the chest number is an odd number. Formally, a_i + b_j \u2261 1 \\pmod{2}. One key can be used to open at most one chest, and one chest can be opened at most once.\n\nFind the maximum number of chests Neko can open.\n\nInput\n\nThe first line contains integers n and m (1 \u2264 n, m \u2264 10^5) \u2014 the number of chests and the number of keys.\n\nThe second line contains n integers a_1, a_2, \u2026, a_n (1 \u2264 a_i \u2264 10^9) \u2014 the numbers written on the treasure chests.\n\nThe third line contains m integers b_1, b_2, \u2026, b_m (1 \u2264 b_i \u2264 10^9) \u2014 the numbers written on the keys.\n\nOutput\n\nPrint the maximum number of chests you can open.\n\nExamples\n\nInput\n\n\n5 4\n9 14 6 2 11\n8 4 7 20\n\n\nOutput\n\n\n3\n\nInput\n\n\n5 1\n2 4 6 8 10\n5\n\n\nOutput\n\n\n1\n\nInput\n\n\n1 4\n10\n20 30 40 50\n\n\nOutput\n\n\n0\n\nNote\n\nIn the first example, one possible way to unlock 3 chests is as follows:\n\n  * Use first key to unlock the fifth chest, \n  * Use third key to unlock the second chest, \n  * Use fourth key to unlock the first chest. \n\n\n\nIn the second example, you can use the only key to unlock any single chest (note that one key can't be used twice).\n\nIn the third example, no key can unlock the given chest.",
+      "ref_solution": "n, m = map(int, input().split())\na = list(map(int, input().split()))\nb = list(map(int, input().split()))\naeven = 0\naodd = 0\nbeven = 0\nbodd = 0\nfor i in range(n):\n    if a[i] % 2 == 0:\n        aeven += 1\n    else:\n        aodd += 1\n\nfor i in range(m):\n    if b[i] % 2 == 0:\n        beven += 1\n    else:\n        bodd += 1\n\nprint(min(aeven, bodd)+min(aodd, beven))\n",
+      "stdin": "10 10\n522312461 931001459 598654597 488228616 544064902 21923894 329635457 980089248 418220408 654502493\n967529230 543358150 835120075 128123793 809901567 613170206 152157661 479980560 859252956 318029856\n",
+      "expected": "9\n",
+      "cf_rating": 800,
+      "cf_tags": [
+        "greedy",
+        "implementation",
+        "math"
+      ],
+      "time_limit": 2,
+      "test_case_generator": "import random\nrandom.seed(42)\nn = m = 50000\nprint(n, m)\nprint(*sorted(random.sample(range(1, 10**9), n)))\nprint(*sorted(random.sample(range(1, 10**9), m)))\n",
+      "eval_category": "easy"
+    },
+    {
+      "task_id": "cc_939_B. Hamster Farm",
+      "description": "Dima has a hamsters farm. Soon N hamsters will grow up on it and Dima will sell them in a city nearby.\n\nHamsters should be transported in boxes. If some box is not completely full, the hamsters in it are bored, that's why each box should be completely full with hamsters.\n\nDima can buy boxes at a factory. The factory produces boxes of K kinds, boxes of the i-th kind can contain in themselves ai hamsters. Dima can buy any amount of boxes, but he should buy boxes of only one kind to get a wholesale discount.\n\nOf course, Dima would buy boxes in such a way that each box can be completely filled with hamsters and transported to the city. If there is no place for some hamsters, Dima will leave them on the farm.\n\nFind out how many boxes and of which type should Dima buy to transport maximum number of hamsters.\n\nInput\n\nThe first line contains two integers N and K (0 \u2264 N \u2264 1018, 1 \u2264 K \u2264 105) \u2014 the number of hamsters that will grow up on Dima's farm and the number of types of boxes that the factory produces.\n\nThe second line contains K integers a1, a2, ..., aK (1 \u2264 ai \u2264 1018 for all i) \u2014 the capacities of boxes.\n\nOutput\n\nOutput two integers: the type of boxes that Dima should buy and the number of boxes of that type Dima should buy. Types of boxes are numbered from 1 to K in the order they are given in input.\n\nIf there are many correct answers, output any of them.\n\nExamples\n\nInput\n\n19 3\n5 4 10\n\n\nOutput\n\n2 4\n\n\nInput\n\n28 3\n5 6 30\n\n\nOutput\n\n1 5",
+      "ref_solution": "# -*- coding: utf-8 -*-\n\"\"\"\nCreated on Fri Mar  2 22:09:34 2018\n\n@author: Xiaohua\n\"\"\"\n\ndef Hamster(amounts,boxsize):\n    \n    \n    a=10000000000000000000\n    result=[0,0]\n    for i in range(0,len(boxsize)):\n        if(amounts[0]%boxsize[i]<a):\n            a=amounts[0]%boxsize[i]\n            result[0]=i+1\n            result[1]=int(amounts[0]//boxsize[i])\n            \n    return  (str(result[0])+\" \"+str(result[1])  )     \n       \ndef hello():\n    \"\"\"Print \"Hello World\" and return None\"\"\"\n    amounts = list(map(int, input().strip().split(' ')))\n    boxsize = list(map(int, input().strip().split(' ')))\n    \n    result=Hamster(amounts,boxsize)\n    print(result)\n# main program starts here\nhello()",
+      "stdin": "1801273336 50\n977141206 956777871 186433588 538218068 759102378 327484438 88827268 266300062 670616672 756092978 414181331 913675814 898008516 343057716 99416265 236586817 52751842 550467703 684435578 844649988 1198590358 550467703 493542638 33869647 414181331 198095018 913675814 99416265 550467703 679553907 186433588 355713982 670616672 977141206 504598561 327484438 414181331 381743484 546229641 132582931 463431413 759102378 273063720 683939057 924604119 759102378 463431413 52751842 552131077 903126340\n",
+      "expected": "13 2\n",
+      "cf_rating": 1000,
+      "cf_tags": [
+        "implementation"
+      ],
+      "test_case_generator": "import random\nrandom.seed(42)\nN = 10**9\nK = 50\nprint(N, K)\nvals = [random.randint(1, 10**9) for _ in range(K)]\nprint(*vals)\n",
+      "eval_category": "easy",
+      "time_limit": 2000
+    },
+    {
+      "task_id": "cc_633_A. Ebony and Ivory",
+      "description": "Dante is engaged in a fight with \"The Savior\". Before he can fight it with his sword, he needs to break its shields. He has two guns, Ebony and Ivory, each of them is able to perform any non-negative number of shots.\n\nFor every bullet that hits the shield, Ebony deals a units of damage while Ivory deals b units of damage. In order to break the shield Dante has to deal exactly c units of damage. Find out if this is possible.\n\nInput\n\nThe first line of the input contains three integers a, b, c (1 \u2264 a, b \u2264 100, 1 \u2264 c \u2264 10 000) \u2014 the number of units of damage dealt by Ebony gun and Ivory gun, and the total number of damage required to break the shield, respectively.\n\nOutput\n\nPrint \"Yes\" (without quotes) if Dante can deal exactly c damage to the shield and \"No\" (without quotes) otherwise.\n\nExamples\n\nInput\n\n4 6 15\n\n\nOutput\n\nNo\n\n\nInput\n\n3 2 7\n\n\nOutput\n\nYes\n\n\nInput\n\n6 11 6\n\n\nOutput\n\nYes\n\nNote\n\nIn the second sample, Dante can fire 1 bullet from Ebony and 2 from Ivory to deal exactly 1\u00b73 + 2\u00b72 = 7 damage. In the third sample, Dante can fire 1 bullet from ebony and no bullets from ivory to do 1\u00b76 + 0\u00b711 = 6 damage. ",
+      "ref_solution": "a, b, c = map(int, input().split())\nh = 0\nif c % a == 0:\n    k = c // a\nelse:\n    k = c // a + 1\nif c % b == 0:\n    m = c // b\nelse:\n    m = c // b + 1\nif c - a*k < 0 and c - b*m < 0 and ((c < 2 * a) and c < 2*b):\n    print('No')\nelse:\n    for i in range(k+1):\n        if (c - a*i) % b == 0 and (h == 0):\n            print('Yes')\n            h = 1\n    if h == 0:\n        print('No')\n",
+      "stdin": "154 84 4923\n",
+      "expected": "No\n",
+      "cf_rating": 1100,
+      "cf_tags": [
+        "brute force",
+        "math",
+        "number theory"
+      ],
+      "test_case_generator": "import random\na = random.randint(1, 1000)\nb = random.randint(1, 1000)\nc = random.randint(1, 10000)\nprint(a, b, c)\n",
+      "eval_category": "easy",
+      "time_limit": 2000
+    },
+    {
+      "task_id": "cc_1042_A. Benches",
+      "description": "There are n benches in the Berland Central park. It is known that a_i people are currently sitting on the i-th bench. Another m people are coming to the park and each of them is going to have a seat on some bench out of n available.\n\nLet k be the maximum number of people sitting on one bench after additional m people came to the park. Calculate the minimum possible k and the maximum possible k.\n\nNobody leaves the taken seat during the whole process.\n\nInput\n\nThe first line contains a single integer n (1 \u2264 n \u2264 100) \u2014 the number of benches in the park.\n\nThe second line contains a single integer m (1 \u2264 m \u2264 10 000) \u2014 the number of people additionally coming to the park.\n\nEach of the next n lines contains a single integer a_i (1 \u2264 a_i \u2264 100) \u2014 the initial number of people on the i-th bench.\n\nOutput\n\nPrint the minimum possible k and the maximum possible k, where k is the maximum number of people sitting on one bench after additional m people came to the park.\n\nExamples\n\nInput\n\n4\n6\n1\n1\n1\n1\n\n\nOutput\n\n3 7\n\n\nInput\n\n1\n10\n5\n\n\nOutput\n\n15 15\n\n\nInput\n\n3\n6\n1\n6\n5\n\n\nOutput\n\n6 12\n\n\nInput\n\n3\n7\n1\n6\n5\n\n\nOutput\n\n7 13\n\nNote\n\nIn the first example, each of four benches is occupied by a single person. The minimum k is 3. For example, it is possible to achieve if two newcomers occupy the first bench, one occupies the second bench, one occupies the third bench, and two remaining \u2014 the fourth bench. The maximum k is 7. That requires all six new people to occupy the same bench.\n\nThe second example has its minimum k equal to 15 and maximum k equal to 15, as there is just a single bench in the park and all 10 people will occupy it.",
+      "ref_solution": "import math\nn=int(input())\nm=int(input())\na=[]\nfor i in range(n):\n\ta.append(int(input()))\nmaxa=max(a)+m\nmina=max(max(a),math.ceil((sum(a)+m)/n))\nprint(str(mina)+\" \"+str(maxa))\n",
+      "stdin": "100\n3241\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n101\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n100\n",
+      "expected": "133 3342\n",
+      "cf_rating": 1100,
+      "cf_tags": [
+        "binary search",
+        "implementation"
+      ],
+      "time_limit": 1,
+      "test_case_generator": "",
+      "eval_category": "easy"
+    },
+    {
+      "task_id": "cc_1278_A. Shuffle Hashing",
+      "description": "Polycarp has built his own web service. Being a modern web service it includes login feature. And that always implies password security problems.\n\nPolycarp decided to store the hash of the password, generated by the following algorithm:\n\n  1. take the password p, consisting of lowercase Latin letters, and shuffle the letters randomly in it to obtain p' (p' can still be equal to p); \n  2. generate two random strings, consisting of lowercase Latin letters, s_1 and s_2 (any of these strings can be empty); \n  3. the resulting hash h = s_1 + p' + s_2, where addition is string concatenation. \n\n\n\nFor example, let the password p = \"abacaba\". Then p' can be equal to \"aabcaab\". Random strings s1 = \"zyx\" and s2 = \"kjh\". Then h = \"zyxaabcaabkjh\".\n\nNote that no letters could be deleted or added to p to obtain p', only the order could be changed.\n\nNow Polycarp asks you to help him to implement the password check module. Given the password p and the hash h, check that h can be the hash for the password p.\n\nYour program should answer t independent test cases.\n\nInput\n\nThe first line contains one integer t (1 \u2264 t \u2264 100) \u2014 the number of test cases.\n\nThe first line of each test case contains a non-empty string p, consisting of lowercase Latin letters. The length of p does not exceed 100.\n\nThe second line of each test case contains a non-empty string h, consisting of lowercase Latin letters. The length of h does not exceed 100.\n\nOutput\n\nFor each test case print the answer to it \u2014 \"YES\" if the given hash h could be obtained from the given password p or \"NO\" otherwise.\n\nExample\n\nInput\n\n\n5\nabacaba\nzyxaabcaabkjh\nonetwothree\nthreetwoone\none\nzzonneyy\none\nnone\ntwenty\nten\n\n\nOutput\n\n\nYES\nYES\nNO\nYES\nNO\n\nNote\n\nThe first test case is explained in the statement.\n\nIn the second test case both s_1 and s_2 are empty and p'= \"threetwoone\" is p shuffled.\n\nIn the third test case the hash could not be obtained from the password.\n\nIn the fourth test case s_1= \"n\", s_2 is empty and p'= \"one\" is p shuffled (even thought it stayed the same). \n\nIn the fifth test case the hash could not be obtained from the password.",
+      "ref_solution": "t = int(input())\nfor _ in range(t):\n\ts = input()\n\tt = input()\n\tok = False\n\ts = ''.join(sorted(s))\n\tfor i in range(len(t) - len(s) + 1):\n\t\ttemp = ''.join(sorted(t[i:i+len(s)]))\n\t\tif temp == s:\n\t\t\tok = True\n\t\t\tbreak\n\tif ok:\n\t\tprint(\"YES\")\n\telse:\n\t\tprint(\"NO\")\n\n",
+      "stdin": "5\nabacaba\nzyxaabcaabkjh\nonetwothree\nthreetwoone\none\nzzonneyy\neno\nnone\ntwenty\nten\n",
+      "expected": "YES\nYES\nNO\nYES\nNO\n",
+      "cf_rating": 1000,
+      "cf_tags": [
+        "brute force",
+        "implementation",
+        "strings"
+      ],
+      "time_limit": 2,
+      "test_case_generator": "",
+      "eval_category": "easy"
+    },
+    {
+      "task_id": "cc_959_E. Mahmoud and Ehab and the xor-MST",
+      "description": "Ehab is interested in the bitwise-xor operation and the special graphs. Mahmoud gave him a problem that combines both. He has a complete graph consisting of n vertices numbered from 0 to n - 1. For all 0 \u2264 u < v < n, vertex u and vertex v are connected with an undirected edge that has weight <image> (where <image> is the [bitwise-xor operation](https://en.wikipedia.org/wiki/Bitwise_operation#XOR)). Can you find the weight of the minimum spanning tree of that graph?\n\nYou can read about complete graphs in <https://en.wikipedia.org/wiki/Complete_graph>\n\nYou can read about the minimum spanning tree in <https://en.wikipedia.org/wiki/Minimum_spanning_tree>\n\nThe weight of the minimum spanning tree is the sum of the weights on the edges included in it.\n\nInput\n\nThe only line contains an integer n (2 \u2264 n \u2264 1012), the number of vertices in the graph.\n\nOutput\n\nThe only line contains an integer x, the weight of the graph's minimum spanning tree.\n\nExample\n\nInput\n\n4\n\n\nOutput\n\n4\n\nNote\n\nIn the first sample: <image> The weight of the minimum spanning tree is 1+2+1=4.",
+      "ref_solution": "import math\n\nn = int(input())\n\nans = 0\ncur = 1\n\nwhile cur < n:\n    cnt = math.ceil((n-cur)/(cur << 1))\n    ans += cnt*cur\n    cur <<= 1\n\nprint(ans)\n",
+      "stdin": "1000100000000\n",
+      "expected": "20142429742080\n",
+      "cf_rating": 1900,
+      "cf_tags": [
+        "bitmasks",
+        "dp",
+        "graphs",
+        "implementation",
+        "math"
+      ],
+      "test_case_generator": "print(1012)\n",
+      "eval_category": "hard",
+      "time_limit": 2000
+    },
+    {
+      "task_id": "cc_1360_G. A/B Matrix",
+      "description": "You are given four positive integers n, m, a, b (1 \u2264 b \u2264 n \u2264 50; 1 \u2264 a \u2264 m \u2264 50). Find any such rectangular matrix of size n \u00d7 m that satisfies all of the following conditions:\n\n  * each row of the matrix contains exactly a ones; \n  * each column of the matrix contains exactly b ones; \n  * all other elements are zeros. \n\n\n\nIf the desired matrix does not exist, indicate this.\n\nFor example, for n=3, m=6, a=2, b=1, there exists a matrix satisfying the conditions above:\n\n$$$ \\begin{vmatrix} 0 & 1 & 0 & 0 & 0 & 1 \\\\\\ 1 & 0 & 0 & 1 & 0 & 0 \\\\\\ 0 & 0 & 1 & 0 & 1 & 0 \\end{vmatrix} $$$\n\nInput\n\nThe first line contains an integer t (1 \u2264 t \u2264 1000) \u2014 the number of test cases. Then t test cases follow.\n\nEach test case is described by four positive integers n, m, a, b (1 \u2264 b \u2264 n \u2264 50; 1 \u2264 a \u2264 m \u2264 50), where n and m are the sizes of the matrix, and a and b are the number of ones for rows and columns, respectively.\n\nOutput\n\nFor each test case print:\n\n  * \"YES\" (without quotes) and the required matrix (if there are several answers, print any) if it exists, or \n  * \"NO\" (without quotes) if it does not exist. \n\n\n\nTo print the matrix n \u00d7 m, print n rows, each of which consists of m numbers 0 or 1 describing a row of the matrix. Numbers must be printed without spaces.\n\nExample\n\nInput\n\n\n5\n3 6 2 1\n2 2 2 1\n2 2 2 2\n4 4 2 2\n2 1 1 2\n\n\nOutput\n\n\nYES\n010001\n100100\n001010\nNO\nYES\n11\n11\nYES\n1100\n1100\n0011\n0011\nYES\n1\n1",
+      "ref_solution": "for q in range(int(input())):\n    n, m, a, b = map(int, input().split())\n    if n*a != m*b:\n        print('NO')\n        continue\n    print('YES')\n    t = '1'*a+'0'*(m-a)\n    for i in range(n):\n        print(t)\n        t = t[m-a:]+t[:m-a]",
+      "stdin": "5\n3 10 2 1\n2 2 2 1\n2 2 2 2\n4 4 1 2\n2 1 1 2\n",
+      "expected": "NO\nNO\nYES\n11\n11\nNO\nYES\n1\n1\n",
+      "cf_rating": 1900,
+      "cf_tags": [
+        "constructive algorithms",
+        "greedy",
+        "math"
+      ],
+      "time_limit": 2,
+      "test_case_generator": "import random\nrandom.seed(42)\nt = 5\nprint(t)\nfor _ in range(t):\n    n = random.randint(2, 5)\n    m = random.randint(2, 5)\n    a = random.randint(1, m)\n    b = random.randint(1, n)\n    print(n, m, a, b)\n",
+      "eval_category": "hard"
+    },
+    {
+      "task_id": "cc_1525_D. Armchairs",
+      "description": "There are n armchairs, numbered from 1 to n from left to right. Some armchairs are occupied by people (at most one person per armchair), others are not. The number of occupied armchairs is not greater than n/2.\n\nFor some reason, you would like to tell people to move from their armchairs to some other ones. If the i-th armchair is occupied by someone and the j-th armchair is not, you can tell the person sitting in the i-th armchair to move to the j-th armchair. The time it takes a person to move from the i-th armchair to the j-th one is |i - j| minutes. You may perform this operation any number of times, but these operations must be done sequentially, i. e. you cannot tell a person to move until the person you asked to move in the last operation has finished moving to their destination armchair.\n\nYou want to achieve the following situation: every seat that was initially occupied must be free. What is the minimum time you need to do it?\n\nInput\n\nThe first line contains one integer n (2 \u2264 n \u2264 5000) \u2014 the number of armchairs.\n\nThe second line contains n integers a_1, a_2, ..., a_n (0 \u2264 a_i \u2264 1). a_i = 1 means that the i-th armchair is initially occupied, a_i = 0 means that it is initially free. The number of occupied armchairs is at most n/2.\n\nOutput\n\nPrint one integer \u2014 the minimum number of minutes you have to spend to achieve the following situation: every seat that was initially occupied must be free.\n\nExamples\n\nInput\n\n\n7\n1 0 0 1 0 0 1\n\n\nOutput\n\n\n3\n\n\nInput\n\n\n6\n1 1 1 0 0 0\n\n\nOutput\n\n\n9\n\n\nInput\n\n\n5\n0 0 0 0 0\n\n\nOutput\n\n\n0\n\nNote\n\nIn the first test, you can perform the following sequence:\n\n  1. ask a person to move from armchair 1 to armchair 2, it takes 1 minute; \n  2. ask a person to move from armchair 7 to armchair 6, it takes 1 minute; \n  3. ask a person to move from armchair 4 to armchair 5, it takes 1 minute. \n\n\n\nIn the second test, you can perform the following sequence:\n\n  1. ask a person to move from armchair 1 to armchair 4, it takes 3 minutes; \n  2. ask a person to move from armchair 2 to armchair 6, it takes 4 minutes; \n  3. ask a person to move from armchair 4 to armchair 5, it takes 1 minute; \n  4. ask a person to move from armchair 3 to armchair 4, it takes 1 minute. \n\n\n\nIn the third test, no seat is occupied so your goal is achieved instantly.",
+      "ref_solution": "import sys\ninput = sys.stdin.buffer.readline\nimport math\n\n\nn=int(input())\narr=[int(x) for x in input().split()]\n\nh=[]\nv=[]\nfor i in range(n):\n    if arr[i]:\n        v.append(i)\n    else:\n        h.append(i)\n\nhh=len(h)\nvv=len(v)\ndp=[[0 for j in range(hh+1)] for i in range(vv+1)]\n\nfor i in range(1,vv+1):\n    dp[i][0]=math.inf\n\nfor i in range(1,vv+1):\n    for j in range(1,hh+1):\n        dp[i][j]=min(dp[i-1][j-1]+abs(v[i-1]-h[j-1]),dp[i][j-1])\n\nprint(dp[vv][hh])",
+      "stdin": "100\n0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n",
+      "expected": "3\n",
+      "cf_rating": 1800,
+      "cf_tags": [
+        "dp",
+        "flows",
+        "graph matchings",
+        "greedy"
+      ],
+      "test_case_generator": "",
+      "eval_category": "hard",
+      "time_limit": 2000
+    },
+    {
+      "task_id": "cc_1451_D. Circle Game",
+      "description": "Utkarsh is forced to play yet another one of Ashish's games. The game progresses turn by turn and as usual, Ashish moves first.\n\nConsider the 2D plane. There is a token which is initially at (0,0). In one move a player must increase either the x coordinate or the y coordinate of the token by exactly k. In doing so, the player must ensure that the token stays within a (Euclidean) distance d from (0,0).\n\nIn other words, if after a move the coordinates of the token are (p,q), then p^2 + q^2 \u2264 d^2 must hold.\n\nThe game ends when a player is unable to make a move. It can be shown that the game will end in a finite number of moves. If both players play optimally, determine who will win.\n\nInput\n\nThe first line contains a single integer t (1 \u2264 t \u2264 100) \u2014 the number of test cases.\n\nThe only line of each test case contains two space separated integers d (1 \u2264 d \u2264 10^5) and k (1 \u2264 k \u2264 d).\n\nOutput\n\nFor each test case, if Ashish wins the game, print \"Ashish\", otherwise print \"Utkarsh\" (without the quotes).\n\nExample\n\nInput\n\n\n5\n2 1\n5 2\n10 3\n25 4\n15441 33\n\n\nOutput\n\n\nUtkarsh\nAshish\nUtkarsh\nUtkarsh\nAshish\n\nNote\n\nIn the first test case, one possible sequence of moves can be\n\n(0, 0) \\xrightarrow{Ashish } (0, 1) \\xrightarrow{Utkarsh } (0, 2).\n\nAshish has no moves left, so Utkarsh wins.\n\n<image>",
+      "ref_solution": "import sys \ninput = lambda:sys.stdin.readline().strip()\nt = int(input())\nwhile t:\n    t-=1\n    d,k = map(int,input().split())\n    x = 0\n    y = 0\n    while 1:\n        if x<=y and (x+k)*(x+k)+y*y<=d*d:\n            x+=k \n        elif x>y and (y+k)*(y+k)+x*x<=d*d:\n            y+=k \n        else:\n            break \n    if x==y:\n        print(\"Utkarsh\")\n    else:\n        print(\"Ashish\")\n        \n    \n                ",
+      "stdin": "5\n16 1\n2 2\n9 1\n107 19\n14195 55\n",
+      "expected": "Utkarsh\nAshish\nUtkarsh\nAshish\nUtkarsh\n",
+      "cf_rating": 1700,
+      "cf_tags": [
+        "games",
+        "geometry",
+        "math"
+      ],
+      "test_case_generator": "import random\nt = 10\nprint(t)\nfor _ in range(t):\n    d = random.randint(1, 10**9)\n    k = random.randint(1, 10**9)\n    print(d, k)\n",
+      "eval_category": "hard",
+      "time_limit": 2000
+    },
+    {
+      "task_id": "cc_1225_C. p-binary",
+      "description": "Vasya will fancy any number as long as it is an integer power of two. Petya, on the other hand, is very conservative and only likes a single integer p (which may be positive, negative, or zero). To combine their tastes, they invented p-binary numbers of the form 2^x + p, where x is a non-negative integer.\n\nFor example, some -9-binary (\"minus nine\" binary) numbers are: -8 (minus eight), 7 and 1015 (-8=2^0-9, 7=2^4-9, 1015=2^{10}-9).\n\nThe boys now use p-binary numbers to represent everything. They now face a problem: given a positive integer n, what's the smallest number of p-binary numbers (not necessarily distinct) they need to represent n as their sum? It may be possible that representation is impossible altogether. Help them solve this problem.\n\nFor example, if p=0 we can represent 7 as 2^0 + 2^1 + 2^2.\n\nAnd if p=-9 we can represent 7 as one number (2^4-9).\n\nNote that negative p-binary numbers are allowed to be in the sum (see the Notes section for an example).\n\nInput\n\nThe only line contains two integers n and p (1 \u2264 n \u2264 10^9, -1000 \u2264 p \u2264 1000).\n\nOutput\n\nIf it is impossible to represent n as the sum of any number of p-binary numbers, print a single integer -1. Otherwise, print the smallest possible number of summands.\n\nExamples\n\nInput\n\n\n24 0\n\n\nOutput\n\n\n2\n\n\nInput\n\n\n24 1\n\n\nOutput\n\n\n3\n\n\nInput\n\n\n24 -1\n\n\nOutput\n\n\n4\n\n\nInput\n\n\n4 -7\n\n\nOutput\n\n\n2\n\n\nInput\n\n\n1 1\n\n\nOutput\n\n\n-1\n\nNote\n\n0-binary numbers are just regular binary powers, thus in the first sample case we can represent 24 = (2^4 + 0) + (2^3 + 0).\n\nIn the second sample case, we can represent 24 = (2^4 + 1) + (2^2 + 1) + (2^0 + 1).\n\nIn the third sample case, we can represent 24 = (2^4 - 1) + (2^2 - 1) + (2^2 - 1) + (2^2 - 1). Note that repeated summands are allowed.\n\nIn the fourth sample case, we can represent 4 = (2^4 - 7) + (2^1 - 7). Note that the second summand is negative, which is allowed.\n\nIn the fifth sample case, no representation is possible.",
+      "ref_solution": "if __name__ == '__main__':\n    n, p = map(int, input().split())\n    aws = 1\n    while True:\n        min_number = aws * ((2**0) + p)\n        if min_number > n:\n            aws = -1\n            break\n        elif min_number == n:\n            break\n        elif bin((n - aws * p)).count('1') <= aws:\n            break\n        aws += 1\n    print(aws)\n  \t    \t\t  \t \t  \t\t\t \t \t \t \t\t\t\t",
+      "stdin": "1000000010 -1000\n",
+      "expected": "15\n",
+      "cf_rating": 1600,
+      "cf_tags": [
+        "bitmasks",
+        "brute force",
+        "math"
+      ],
+      "test_case_generator": "import random\nrandom.seed(42)\nn = 10**9\np = random.randint(-10**9, 10**9)\nprint(n, p)\n",
+      "eval_category": "hard",
+      "time_limit": 2000
+    },
+    {
+      "task_id": "cc_1285_D. Dr. Evil Underscores",
+      "description": "Today, as a friendship gift, Bakry gave Badawy n integers a_1, a_2, ..., a_n and challenged him to choose an integer X such that the value \\underset{1 \u2264 i \u2264 n}{max} (a_i \u2295 X) is minimum possible, where \u2295 denotes the [bitwise XOR operation](https://en.wikipedia.org/wiki/Bitwise_operation#XOR).\n\nAs always, Badawy is too lazy, so you decided to help him and find the minimum possible value of \\underset{1 \u2264 i \u2264 n}{max} (a_i \u2295 X).\n\nInput\n\nThe first line contains integer n (1\u2264 n \u2264 10^5).\n\nThe second line contains n integers a_1, a_2, ..., a_n (0 \u2264 a_i \u2264 2^{30}-1).\n\nOutput\n\nPrint one integer \u2014 the minimum possible value of \\underset{1 \u2264 i \u2264 n}{max} (a_i \u2295 X).\n\nExamples\n\nInput\n\n\n3\n1 2 3\n\n\nOutput\n\n\n2\n\n\nInput\n\n\n2\n1 5\n\n\nOutput\n\n\n4\n\nNote\n\nIn the first sample, we can choose X = 3.\n\nIn the second sample, we can choose X = 5.",
+      "ref_solution": "def solve(nums, bit):\n\tif bit < 0: return 0\n\tl = []\n\tr = []\n\tfor el in nums:\n\t\tif ((el >> bit) & 1): r.append(el)\n\t\telse: l.append(el)\n\tif len(l) == 0: return solve(r, bit - 1)\n\tif len(r) == 0: return solve(l, bit - 1)\n\treturn min(solve(l, bit - 1), solve(r, bit - 1)) + (1 << bit)\nn = int(input())\nnums = map(int, input().split())\nprint(solve(nums, 30))\n\n",
+      "stdin": "5\n1073741823 1073741823 181085488 1073741823 1073741823\n",
+      "expected": "536870912\n",
+      "cf_rating": 1900,
+      "cf_tags": [
+        "bitmasks",
+        "brute force",
+        "dfs and similar",
+        "divide and conquer",
+        "dp",
+        "greedy",
+        "strings",
+        "trees"
+      ],
+      "time_limit": 1,
+      "test_case_generator": "print(50)\nfor _ in range(50):\n    print(100000)\n",
+      "eval_category": "hard"
+    },
+    {
+      "task_id": "cc_1420_C2. Pok\u00e9mon Army (hard version)",
+      "description": "This is the hard version of the problem. The difference between the versions is that the easy version has no swap operations. You can make hacks only if all versions of the problem are solved.\n\nPikachu is a cute and friendly pok\u00e9mon living in the wild pikachu herd.\n\nBut it has become known recently that infamous team R wanted to steal all these pok\u00e9mon! Pok\u00e9mon trainer Andrew decided to help Pikachu to build a pok\u00e9mon army to resist.\n\nFirst, Andrew counted all the pok\u00e9mon \u2014 there were exactly n pikachu. The strength of the i-th pok\u00e9mon is equal to a_i, and all these numbers are distinct.\n\nAs an army, Andrew can choose any non-empty subsequence of pokemons. In other words, Andrew chooses some array b from k indices such that 1 \u2264 b_1 < b_2 < ... < b_k \u2264 n, and his army will consist of pok\u00e9mons with forces a_{b_1}, a_{b_2}, ..., a_{b_k}.\n\nThe strength of the army is equal to the alternating sum of elements of the subsequence; that is, a_{b_1} - a_{b_2} + a_{b_3} - a_{b_4} + ....\n\nAndrew is experimenting with pok\u00e9mon order. He performs q operations. In i-th operation Andrew swaps l_i-th and r_i-th pok\u00e9mon.\n\nAndrew wants to know the maximal stregth of the army he can achieve with the initial pok\u00e9mon placement. He also needs to know the maximal strength after each operation.\n\nHelp Andrew and the pok\u00e9mon, or team R will realize their tricky plan!\n\nInput\n\nEach test contains multiple test cases.\n\nThe first line contains one positive integer t (1 \u2264 t \u2264 10^3) denoting the number of test cases. Description of the test cases follows.\n\nThe first line of each test case contains two integers n and q (1 \u2264 n \u2264 3 \u22c5 10^5, 0 \u2264 q \u2264 3 \u22c5 10^5) denoting the number of pok\u00e9mon and number of operations respectively.\n\nThe second line contains n distinct positive integers a_1, a_2, ..., a_n (1 \u2264 a_i \u2264 n) denoting the strengths of the pok\u00e9mon.\n\ni-th of the last q lines contains two positive integers l_i and r_i (1 \u2264 l_i \u2264 r_i \u2264 n) denoting the indices of pok\u00e9mon that were swapped in the i-th operation.\n\nIt is guaranteed that the sum of n over all test cases does not exceed 3 \u22c5 10^5, and the sum of q over all test cases does not exceed 3 \u22c5 10^5. \n\nOutput\n\nFor each test case, print q+1 integers: the maximal strength of army before the swaps and after each swap.\n\nExample\n\nInput\n\n\n3\n3 1\n1 3 2\n1 2\n2 2\n1 2\n1 2\n1 2\n7 5\n1 2 5 4 3 6 7\n1 2\n6 7\n3 4\n1 2\n2 3\n\n\nOutput\n\n\n3\n4\n2\n2\n2\n9\n10\n10\n10\n9\n11\n\nNote\n\nLet's look at the third test case:\n\nInitially we can build an army in such way: [1 2 5 4 3 6 7], its strength will be 5-3+7=9.\n\nAfter first operation we can build an army in such way: [2 1 5 4 3 6 7], its strength will be 2-1+5-3+7=10.\n\nAfter second operation we can build an army in such way: [2 1 5 4 3 7 6], its strength will be 2-1+5-3+7=10.\n\nAfter third operation we can build an army in such way: [2 1 4 5 3 7 6], its strength will be 2-1+5-3+7=10.\n\nAfter forth operation we can build an army in such way: [1 2 4 5 3 7 6], its strength will be 5-3+7=9.\n\nAfter all operations we can build an army in such way: [1 4 2 5 3 7 6], its strength will be 4-2+5-3+7=11.",
+      "ref_solution": "input=__import__('sys').stdin.readline\ndef check(*inds):\n\tglobal localmax, localmin, maxs, mins\n\tfor ind in inds:\n\t\tif not ok(ind):continue\n\t\tif localmax[ind]==0 and s[ind-1]<s[ind]>s[ind+1]:localmax[ind]=1;maxs+=s[ind]\n\t\tif localmin[ind]==0 and s[ind-1]>s[ind]<s[ind+1]:localmin[ind]=1;mins+=s[ind]\ndef upd0(*inds):\n\tglobal localmax, localmin, maxs, mins\n\tfor ind in inds:\n\t\tif not ok(ind):continue\n\t\tif localmax[ind]:localmax[ind]=0;maxs-=s[ind]\n\t\tif localmin[ind]:localmin[ind]=0;mins-=s[ind]\ndef ok(ind):return 0<=ind-1<=ind+1<=n\nans=[]\nfor _ in range(int(input())):\n\tn,q=map(int,input().split());n+=1\n\ts=[0]+list(map(int,input().split()))+[0]\n\tlocalmax=[0]*n\n\tlocalmin=[0]*n\n\tmaxs=mins=0\n\tfor i in range(n):\n\t\tcheck(i)\n\tans.append(maxs-mins)\n\tfor _ in range(q):\n\t\tl,r=map(int,input().split())\n\t\tupd0(l,l-1,l+1,r,r-1,r+1)\n\t\ts[l],s[r]=s[r],s[l]\n\t\tcheck(l,l-1,l+1,r,r-1,r+1)\n\t\tans.append(maxs-mins)\nprint(*ans,sep='\\n')",
+      "stdin": "5\n2 0\n1 2\n2 1\n1 2\n1 2\n2 1\n2 1\n1 2\n3 9\n1 2 3\n1 2\n1 3\n2 3\n1 2\n1 3\n2 2\n1 2\n1 3\n2 3\n3 0\n3 2 1\n",
+      "expected": "2\n2\n2\n2\n2\n3\n4\n4\n3\n3\n3\n3\n4\n4\n3\n3\n",
+      "cf_rating": 2100,
+      "cf_tags": [
+        "data structures",
+        "divide and conquer",
+        "dp",
+        "greedy",
+        "implementation"
+      ],
+      "time_limit": 2,
+      "test_case_generator": "import random\nrandom.seed(42)\nT = 3\nprint(T)\nfor _ in range(T):\n    n = random.randint(5, 20)\n    q = random.randint(3, 10)\n    print(n, q)\n    print(*[random.randint(0, 100) for _ in range(n)])\n    for _ in range(q):\n        l = random.randint(1, n)\n        r = random.randint(1, n)\n        print(l, r)\n",
+      "eval_category": "hard"
+    },
+    {
+      "task_id": "cc_1163_C1. Power Transmission (Easy Edition)",
+      "description": "This problem is same as the next one, but has smaller constraints.\n\nIt was a Sunday morning when the three friends Selena, Shiro and Katie decided to have a trip to the nearby power station (do not try this at home). After arriving at the power station, the cats got impressed with a large power transmission system consisting of many chimneys, electric poles, and wires. Since they are cats, they found those things gigantic.\n\nAt the entrance of the station, there is a map describing the complicated wiring system. Selena is the best at math among three friends. He decided to draw the map on the Cartesian plane. Each pole is now a point at some coordinates (x_i, y_i). Since every pole is different, all of the points representing these poles are distinct. Also, every two poles are connected with each other by wires. A wire is a straight line on the plane infinite in both directions. If there are more than two poles lying on the same line, they are connected by a single common wire.\n\nSelena thinks, that whenever two different electric wires intersect, they may interfere with each other and cause damage. So he wonders, how many pairs are intersecting? Could you help him with this problem?\n\nInput\n\nThe first line contains a single integer n (2 \u2264 n \u2264 50) \u2014 the number of electric poles.\n\nEach of the following n lines contains two integers x_i, y_i (-10^4 \u2264 x_i, y_i \u2264 10^4) \u2014 the coordinates of the poles.\n\nIt is guaranteed that all of these n points are distinct.\n\nOutput\n\nPrint a single integer \u2014 the number of pairs of wires that are intersecting.\n\nExamples\n\nInput\n\n\n4\n0 0\n1 1\n0 3\n1 2\n\n\nOutput\n\n\n14\n\n\nInput\n\n\n4\n0 0\n0 2\n0 4\n2 0\n\n\nOutput\n\n\n6\n\n\nInput\n\n\n3\n-1 -1\n1 0\n3 1\n\n\nOutput\n\n\n0\n\nNote\n\nIn the first example:\n\n<image>\n\nIn the second example:\n\n<image>\n\nNote that the three poles (0, 0), (0, 2) and (0, 4) are connected by a single wire.\n\nIn the third example:\n\n<image>",
+      "ref_solution": "import sys\nimport collections\nimport math\nimport heapq\nfrom operator import itemgetter\n\ndef getint():\n    return int(input())\n\ndef getints():\n    return [int(x) for x in input().split(' ')]\n\nn = getint()\npoints = [tuple(getints()) for _ in range(n)]\nresult = 0\n\nslopes = collections.defaultdict(set)\nfor i in range(n - 1):\n    for j in range(i + 1, n):\n        x1, y1, x2, y2 = points[i][0], points[i][1], points[j][0], points[j][1]\n        a, b = y1 - y2, x1 - x2\n\n        d = math.gcd(a, b)\n        a, b = a // d, b // d\n        if a < 0 or (a == 0 and b < 0):\n            a, b = -a, -b\n        \n        c = a * x1 - b * y1\n        slope = (a, b)\n        slopes[slope].add(c)\n\nslopeGroups = [(ab[0], ab[1], len(cs)) for ab, cs in slopes.items()]\nm = len(slopeGroups)\n\nfor i in range(m - 1):\n    intersects = 0\n    for j in range(i + 1, m):\n        intersects += slopeGroups[j][2]\n    result += slopeGroups[i][2] * intersects\n\nprint(str(result))",
+      "stdin": "42\n-5391 -2932\n-5391 -2868\n-5391 1744\n-5391 2236\n-5391 4148\n-5391 5217\n-5391 6188\n-3584 -2932\n-3584 -2868\n-3584 1744\n-3584 2236\n-3584 4148\n-3584 5217\n-3584 6188\n-1657 -2932\n-1657 -2868\n-1657 1744\n-1657 2236\n-1657 4148\n-1657 5217\n-1657 6188\n3218 -2932\n3218 -2868\n3218 1196\n3218 2236\n3218 4148\n3218 5217\n3218 6188\n7582 -2932\n7582 -2868\n7582 1744\n7582 2236\n7582 4148\n7582 5217\n7582 6188\n8131 -2932\n8131 -2868\n8131 1744\n8131 2236\n8131 4148\n8131 5217\n8131 6188\n",
+      "expected": "209592\n",
+      "cf_rating": 1900,
+      "cf_tags": [
+        "brute force",
+        "geometry"
+      ],
+      "time_limit": 3,
+      "test_case_generator": "import random\nrandom.seed(42)\nprint(1)\nprint(50, 50)\nprint(*[random.randint(1, 10**9) for _ in range(50)])\n",
+      "eval_category": "hard"
+    },
+    {
+      "task_id": "cc_814_C. An impassioned circulation of affection",
+      "description": "Nadeko's birthday is approaching! As she decorated the room for the party, a long garland of Dianthus-shaped paper pieces was placed on a prominent part of the wall. Brother Koyomi will like it!\n\nStill unsatisfied with the garland, Nadeko decided to polish it again. The garland has n pieces numbered from 1 to n from left to right, and the i-th piece has a colour si, denoted by a lowercase English letter. Nadeko will repaint at most m of the pieces to give each of them an arbitrary new colour (still denoted by a lowercase English letter). After this work, she finds out all subsegments of the garland containing pieces of only colour c \u2014 Brother Koyomi's favourite one, and takes the length of the longest among them to be the Koyomity of the garland.\n\nFor instance, let's say the garland is represented by \"kooomo\", and Brother Koyomi's favourite colour is \"o\". Among all subsegments containing pieces of \"o\" only, \"ooo\" is the longest, with a length of 3. Thus the Koyomity of this garland equals 3.\n\nBut problem arises as Nadeko is unsure about Brother Koyomi's favourite colour, and has swaying ideas on the amount of work to do. She has q plans on this, each of which can be expressed as a pair of an integer mi and a lowercase letter ci, meanings of which are explained above. You are to find out the maximum Koyomity achievable after repainting the garland according to each plan.\n\nInput\n\nThe first line of input contains a positive integer n (1 \u2264 n \u2264 1 500) \u2014 the length of the garland.\n\nThe second line contains n lowercase English letters s1s2... sn as a string \u2014 the initial colours of paper pieces on the garland.\n\nThe third line contains a positive integer q (1 \u2264 q \u2264 200 000) \u2014 the number of plans Nadeko has.\n\nThe next q lines describe one plan each: the i-th among them contains an integer mi (1 \u2264 mi \u2264 n) \u2014 the maximum amount of pieces to repaint, followed by a space, then by a lowercase English letter ci \u2014 Koyomi's possible favourite colour.\n\nOutput\n\nOutput q lines: for each work plan, output one line containing an integer \u2014 the largest Koyomity achievable after repainting the garland according to it.\n\nExamples\n\nInput\n\n6\nkoyomi\n3\n1 o\n4 o\n4 m\n\n\nOutput\n\n3\n6\n5\n\n\nInput\n\n15\nyamatonadeshiko\n10\n1 a\n2 a\n3 a\n4 a\n5 a\n1 b\n2 b\n3 b\n4 b\n5 b\n\n\nOutput\n\n3\n4\n5\n7\n8\n1\n2\n3\n4\n5\n\n\nInput\n\n10\naaaaaaaaaa\n2\n10 b\n10 z\n\n\nOutput\n\n10\n10\n\nNote\n\nIn the first sample, there are three plans: \n\n  * In the first plan, at most 1 piece can be repainted. Repainting the \"y\" piece to become \"o\" results in \"kooomi\", whose Koyomity of 3 is the best achievable; \n  * In the second plan, at most 4 pieces can be repainted, and \"oooooo\" results in a Koyomity of 6; \n  * In the third plan, at most 4 pieces can be repainted, and \"mmmmmi\" and \"kmmmmm\" both result in a Koyomity of 5. ",
+      "ref_solution": "\"\"\" Python 3 compatibility tools. \"\"\"\nfrom __future__ import division, print_function\nimport itertools\nimport sys\nimport os\nfrom io import BytesIO, IOBase\n\n\nif sys.version_info[0] < 3:\n  input = raw_input\n  range = xrange\n\n  filter = itertools.ifilter\n  map = itertools.imap\n  zip = itertools.izip\n\n\ndef is_it_local():\n  script_dir = str(os.getcwd()).split('/')\n  username = \"dipta007\"\n  return username in script_dir\n\n\ndef READ(fileName):\n  if is_it_local():\n    sys.stdin = open(f'./{fileName}', 'r')\n\n# region fastio\nBUFSIZE = 8192\n\nclass FastIO(IOBase):\n  newlines = 0\n\n  def __init__(self, file):\n    self._fd = file.fileno()\n    self.buffer = BytesIO()\n    self.writable = \"x\" in file.mode or \"r\" not in file.mode\n    self.write = self.buffer.write if self.writable else None\n\n  def read(self):\n    while True:\n      b = os.read(self._fd, max(os.fstat(self._fd).st_size, BUFSIZE))\n      if not b:\n          break\n      ptr = self.buffer.tell()\n      self.buffer.seek(0, 2), self.buffer.write(b), self.buffer.seek(ptr)\n    self.newlines = 0\n    return self.buffer.read()\n\n  def readline(self):\n    while self.newlines == 0:\n      b = os.read(self._fd, max(os.fstat(self._fd).st_size, BUFSIZE))\n      self.newlines = b.count(b\"\\n\") + (not b)\n      ptr = self.buffer.tell()\n      self.buffer.seek(0, 2), self.buffer.write(b), self.buffer.seek(ptr)\n    self.newlines -= 1\n    return self.buffer.readline()\n\n  def flush(self):\n    if self.writable:\n      os.write(self._fd, self.buffer.getvalue())\n      self.buffer.truncate(0), self.buffer.seek(0)\n\n\nclass IOWrapper(IOBase):\n  def __init__(self, file):\n    self.buffer = FastIO(file)\n    self.flush = self.buffer.flush\n    self.writable = self.buffer.writable\n    self.write = lambda s: self.buffer.write(s.encode(\"ascii\"))\n    self.read = lambda: self.buffer.read().decode(\"ascii\")\n    self.readline = lambda: self.buffer.readline().decode(\"ascii\")\n\nif not is_it_local():\n  sys.stdin, sys.stdout = IOWrapper(sys.stdin), IOWrapper(sys.stdout)\n  input = lambda: sys.stdin.readline().rstrip(\"\\r\\n\")\n\n# endregion\n\n\ndef input1(type=int):\n  return type(input())\n\n\ndef input2(type=int):\n  [a, b] = list(map(type, input().split()))\n  return a, b\n\n\ndef input3(type=int):\n  [a, b, c] = list(map(type, input().split()))\n  return a, b, c\n\n\ndef input_array(type=int):\n  return list(map(type, input().split()))\n\n\ndef input_string():\n  s = input()\n  return list(s)\n\nif is_it_local():\n  def debug(*args):\n    st = \"\"\n    for arg in args:\n      st += f\"{arg} \"\n    print(st)\nelse:\n  def debug(*args):\n    pass\n\n##############################################################\n\nltr = [[] for _ in range(26)]\nmemo = {}\n\n\ndef main():\n  n = input1()\n  st = input_string()\n\n  for l in range(97, 97+26):\n    ltr[l-97].append(0)\n    ch = chr(l)\n    cum = 0\n    for i in range(n):\n      if st[i] == ch:\n        cum += 1\n      ltr[l-97].append(cum)\n  \n  q = input1()\n  for i in range(q):\n    [m, c] = list(input().split())\n    m = int(m)\n\n    if c in memo and m in memo[c]:\n      print(memo[c][m])\n      continue\n      \n    res = m\n    low = 1\n    z = 0\n    l = ord(c) - 97\n    for high in range(0, n+1):\n      tot = high - low + 1\n      now = ltr[l][high] - ltr[l][low-1]\n      need = tot - now\n      debug(high, low, tot, now, need)\n      while need > m:\n        low += 1\n        tot = high - low + 1\n        now = ltr[l][high] - ltr[l][low-1]\n        need = tot - now\n\n      res = max(res, high - low + 1)\n\n    if c not in memo:\n      memo[c] = {}\n    \n    memo[c][m] = res\n    \n    print(res)\n\n\n  \n  pass\n\nif __name__ == '__main__':\n  # READ('in.txt')\n  main()",
+      "stdin": "100\ndddddccccdddddaaaaabbbbbbbbbbbbbaaacdcabbacccacccccbdbbadddbbddddbdaaccacdddbbbaddddbbbbdcbbbdddddda\n50\n54 b\n60 d\n45 b\n52 c\n52 a\n48 a\n54 b\n45 a\n47 d\n50 d\n53 a\n34 a\n51 b\n48 d\n47 d\n47 a\n48 d\n53 b\n52 d\n54 d\n46 a\n38 a\n52 b\n49 a\n49 b\n46 c\n54 a\n45 b\n35 c\n55 c\n51 c\n46 d\n54 d\n50 a\n33 c\n46 a\n50 b\n50 a\n54 a\n32 b\n55 b\n49 c\n53 d\n49 a\n46 b\n48 c\n47 b\n47 b\n47 a\n46 b\n",
+      "expected": "85\n87\n76\n69\n68\n63\n85\n60\n71\n74\n69\n46\n82\n72\n71\n62\n72\n84\n76\n78\n61\n50\n83\n64\n80\n60\n70\n76\n49\n72\n68\n70\n78\n66\n47\n61\n81\n66\n70\n53\n86\n63\n77\n64\n77\n62\n78\n78\n62\n77\n",
+      "cf_rating": 1600,
+      "cf_tags": [
+        "brute force",
+        "dp",
+        "strings",
+        "two pointers"
+      ],
+      "test_case_generator": "",
+      "eval_category": "hard",
+      "time_limit": 2000
+    },
+    {
+      "task_id": "cc_1343_F. Restore the Permutation by Sorted Segments",
+      "description": "We guessed a permutation p consisting of n integers. The permutation of length n is the array of length n where each element from 1 to n appears exactly once. This permutation is a secret for you.\n\nFor each position r from 2 to n we chose some other index l (l < r) and gave you the segment p_l, p_{l + 1}, ..., p_r in sorted order (i.e. we rearranged the elements of this segment in a way that the elements of this segment are sorted). Thus, you are given exactly n-1 segments of the initial permutation but elements inside each segment are sorted. The segments are given to you in random order.\n\nFor example, if the secret permutation is p=[3, 1, 4, 6, 2, 5] then the possible given set of segments can be:\n\n  * [2, 5, 6] \n  * [4, 6] \n  * [1, 3, 4] \n  * [1, 3] \n  * [1, 2, 4, 6] \n\n\n\nYour task is to find any suitable permutation (i.e. any permutation corresponding to the given input data). It is guaranteed that the input data corresponds to some permutation (i.e. such permutation exists).\n\nYou have to answer t independent test cases.\n\nInput\n\nThe first line of the input contains one integer t (1 \u2264 t \u2264 100) \u2014 the number of test cases. Then t test cases follow.\n\nThe first line of the test case contains one integer n (2 \u2264 n \u2264 200) \u2014 the length of the permutation.\n\nThe next n-1 lines describe given segments.\n\nThe i-th line contains the description of the i-th segment. The line starts with the integer k_i (2 \u2264 k_i \u2264 n) \u2014 the length of the i-th segment. Then k_i integers follow. All integers in a line are distinct, sorted in ascending order, between 1 and n, inclusive.\n\nIt is guaranteed that the required p exists for each test case.\n\nIt is also guaranteed that the sum of n over all test cases does not exceed 200 (\u2211 n \u2264 200).\n\nOutput\n\nFor each test case, print the answer: n integers p_1, p_2, ..., p_n (1 \u2264 p_i \u2264 n, all p_i should be distinct) \u2014 any suitable permutation (i.e. any permutation corresponding to the test case input).\n\nExample\n\nInput\n\n\n5\n6\n3 2 5 6\n2 4 6\n3 1 3 4\n2 1 3\n4 1 2 4 6\n5\n2 2 3\n2 1 2\n2 1 4\n2 4 5\n7\n3 1 2 6\n4 1 3 5 6\n2 1 2\n3 4 5 7\n6 1 2 3 4 5 6\n3 1 3 6\n2\n2 1 2\n5\n2 2 5\n3 2 3 5\n4 2 3 4 5\n5 1 2 3 4 5\n\n\nOutput\n\n\n3 1 4 6 2 5 \n3 2 1 4 5 \n2 1 6 3 5 4 7 \n1 2 \n2 5 3 4 1 ",
+      "ref_solution": "for _ in range(int(input())):\n    n = int(input())\n    segs = [tuple(sorted(int(x) for x in input().split()[1:])) for __ in range(n - 1)]\n    segs_having = [[j for j, seg in enumerate(segs) if i in seg] for i in range(n + 1)]\n    segs_set = set(segs)\n    for first in range(1, n + 1):\n        try:\n            segs_copy = [set(seg) for seg in segs]\n            ans = [first]\n            while len(ans) < n:\n                for seg in segs_having[ans[-1]]:\n                    segs_copy[seg].remove(ans[-1])\n                ans.append(next(iter(next(seg for seg in segs_copy if len(seg) == 1))))\n            if all(any(tuple(sorted(ans[j:i])) in segs_set for j in range(0, i - 1)) for i in range(2, n + 1)):\n                print(*ans)\n                break\n        except StopIteration:\n            pass\n",
+      "stdin": "1\n5\n4 2 3 4 5\n2 1 2\n2 3 5\n2 2 3\n11 1 4 3 4 5 12\n",
+      "expected": "1 2 3 5 4\n",
+      "cf_rating": 2400,
+      "cf_tags": [
+        "brute force",
+        "constructive algorithms",
+        "data structures",
+        "greedy",
+        "implementation"
+      ],
+      "time_limit": 2,
+      "test_case_generator": "# Construct valid test: permutation 1..n with consecutive pair segments\n# Each segment is {i, i+1} \u2192 ref reconstructs [1,2,...,n] from first=1\nimport random\nrandom.seed(42)\nT = 3\nprint(T)\nfor _ in range(T):\n    n = random.randint(4, 8)\n    print(n)\n    perm = list(range(1, n+1))\n    random.shuffle(perm)\n    for i in range(1, n):\n        seg = sorted(perm[:i+1])\n        print(len(seg), *seg)\n",
+      "eval_category": "hard"
     }
   ]
 }

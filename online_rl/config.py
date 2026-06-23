@@ -55,7 +55,7 @@ RES_SAC_CONFIG = {
     "batch_size":           256,
     "buffer_size":          20000,
     "warmup":               200,
-    "target_entropy":       -(_math.log(N_CPU) + _math.log(N_MEMORY) + _math.log(N_TIMEOUT)) * 0.70,
+    "target_entropy":       -(_math.log(N_CPU) + _math.log(N_MEMORY) + _math.log(N_TIMEOUT)) * 0.55,
     "state_dim":            18,
 }
 
@@ -120,6 +120,6 @@ VSOCK = {
 
 VM_BOOT_TIMEOUT             = 30   # seconds for wait_for_agent polling
 TIMEOUT_STARTUP_OVERHEAD_MS = 200  # Python interpreter startup floor for reward
-MAX_RESOURCE_RETRIES        = 3
+MAX_RESOURCE_RETRIES        = 1
 MAX_REFINEMENT_ATTEMPTS  = 1
 MAX_CACHE_RETRY_ATTEMPTS = 3  # LLM re-calls before giving up on a failing cached problem

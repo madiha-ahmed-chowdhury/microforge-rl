@@ -59,6 +59,16 @@ def bins_above_optimal(chosen_val, optimal_val, bins):
 def compute_res_reward(execution: dict, action: dict) -> float:
 
     if execution.get("exit_code") == -1:
+        # wall_ms=0 means the VM was killed before producing any output.
+        # In Firecracker, exceeding the memory limit kills the entire VM
+        # (not just Python), so oom_killed is never set. We treat all
+        # wall_ms=0 cases as OOM regardless of how much memory was allocated —
+        # this removes the perverse gradient where high memory got a worse
+        # reward (-4.0) than low memory (-3.0), which was training the agent
+        # to reduce memory allocations on synthetic problems.
+        wall = execution.get("wall_time_ms") or 0
+        if wall == 0:
+            return -3.0
         return -4.0
 
     r_timeout = -5.0 if execution.get("timed_out") else 0.0

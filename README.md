@@ -63,30 +63,36 @@ When training Agent 2 in isolation (`--use-ref`), Agent 1 is bypassed entirely �
 
 ---
 
-## State Space — 9 Features
+## State Space — 18 Features
 
-All four Agent 2 variants use the same 9-dimensional state vector. Features are split into two groups: static code features (extracted once per problem via AST analysis) and rolling execution history (updated after each execution via exponential moving average).
+Agent 2 uses an 18-dimensional state vector split into three groups: static code features (AST analysis), memory/timeout signal features (AST pattern detection), and rolling execution history (EMA updated after each episode).
 
-| # | Feature | Type | Scale | Description |
+Features 0–8 (v1) were used for SAC-Shared, SAC-Factored, DQN, and the first PPO run. Features 9–17 (v2/v3) were added after all four agents failed on high-memory problems.
+
+| # | Feature | Group | Scale | Description |
 |---|---|---|---|---|
 | 0 | `cyclomatic_complexity` | Static | ÷50 | 1 + number of branches, loops, comprehensions in AST |
 | 1 | `max_loop_depth` | Static | ÷10 | Maximum nesting depth of `for`/`while` loops |
-| 2 | `estimated_complexity` | Static | ÷5 | Ordinal 0–3: O(1)→O(n)→O(n²)→O(n³+) derived from CC and loop depth |
+| 2 | `estimated_complexity` | Static | ÷5 | Ordinal 0–3: O(1)→O(n)→O(n²)→O(n³+) |
 | 3 | `has_recursion` | Static | ÷1 | Binary: any function name appears in its own call graph |
 | 4 | `ast_node_count` | Static | ÷1000 | Total AST node count — proxy for code size |
 | 5 | `line_count` | Static | ÷200 | Non-blank line count |
-| 6 | `recent_success_rate` | Rolling | ÷1 | EMA(α=0.1) of pass/fail — recent execution success rate |
+| 6 | `recent_success_rate` | Rolling | ÷1 | EMA(α=0.1) of pass/fail |
 | 7 | `recent_mean_cpu_used` | Rolling | ÷200 | EMA of `cpu_user_ms` from CONFIG VM |
 | 8 | `recent_mean_mem_used` | Rolling | ÷50000 | EMA of `mem_peak_kb` from CONFIG VM |
+| 9 | `uses_defaultdict` | Memory signal | ÷1 | `from collections import defaultdict` detected |
+| 10 | `uses_deque` | Memory signal | ÷1 | `from collections import deque` detected |
+| 11 | `uses_heapq` | Memory signal | ÷1 | `import heapq` detected |
+| 12 | `has_array_mult` | Memory signal | ÷1 | `[x]*N` pattern — segment trees, BIT arrays, DP tables |
+| 13 | `has_collection_list` | Memory signal | ÷1 | `[[] for _ in range(n)]` — adjacency lists, set graphs |
+| 14 | `uses_itertools` | Timeout signal | ÷1 | `import itertools` — combinatorial explosion risk |
+| 15 | `has_lru_cache` | Timeout signal | ÷1 | `@lru_cache` / `@cache` decorator detected |
+| 16 | `sort_call_count` | Timeout signal | ÷10 | Count of `sorted()` + `.sort()` calls |
+| 17 | `has_while_true` | Timeout signal | ÷1 | `while True:` loop detected |
 
-Rolling features start at zero and update via:
-```
-new_val = 0.1 × current_measurement + 0.9 × old_ema
-```
+Rolling features start at zero and update via `new = 0.1 × measurement + 0.9 × old`. The scaler is fitted online after 200 warmup episodes using `sklearn.StandardScaler`.
 
-The scaler is fitted online after 200 warmup episodes using `sklearn.StandardScaler`, then applied for the remainder of training.
-
-**Limitation of the 9-feature set:** These features capture algorithmic complexity proxies (loop depth, recursion, cyclomatic complexity) but contain no explicit signals for memory-intensive patterns (segment trees, adjacency lists, BIT arrays) or timeout-risky patterns (itertools permutations, unbounded while loops). This blind spot is the primary cause of high\_memory evaluation failures across all four agents.
+**Why the memory signal features matter:** Without features 9–13, the agent cannot distinguish a 50-line graph BFS (`[[] for _ in range(n)]` → needs 256 MB) from a 50-line string problem (needs 80 MB). Both look identical on features 0–8.
 
 ---
 
@@ -494,43 +500,617 @@ Results pending (training in progress).
 
 ---
 
+## Synthetic High-Memory Problem Pool
+
+### Motivation
+
+All four agents failed on high-memory evaluation problems (pass rates 24–44%). The root cause: the training pool's CC generators produced only 12–20 MB peak usage even for n=100 000 inputs — the agent never saw a training episode where allocating ≥256 MB was actually necessary, so it never learned to do so.
+
+To teach the agent that `has_collection_list=1` or `has_array_mult=1` means "allocate more memory", synthetic problems were created that **guaranteed OOM at low memory** and **guaranteed success at high memory**.
+
+### Design Constraints
+
+| Constraint | Requirement | How satisfied |
+|---|---|---|
+| Only fails from OOM | Must not timeout at low CPU | `bytearray(n_mb * 1024*1024)` is C-level, completes in <10 ms at any CPU bin |
+| Triggers state features | `has_collection_list` or `has_array_mult` must be 1 | Tiny dummy Python pattern in code that fires the AST detector |
+| Clean reward signal | No ambiguity between OOM and timeout | Bytearray is instant; only failure = OOM |
+| Tiny stdin | No large pipe to break VM vsock | stdin is just `"n_mb\n"` (4 bytes) |
+
+### Template Design
+
+Two templates, both using `bytearray` for the actual allocation:
+
+**ba_clist** — triggers `has_collection_list`:
+```python
+import sys
+n_mb = int(sys.stdin.readline())
+_sig = [[] for _ in range(min(n_mb, 1))]   # AST: ListComp with List elt → feature=1
+data = bytearray(n_mb * 1024 * 1024)        # actual memory allocation, instant
+print(len(data) % 1000000007)
+```
+
+**ba_amult** — triggers `has_array_mult`:
+```python
+import sys
+n_mb = int(sys.stdin.readline())
+_sig = [0] * min(n_mb, 1)                   # AST: BinOp(List, Mult) → feature=1
+data = bytearray(n_mb * 1024 * 1024)
+print(len(data) % 1000000007)
+```
+
+The dummy `_sig` lines execute in microseconds (at most 1 iteration). All memory cost comes from the `bytearray` call which is a single C `calloc`.
+
+### OOM Thresholds (MEMORY_BINS = [64,80,96,112,128,160,192,256,320,512])
+
+| n_mb | RSS on host | VM overhead | Total needed | OOM at | Success at |
+|---|---|---|---|---|---|
+| 128 | 137 MB | ~65 MB | ~193 MB | ≤192 MB (7 bins) | ≥256 MB (3 bins) |
+| 150 | 159 MB | ~65 MB | ~215 MB | ≤192 MB (7 bins) | ≥256 MB (3 bins) |
+| 192 | 201 MB | ~65 MB | ~257 MB | ≤256 MB (8 bins) | ≥320 MB (2 bins) |
+| 224 | 233 MB | ~65 MB | ~289 MB | ≤256 MB (8 bins) | ≥320 MB (2 bins) |
+
+### Pool Generation
+
+```bash
+python3 /tmp/gen_synthetic_highmem.py
+# Output: online_rl/synthetic_highmem_pool.json
+# 100 problems: 52 ba_clist + 48 ba_amult, RSS 137–234 MB, stdin 4 bytes each
+```
+
+### Reward Function Fix
+
+The original OOM heuristic penalised high memory MORE than low memory:
+
+```python
+# OLD — perverse gradient: 512 MB → -4.0, 64 MB → -3.0
+if wall == 0:
+    if mem_mb <= 96:    return -3.0
+    elif mem_mb <= 160: return -3.5
+return -4.0
+```
+
+This trained the agent to reduce memory allocation on synthetic problems. Fixed to:
+
+```python
+# NEW — flat signal regardless of memory level
+if wall == 0:
+    return -3.0   # OOM signal at any memory level
+return -4.0       # wall > 0 but exit=-1 → genuine infra failure
+```
+
+---
+
+## Agent 2a Phase 2 — SAC Shared on 581-Problem Mixed Pool
+
+### Architecture Changes vs Phase 1
+
+| Property | Phase 1 | Phase 2 |
+|---|---|---|
+| State features | **9** | **18** |
+| State dim | 9 | 18 |
+| Timeout bins | 15 | **9** (reduced — bins below 500ms are below Python startup) |
+| Architecture | State(9) → 256 → 256 → 128 → heads | State(18) → 256 → 256 → 128 → heads |
+| Timeout head | Linear(128→15) | **Linear(128→9)** |
+| Target entropy | −0.70 × (log9 + log10 + log15) | **−0.55 × (log9 + log10 + log9)** |
+| Total action space | 9 × 10 × 15 = 1350 | **9 × 10 × 9 = 810** |
+| Training pool | 394 CC problems | **581 (100 synthetic + 481 CC)** |
+| SYN\_REPLAY\_FACTOR | — | **3 → 8** |
+
+All other hyperparameters (lr, batch size, buffer size, warmup, τ) are identical to Phase 1.
+
+### Motivation
+
+After establishing that SAC-Shared was the best-generalising agent (−1.671 eval reward), a second training run was launched combining the synthetic high-memory pool with the original CC pool to teach both tight CC allocation and correct high-memory allocation simultaneously.
+
+### Pool Construction (581 problems)
+
+```bash
+PYTHONPATH=/home/madiha/firecracker-rl python3 /tmp/build_mixed_pool.py
+# Output: online_rl/cc_pool_cache_mixed581.json
+```
+
+| Bucket | Count | Selection |
+|---|---|---|
+| Synthetic high-memory | 100 | `bytearray` ba_clist + ba_amult problems (new) |
+| Large-n CC | 81 | generators with `n ≥ 50 000` regex match |
+| Easy CC | 100 | CF rating 800–1200 |
+| Medium CC | 100 | CF rating 1300–1600 |
+| Hard CC | 100 | CF rating 1700+ |
+| High-timeout CC | 100 | `estimated_complexity ≥ 2` |
+| **Total** | **581** | — |
+
+### Key Changes vs Phase 1
+
+| Change | Value | Reason |
+|---|---|---|
+| `MAX_RESOURCE_RETRIES` | 1 (was 3) | Retry loop was overwriting `--force-mem` override and creating ambiguous transitions |
+| Reward OOM heuristic | flat −3.0 at wall=0 | Removed perverse gradient (see above) |
+| `SYN_REPLAY_FACTOR` | 3 | Synthetic transitions pushed 3× to buffer so 100 synthetic episodes provide same gradient mass as 300 CC episodes |
+| `--syn-factor N` flag | runtime override | Set to 1 to disable oversampling after synthetic learning stabilises |
+
+### Training Run (complete)
+
+```bash
+# Initial force injection (8000ms timeout — later identified as biased)
+python3 -m online_rl.runner --agent shared --use-ref \
+  --pool-cache online_rl/synthetic_highmem_pool.json \
+  --run-name sac_shared_581_bytearray \
+  --episodes 30 --force-mem 320 --force-cpu 500 --force-timeout 8000
+
+# Main training cycles (3× oversampling)
+python3 -m online_rl.runner --agent shared --use-ref \
+  --pool-cache online_rl/cc_pool_cache_mixed581.json \
+  --run-name sac_shared_581_bytearray \
+  --episodes 400 --resume
+
+# Corrected force injection (2000ms — unbiased reward signal)
+python3 -m online_rl.runner --agent shared --use-ref \
+  --pool-cache online_rl/synthetic_highmem_pool.json \
+  --run-name sac_shared_581_bytearray \
+  --episodes 150 --force-mem 320 --force-cpu 200 --force-timeout 2000 \
+  --syn-factor 8 --resume
+```
+
+Results saved to `online_rl/results/transitions_sac_shared_581_bytearray.jsonl`.
+
+### Training Results (1481 total episodes: 944 CC + 537 synthetic)
+
+**Synthetic allocation trend (50-episode windows):**
+
+| Episode window | Avg Mem | ≥320MB | exit=0 | Avg Reward | Notes |
+|---|---|---|---|---|---|
+| ep 1–248 | 149 MB | 5/50 | 3/50 | −3.52 | Warmup + early training |
+| ep 249–594 | 168 MB | 6/50 | 11/50 | −3.09 | Slow improvement |
+| ep 598–723 | 254 MB | 33/50 | 32/50 | −2.40 | First 8000ms injection |
+| ep 729–841 | 227 MB | 4/50 | 16/50 | −2.75 | Regression |
+| ep 842–891 | 284 MB | 22/50 | 35/50 | −1.97 | Recovery |
+| ep 892–986 | 281 MB | **39/50** | **39/50** | **−1.53** | Best window — 2000ms injections |
+| ep 989–1215 | 256 MB | 25/50 | 23/50 | −2.00 | Sustained partial improvement |
+| ep 1216–1481 | 269 MB | 23/37 | 18/37 | −1.61 | syn-factor 8 + final injection |
+
+**CC performance (last 30 episodes):** avg reward −1.502 — consistently better than the fixed-128MB baseline.
+
+### Force Injection — Key Finding
+
+The initial injections used `--force-timeout 8000`. With bytearray executing in ~200–400 ms, this produced a large timeout over-allocation penalty:
+- `r_tms = −0.2 × (8000ms bin − 400ms bin) ≈ −1.0 to −1.4`
+- Q-function learned Q(s_syn, 320MB) ≈ −1.5 — including this penalty
+
+This made 320MB appear artificially expensive. Fixed by switching to `--force-timeout 2000`:
+- `r_tms ≈ −0.2 × 1 bin = −0.2`
+- Q(s_syn, 320MB) ≈ −0.4 to −0.8 — correctly better than Q(s_syn, 160MB) ≈ −5.0
+
+**Final 150-episode injection results (2000ms, syn-factor 8):** 116/150 exit=0, avg reward −0.429, some positive rewards (+0.787 max). 150 × 8 = 1200 buffer entries at Q(320MB) ≈ −0.43.
+
+### Actor-Critic Disconnect (Core Limitation)
+
+Despite 1200 buffer entries showing Q(s_syn, 320MB) ≈ −0.43, the greedy eval policy still chose 128–160 MB on all synthetic problems (0/14 success, avg mem 128 MB). Investigation revealed:
+
+**Root cause:** In SAC, the critic (Q-function) and actor (policy network) are separate networks. Force injection updates the critic correctly. The actor is updated by sampling actions from the *current actor*, computing Q for those samples, and adjusting. If the actor has low probability for 320 MB (due to shared trunk being dominated by CC gradient), the 320 MB Q-signal has minimal weight in the actor update.
+
+The actor update (discrete SAC, exact expectation):
+```
+L_π = Σ_a  π(a|s) × [α·log(π(a|s)) − Q(s,a)]
+```
+The term for 320 MB is weighted by π(320MB|s_syn). If the shared trunk outputs π(320MB) ≈ 0.05 (5% probability), the Q-advantage signal for 320 MB contributes very little gradient.
+
+**Why the CC gradient wins:** The actor trunk is shared across all 18 states. CC episodes (~65% of training) consistently reward low memory. Synthetic episodes (~35%) push toward high memory. The CC gradient on the shared trunk's memory head consistently outweighs the synthetic gradient, even with 8× oversampling, because the CC episodes represent a stronger, more coherent training signal accumulated over hundreds of episodes.
+
+### Entropy Reduction
+
+Target entropy lowered from 0.70 → 0.55 × (log9 + log10 + log9) at episode 930:
+
+```python
+# config.py
+"target_entropy": -(math.log(N_CPU) + math.log(N_MEMORY) + math.log(N_TIMEOUT)) * 0.55,
+```
+
+This sharpens the actor (less exploration, more exploitation of Q-values). Effect observed after ~50 episodes of adjustment. Did not resolve the synthetic memory allocation problem — the actor-critic disconnect persisted regardless of entropy level.
+
+### Oversampling Implementation
+
+```python
+SYN_REPLAY_FACTOR = 3   # or 8 for aggressive phases
+
+def _buf_push(buf, task_id: str, syn_factor: int, *args):
+    k = syn_factor if task_id.startswith("synth_") else 1
+    for _ in range(k):
+        buf.push(*args)
+```
+
+Buffer capacity is 20 000. With 3× oversampling and ~17% synthetic episode rate, synthetic occupies ~37% of buffer. With 8× oversampling during injection phases, synthetic occupies ~58%.
+
+---
+
+## Baseline Comparison (80-problem CC eval, fixed sampling)
+
+All agents evaluated on `cc_pool_cache_eval80.json` (80 problems, 20 per category, each problem seen exactly once, `--use-ref` mode):
+
+| Agent | Features | Eval n | Avg Reward | Easy pass | Medium pass | Hard+HiMem pass | OOM/boot |
+|---|---|---|---|---|---|---|---|
+| **PPO-9feat** (836-prob, 730 ep) | 9 | 80† | **−1.386** | 18/20 (90%) | 12/20 (60%) | 21/40 (52%) | 23/80 (29%) |
+| **SAC-Shared Phase 1** (394-prob, 1060 ep)‡ | 9 | 60 | −1.671 | 6/9 (67%) | 18/25 (72%) | 6/9 (67%) | 19/60 (32%) |
+| **SAC-Factored** (394-prob, 1300 ep)‡ | 9 | 60 | −1.747 | 14/14 (100%) | 15/20 (75%) | 14/26 (54%) | 11/60 (18%) |
+| **SAC-Shared Phase 2** (581-prob mixed, 1481 ep) | 18 | 81 | −1.835 | 16/20 (80%) | 13/20 (65%) | 22/41 (54%) | 25/81 (31%) |
+| **Fixed baseline** (128MB / 125mc / 2000ms) | — | 80† | −1.998 | 19/20 (95%) | 12/20 (60%) | 21/40 (52%) | 22/80 (28%) |
+| **DQN** (394-prob, 1200 ep)‡ | 9 | 60 | −1.959 | 9/10 (90%) | 16/21 (76%) | 10/29 (34%) | 21/60 (35%) |
+| **PPO-18feat** (400-prob mixed, 1420 ep)‡ | 18 | 60 | −2.101 | 9/9 (100%) | 7/16 (44%) | 8/35 (23%) | 32/60 (53%) |
+| **Min baseline** (64MB / 50mc / 500ms) | — | 80† | −3.000 | 0/20 (0%) | 0/20 (0%) | 0/40 (0%) | 80/80 (100%) |
+| **Max baseline** (512MB / 500mc / 10000ms) | — | 80† | −3.637 | 19/20 (95%) | 18/20 (90%) | 35/40 (88%) | 3/80 (4%) |
+
+† eval80 pool = `cc_pool_cache_eval80.json` (80 problems, 20 per category, fixed queue, each seen exactly once).  
+‡ Random-sampled pool — per-category n varies, not directly comparable to eval80 results.
+
+**Key findings:**
+
+1. **PPO-9feat best reward (−1.386)** — tight 80MB memory + 3000ms timeout beats all agents despite 29% OOM rate; near-zero waste on successful runs compensates
+2. **Max baseline (−3.637) is worse than Min baseline (−3.000)** — over-provisioning compounds 3-dimensional waste penalties (−2.1 mem + −1.6 tms + −1.0 cpu ≈ −4.7/ep) making it costlier than the flat −3.0 OOM floor
+3. **SAC-Factored best pass rate (100% easy, 75% medium)** — separate trunks let the memory head specialise, but timeout over-allocation (38% at 8000ms) hurts reward
+4. **All RL agents beat Fixed-128MB on reward** — even with similar pass rates (~63%), RL agents waste fewer resources on successful episodes
+5. **PPO-18feat worst RL agent (−2.101, 53% boot fail)** — 18 features + smaller pool caused overfitting; collapsed to 100% 80MB / 100% 800ms allocations on eval
+6. **High-memory blind spot persists** — no agent learned to allocate >128MB on graph/tree problems; the code-feature state vector lacks direct memory-need signals
+
+**The synthetic training tradeoff:** Adding the synthetic pool improved CC performance on hard problems but did not achieve its primary goal (high-memory allocation). The shared trunk architecture cannot simultaneously learn "CC small programs → low memory" and "synthetic patterns → high memory" because these two signals conflict in the trunk gradient.
+
+---
+
 ## Cross-Agent Comparison
+
+> **Eval pool note:** SAC-Shared, SAC-Factored, DQN, and PPO-18feat were evaluated on their own randomly-sampled 60-problem pools (drawn from the CC training distribution, so per-category n varies). PPO-9feat and Fixed-128MB were evaluated on `cc_pool_cache_eval80.json` (80 problems, 20 per category, each seen exactly once). All runs used `--use-ref` (reference solution, no LLM) and greedy/deterministic policy.
 
 ### Training Performance
 
-| Metric | SAC Shared | SAC Factored | DQN | PPO (9-feat) | PPO (18-feat Phase 2) |
+| Metric | SAC-Shared | SAC-Factored | DQN | PPO-9feat | PPO-18feat |
 |---|---|---|---|---|---|
-| Training pool size | 394 | 394 | 394 | **836** | 400 mixed |
-| Total episodes | 1060 | 1300 | 1200 (200 warmup) | 753 | 1420 |
-| Overall avg res\_reward | −2.038 | −2.016 | **−1.499** | −1.615 | −0.162→+0.479 |
-| Boot failure rate | 19.5% | 15.8% | 14.3% | 10.2% | **5% (last 20 ep)** |
+| Training pool | 394 CC | 394 CC | 394 CC | **836 CC** | 400 mixed |
+| Total episodes | 1060 | 1300 | 1200 | 730 | 1420 |
+| Avg res\_reward (training) | −2.038 | −2.016 | **−1.499** | −1.615 | −0.16→+0.48 |
+| Boot failure rate (training) | 19.5% | 15.8% | 14.3% | 10.2% | **5%** |
 | State features | 9 | 9 | 9 | 9 | **18** |
+| Timeout bins | 15 | 15 | 15 | 15 | 9 |
 
-### Evaluation Performance (60 unseen problems, `--use-ref`)
+---
 
-| Metric | SAC Shared | SAC Factored | DQN | PPO (9-feat) | PPO (18-feat Phase 2) |
+### Overall Evaluation Results
+
+† eval80 pool = `cc_pool_cache_eval80.json` (80 problems, 20 per category, fixed queue). Others = random-sampled 60-problem pools.
+
+| Agent | Pool | n | Avg Reward | Completed | Boot Fails |
 |---|---|---|---|---|---|
-| Avg res\_reward | **−1.671** | −1.764 | −1.959 | −1.474\* | −1.068 |
-| Pass rate | **61.7%** | 72.5%† | 58.3% | 50.0%† | 54% |
-| Boot failures | 19/60 (31.7%) | **12/60 (20.0%)**† | 21/60 (35.0%) | 48/120 (40.0%)† | 43/113 (38%) |
-| high\_memory avg\_reward | −3.082 | −2.727 | −3.032 | −2.962 | **−2.691** |
-| high\_memory boot fails | — | — | — | 29/38 (76%) | 26/36 (72%) |
+| **PPO-9feat** | eval80† | 80 | **−1.386** | 51 (64%) | 23 (29%) |
+| **SAC-Shared Ph1** | 60-prob | 60 | −1.671 | 37 (62%) | 19 (32%) |
+| **SAC-Factored** | 60-prob | 60 | −1.747 | 43 (72%) | 11 (18%) |
+| **SAC-Shared Ph2** (18-feat, mixed pool) | 81-prob | 81 | −1.835 | 51 (63%) | 25 (31%) |
+| **Fixed-128MB** (128MB/125mc/2000ms) | eval80† | 80 | −1.999 | 52 (65%) | 22 (28%) |
+| **DQN** | 60-prob | 60 | −1.959 | 35 (58%) | 21 (35%) |
+| **PPO-18feat** | 60-prob | 60 | −2.101 | 24 (40%) | 32 (53%) |
+| **Min baseline** (64MB/50mc/500ms) | eval80† | 80 | −3.000 | **0 (0%)** | **80 (100%)** |
+| **Max baseline** (512MB/500mc/10000ms) | eval80† | 80 | −3.637 | 72 (90%) | 3 (4%) |
 
-\* PPO (9-feat) eval avg best numerically but trained on more problems (836 vs 394)  
-† SAC Factored and PPO (9-feat) ran 120 episodes (2 passes), others ran 60
+---
 
-### Per-Category Evaluation
+### Per-Category Average Reward
 
-| Category | SAC Shared | SAC Factored | DQN | PPO |
-|---|---|---|---|---|
-| **easy** pass% | 66.7% | **96.3%** | 90.0% | 52.9% |
-| **easy** avg\_reward | −0.716 | −1.298 | −0.941 | **−0.356** |
-| **medium** pass% | **72.0%** | 82.5% | 76.2% | 67.4% |
-| **medium** avg\_reward | −1.532 | −1.418 | −1.449 | **−0.936** |
-| **hard** pass% | **66.7%** | 66.7% | 44.4% | 59.1% |
-| **hard** avg\_reward | **−0.346** | −1.556 | −1.897 | −0.816 |
-| **high\_memory** pass% | **41.2%** | 43.8% | 30.0% | 23.7% |
-| **high\_memory** avg\_reward | **−3.082** | −2.727 | −3.032 | −2.962 |
+| Category | SAC-Ph1 | SAC-Ph2 | SAC-Factored | DQN | PPO-18feat | PPO-9feat‡ | Fixed-128MB‡ | Min‡ | Max‡ |
+|---|---|---|---|---|---|---|---|---|---|
+| **easy** | −0.716 | −1.676 | −1.026 | −0.941 | **+0.293** | −0.939 | −1.567 | −3.000 | −3.964 |
+| **medium** | −1.532 | −2.036 | −1.571 | −1.449 | −2.123 | −1.506 | −2.164 | −3.000 | −3.672 |
+| **hard** | −2.135 | −1.816 | −2.271 | −2.680 | −2.706 | **−1.549** | −2.131 | −3.000 | −3.456 |
+| **n easy** | 9 | 20 | 14 | 10 | 9 | 20 | 20 | 20 | 20 |
+| **n medium** | 25 | 20 | 20 | 21 | 16 | 20 | 20 | 20 | 20 |
+| **n hard** | 26 | 41 | 26 | 29 | 35 | 40 | 40 | 40 | 40 |
+
+‡ eval80 pool only: hard and high\_memory counted together (both cf\_rating ≥ 1600).
+
+---
+
+### Per-Category Completion Rate
+
+| Category | SAC-Ph1 | SAC-Ph2 | SAC-Factored | DQN | PPO-18feat | PPO-9feat‡ | Fixed-128MB‡ | Min‡ | Max‡ |
+|---|---|---|---|---|---|---|---|---|---|
+| **easy** | 6/9 (67%) | 16/20 (80%) | **14/14 (100%)** | 9/10 (90%) | **9/9 (100%)** | 18/20 (90%) | 19/20 (95%) | 0/20 (0%) | 19/20 (95%) |
+| **medium** | 18/25 (72%) | 13/20 (65%) | 15/20 (75%) | 16/21 (76%) | 7/16 (44%) | 12/20 (60%) | 12/20 (60%) | 0/20 (0%) | 18/20 (90%) |
+| **hard** | 13/26 (50%) | 22/41 (54%) | 14/26 (54%) | 10/29 (34%) | 8/35 (23%) | **21/40 (52%)** | 21/40 (52%) | 0/40 (0%) | 35/40 (88%) |
+
+---
+
+### Per-Category Boot Failures
+
+| Category | SAC-Ph1 | SAC-Ph2 | SAC-Factored | DQN | PPO-18feat | PPO-9feat‡ | Fixed-128MB‡ | Min‡ | Max‡ |
+|---|---|---|---|---|---|---|---|---|---|
+| **easy** | 2/9 (22%) | 3/20 (15%) | **0/14 (0%)** | 1/10 (10%) | **0/9 (0%)** | 1/20 (5%) | **0/20 (0%)** | 20/20 (100%) | **0/20 (0%)** |
+| **medium** | 7/25 (28%) | 7/20 (35%) | 3/20 (15%) | 4/21 (19%) | 9/16 (56%) | 7/20 (35%) | 7/20 (35%) | 20/20 (100%) | 1/20 (5%) |
+| **hard** | 10/26 (38%) | 15/41 (37%) | 8/26 (31%) | 16/29 (55%) | **23/35 (66%)** | 15/40 (38%) | 15/40 (38%) | 40/40 (100%) | 2/40 (5%) |
+
+---
+
+### Resource Allocation Distribution
+
+#### Memory (MB)
+
+| Bin | SAC-Shared (n=60) | SAC-Factored (n=60) | DQN (n=60) | PPO-18feat (n=60) | PPO-9feat (n=80) | Fixed-128MB (n=80) |
+|-----|-------------------|---------------------|------------|-------------------|------------------|-------------------|
+| 64MB | 4 (7%) | 2 (3%) | 3 (5%) | — | — | — |
+| **80MB** | 12 (20%) | 8 (13%) | 11 (18%) | **60 (100%)** | **76 (95%)** | 5 (6%) |
+| 96MB | **35 (58%)** | **42 (70%)** | 26 (43%) | — | 4 (5%) | 1 (1%) |
+| 112MB | 2 (3%) | 2 (3%) | 3 (5%) | — | — | 5 (6%) |
+| **128MB** | 4 (7%) | — | 3 (5%) | — | — | **61 (76%)** |
+| 160MB | — | 6 (10%) | 11 (18%) | — | — | 4 (5%) |
+| 192MB | 1 (2%) | — | 1 (2%) | — | — | — |
+| 256MB | 2 (3%) | — | — | — | — | 2 (2%) |
+| 320MB | — | — | 1 (2%) | — | — | 2 (2%) |
+| 512MB | — | — | 1 (2%) | — | — | — |
+
+#### CPU (millicores)
+
+| Bin | SAC-Shared (n=60) | SAC-Factored (n=60) | DQN (n=60) | PPO-18feat (n=60) | PPO-9feat (n=80) | Fixed-128MB (n=80) |
+|-----|-------------------|---------------------|------------|-------------------|------------------|-------------------|
+| 50mc | 2 (3%) | 2 (3%) | — | 2 (3%) | 4 (5%) | 3 (4%) |
+| 75mc | 7 (12%) | — | 6 (10%) | 1 (2%) | **63 (79%)** | 2 (2%) |
+| 100mc | 3 (5%) | 2 (3%) | 10 (17%) | — | 1 (1%) | 1 (1%) |
+| 125mc | 3 (5%) | 2 (3%) | 10 (17%) | 1 (2%) | — | **64 (80%)** |
+| 150mc | 7 (12%) | 7 (12%) | 2 (3%) | 3 (5%) | 2 (2%) | 1 (1%) |
+| 175mc | 4 (7%) | 11 (18%) | — | **26 (43%)** | 1 (1%) | 1 (1%) |
+| 200mc | 6 (10%) | 1 (2%) | 2 (3%) | — | — | 2 (2%) |
+| 300mc | 1 (2%) | 3 (5%) | 2 (3%) | — | — | 3 (4%) |
+| 500mc | **27 (45%)** | **32 (53%)** | **28 (47%)** | **27 (45%)** | 9 (11%) | 3 (4%) |
+
+#### Timeout (ms)
+
+| Bin | SAC-Shared (n=60) | SAC-Factored (n=60) | DQN (n=60) | PPO-18feat (n=60) | PPO-9feat (n=80) | Fixed-128MB (n=80) |
+|-----|-------------------|---------------------|------------|-------------------|------------------|-------------------|
+| 200ms‡ | **24 (40%)** | 1 (2%) | — | — | — | — |
+| 300ms‡ | 1 (2%) | 15 (25%) | 19 (32%) | — | — | — |
+| 400ms‡ | 1 (2%) | — | — | — | — | — |
+| 500ms | — | — | — | — | — | 1 (1%) |
+| 600ms‡ | 2 (3%) | 1 (2%) | 2 (3%) | — | — | — |
+| 800ms | 1 (2%) | 1 (2%) | 1 (2%) | **60 (100%)** | 2 (2%) | 2 (2%) |
+| 1000ms | 2 (3%) | — | 10 (17%) | — | 1 (1%) | 1 (1%) |
+| 1500ms | 2 (3%) | 4 (7%) | 15 (25%) | — | — | 4 (5%) |
+| 2000ms | 1 (2%) | — | 1 (2%) | — | — | **64 (80%)** |
+| 3000ms | 6 (10%) | 6 (10%) | — | — | **70 (88%)** | 3 (4%) |
+| 5000ms | 1 (2%) | 1 (2%) | 1 (2%) | — | 1 (1%) | 2 (2%) |
+| 8000ms | 10 (17%) | **23 (38%)** | 6 (10%) | — | 5 (6%) | 3 (4%) |
+| 10000ms | 5 (8%) | 2 (3%) | — | — | 1 (1%) | — |
+| 15000ms | 2 (3%) | — | 2 (3%) | — | — | — |
+| 20000ms | 1 (2%) | — | 2 (3%) | — | — | — |
+| 30000ms | 1 (2%) | 6 (10%) | 1 (2%) | — | — | — |
+
+‡ 200ms / 300ms / 400ms / 600ms were valid bins in the older 15-bin timeout config (used for SAC-Shared, SAC-Factored, DQN). Current 9-bin config starts at 500ms.
+
+**Distribution highlights:**
+- **SAC-Shared:** 58% at 96MB (right-sized), but timeout is scattered — 40% at 200ms to 17% at 8000ms, showing unresolved uncertainty
+- **SAC-Factored:** 70% at 96MB (tight memory) but 38% at 8000ms timeout — memory learned, timeout did not
+- **DQN:** widest spread across all bins — largest exploration variance, policy not converged
+- **PPO-18feat:** fully collapsed — 100% at 80MB and 100% at 800ms, no diversity, zero learning of adaptation
+- **PPO-9feat:** 95% at 80MB (very tight memory, causes 29% OOM) and 88% at 3000ms (timeout over-allocated due to bin config mismatch — trained on 15-bin config but evaluated with 9-bin, shifting action indices to higher ms values)
+- **Fixed-128MB:** as expected, 76% at 128MB / 80% at 125mc / 80% at 2000ms — rigid but predictable
+
+---
+
+## Agent Architectures and Training
+
+### SAC-Shared (Phase 1)
+
+**Architecture:**
+```
+State (9) → [Shared Trunk] → 3 Heads
+                 │
+    Linear(9→256) → ReLU → Dropout(0.1)
+    Linear(256→256) → ReLU → Dropout(0.1)
+    Linear(256→128) → ReLU
+                 │
+    ┌────────────┼──────────────┐
+ cpu_head    mem_head      tms_head
+(128→9)     (128→10)      (128→15)
+```
+- Actor: shared trunk + 3 softmax heads (stochastic sampling during training, argmax at eval)
+- Critic ×2: same shared trunk structure → 3 Q-value heads (per-action Q-values)
+- Target critics ×2: soft-updated copies (τ=0.005)
+- Learnable entropy temperature α (auto-tuned)
+
+**Hyperparameters:**
+
+| Param | Value |
+|---|---|
+| State dim | 9 |
+| Action space | 9 × 10 × 15 = **1350** |
+| Timeout bins | 15 (200ms → 30000ms) |
+| lr\_actor | 1e-4 |
+| lr\_critic | 2e-4 |
+| lr\_alpha | 1e-4 |
+| γ (gamma) | 0.99 |
+| τ (soft update) | 0.005 |
+| Batch size | 256 |
+| Replay buffer | 20,000 |
+| Warmup | 200 episodes |
+| Target entropy coeff | 0.70 |
+| Dropout | 0.1 (after layers 1 and 2) |
+| Grad clip | 1.0 |
+
+**Training trajectory (394 CC problems, 1060 episodes):**
+
+| Episode range | Avg res\_reward (10-ep window) |
+|---|---|
+| 1–200 (warmup) | −2.7 → −2.4 |
+| 200–400 | −2.1 → −1.8 |
+| 400–600 | −1.6 → −1.5 |
+| 600–800 | −1.5 (plateau) |
+| 800–1060 | −1.5 → −1.55 (plateau, no further gain) |
+
+Best checkpoint: `online_rl/checkpoints/shared/sac_best.pt`
+
+---
+
+### SAC-Shared (Phase 2)
+
+Same architecture as Phase 1 but with expanded state and reduced action space. Key differences:
+
+| Param | Phase 1 | Phase 2 |
+|---|---|---|
+| State dim | 9 | **18** |
+| Action space | 1350 | **810** |
+| Timeout bins | 15 (200ms→30s) | **9** (500ms→10s) |
+| lr\_actor | 1e-4 | **5e-5** |
+| lr\_critic | 2e-4 | **1e-4** |
+| lr\_alpha | 1e-4 | **5e-5** |
+| Target entropy coeff | 0.70 | **0.70 → 0.55** (changed at ep 930) |
+| Training pool | 394 CC | **581 mixed** (481 CC + 100 synthetic) |
+| Optimizer state saving | No | **Yes** |
+
+Best checkpoint: `online_rl/checkpoints/sac_shared_581_bytearray/sac_best.pt`
+
+---
+
+### SAC-Factored
+
+**Architecture:**
+```
+State (9) → 3 SEPARATE Trunks → 3 Heads
+
+cpu_trunk:  Linear(9→256)→ReLU→Dropout(0.1)→Linear(256→128)→ReLU → cpu_head(128→9)
+mem_trunk:  Linear(9→256)→ReLU→Dropout(0.1)→Linear(256→128)→ReLU → mem_head(128→10)
+tms_trunk:  Linear(9→256)→ReLU→Dropout(0.1)→Linear(256→128)→ReLU → tms_head(128→15)
+```
+Each action dimension has its own trunk so it can develop an independent representation. Critic ×2 uses the same 3-trunk structure outputting per-action Q-values. Target critics ×2 soft-updated.
+
+**Hyperparameters:** same as SAC-Shared Phase 1 (lr, γ, τ, batch, buffer, warmup) except:
+
+| Param | Value |
+|---|---|
+| State dim | 9 |
+| Action space | 9 × 10 × 15 = **1350** |
+| Target entropy coeff | 0.70 |
+| Trunk depth | 2 layers (256→128, shallower than shared) |
+
+**Training trajectory (394 CC problems, 1300 episodes):**
+
+| Episode range | Avg res\_reward |
+|---|---|
+| 1–200 (warmup) | ~−2.5 |
+| 200–600 | −2.0 → −1.7 |
+| 600–1000 | −1.6 → −1.5 (plateau) |
+| 1000–1300 | −1.5 → −1.6 (mild policy churn) |
+
+Best checkpoint: `online_rl/checkpoints/factored/sac_best.pt`
+
+---
+
+### DQN
+
+**Architecture:**
+```
+State (9) → 3 SEPARATE Q-Networks
+
+cpu_net:  Linear(9→256)→ReLU→Dropout(0.1)→Linear(256→128)→ReLU→Linear(128→9)
+mem_net:  Linear(9→256)→ReLU→Dropout(0.1)→Linear(256→128)→ReLU→Linear(128→10)
+tms_net:  Linear(9→256)→ReLU→Dropout(0.1)→Linear(256→128)→ReLU→Linear(128→15)
+```
+Each network outputs Q-values for all actions in its dimension. Target networks ×3 (same structure, soft-updated). No actor — action selection is ε-greedy argmax over Q-values.
+
+**Hyperparameters:**
+
+| Param | Value |
+|---|---|
+| State dim | 9 |
+| Action space | 9 × 10 × 15 = **1350** |
+| lr | 2e-4 |
+| γ | 0.99 |
+| τ (soft target update) | 0.005 |
+| Batch size | 256 |
+| Replay buffer | 20,000 |
+| Warmup | 200 episodes |
+| ε start | 1.0 |
+| ε min | 0.05 |
+| ε decay | 0.995 per episode |
+| ε reaches min at | ~ep 600 |
+| Dropout | 0.1 |
+| Grad clip | 1.0 |
+
+**Training trajectory (394 CC problems, 1200 episodes):**
+
+| Episode range | Avg res\_reward |
+|---|---|
+| 1–200 (warmup) | ~−2.8 |
+| 200–600 | −2.2 → −1.6 (ε decaying) |
+| 600–900 | −1.5 → −1.4 (ε at floor, overfitting begins) |
+| 900–1200 | −1.4 → −1.5 (specialising to training problems) |
+
+Best checkpoint: `online_rl/checkpoints/dqn/sac_best.pt`
+
+---
+
+### PPO-9feat (836-problem pool)
+
+**Architecture:**
+```
+State (9) → 3 SEPARATE Actor Trunks + 1 Shared Critic
+
+Actor cpu_trunk:  Linear(9→256)→ReLU→Dropout(0.1)→Linear(256→128)→ReLU→cpu_head(128→9)
+Actor mem_trunk:  Linear(9→256)→ReLU→Dropout(0.1)→Linear(256→128)→ReLU→mem_head(128→10)
+Actor tms_trunk:  Linear(9→256)→ReLU→Dropout(0.1)→Linear(256→128)→ReLU→tms_head(128→15)
+
+Critic (shared): Linear(9→256)→ReLU→Linear(256→128)→ReLU→Linear(128→1)  [no dropout]
+```
+
+**Hyperparameters:**
+
+| Param | Value |
+|---|---|
+| State dim | 9 |
+| Action space | 9 × 10 × 15 = **1350** |
+| Timeout bins | 15 (200ms → 30000ms) |
+| lr\_actor | 3e-4 |
+| lr\_critic | 1e-3 |
+| γ | 0.99 |
+| GAE λ | 0.95 |
+| Clip ε | 0.2 |
+| PPO epochs per rollout | 4 |
+| Rollout steps | 20 |
+| Entropy coeff | 0.01 |
+| Grad clip (actor) | 0.5 |
+| Grad clip (critic) | 0.5 |
+| No replay buffer — on-policy | — |
+
+**Training trajectory (836 CC problems, 730 episodes):**
+
+| Episode range | Avg res\_reward |
+|---|---|
+| 1–50 | −2.4 |
+| 50–300 | −2.2 → −1.8 |
+| 300–500 | −1.8 → −1.6 |
+| 500–700 | −1.6 → −1.1 (strong improvement) |
+| 700–730 | −1.0 (best checkpoint saved) |
+
+Best checkpoint: `online_rl/checkpoints/ppo_836problems/sac_best.pt`
+
+---
+
+### PPO-18feat (mixed pool)
+
+Same actor/critic architecture as PPO-9feat but with expanded state and current 9-bin timeout config:
+
+| Param | PPO-9feat | PPO-18feat |
+|---|---|---|
+| State dim | 9 | **18** |
+| Action space | 1350 | **810** |
+| Timeout bins | 15 (200ms→30s) | **9** (500ms→10s) |
+| Training pool | 836 CC | **400 mixed** (synthetic + CC) |
+| Episodes | 730 | 1420 |
+
+**Training trajectory (400 mixed problems, 1420+ episodes):**
+
+| Episode range | Avg res\_reward |
+|---|---|
+| 1–300 | −2.4 → −1.8 |
+| 300–700 | −1.5 → −0.8 |
+| 700–1200 | −0.8 → +0.3 (strong improvement on training set) |
+| 1200–1420 | +0.3 → −0.1 (policy churn, overfit to training) |
+
+Note: the high training reward (+0.3 peak) reflects overfitting to the 400-problem mixed pool. Eval reward dropped to −2.10 on unseen problems, the worst of all agents.
+
+Best checkpoint: `online_rl/checkpoints/ppo/sac_best.pt`
 
 ---
 
@@ -602,18 +1182,32 @@ All boot failures have the same signature: `exit_code = −1`, `wall_time_ms = 0
 
 ---
 
-## Evaluation Set
+## Evaluation Sets
 
-60 problems never seen during training, split into four categories:
+### CC-only Eval Pool — `cc_pool_cache_eval80.json` (80 problems)
 
-| Category | n | CF rating | CF tags | Purpose |
-|---|---|---|---|---|
-| high\_memory | 20 | any | graphs, trees, dfs, dp, data structures | Stress-test memory allocation |
-| easy | 10 | 800–1199 | any | Verify agent doesn't over-allocate on simple problems |
-| medium | 20 | 1200–1599 | any | Mid-range generalisation |
-| hard | 10 | ≥1600 | any | Performance on complex unseen problems |
+Used for the final baseline comparison. 80 problems, 20 per category, all CC (no synthetic). Each problem seen exactly once per eval run (fixed queue sampling, not random.choice).
 
-Each problem has a hand-crafted stress-test generator (stored as `test_case_generator` in `cc_pool_cache_test.json`) that produces large inputs to stress the reference solution. All 60/60 generators were verified against their reference solutions before embedding.
+| Category | n | CF rating | Purpose |
+|---|---|---|---|
+| easy | 20 | 800–1199 | Verify no over-allocation on simple problems |
+| medium | 20 | 1200–1599 | Mid-range generalisation |
+| hard | 20 | ≥1600 | Complex unseen problems |
+| high\_memory | 20 | any | Stress-test memory allocation (graphs, trees, DP) |
+
+### Full Eval Pool — `cc_pool_cache_test.json` (90 problems)
+
+| Category | n | CF rating | Purpose |
+|---|---|---|---|
+| easy | 20 | 800–1199 | Simple problems |
+| medium | 20 | 1200–1599 | Mid-range |
+| hard | 20 | ≥1600 | Complex problems |
+| high\_memory | 20 | any | Memory stress-test |
+| synthetic\_highmem | 10 | — | Unseen bytearray problems (seeds 14–15, not in training pool) |
+
+The synthetic eval problems use the same `ba_clist` and `ba_amult` templates as the training pool but with different seeds (14, 15) — never seen during training. They serve as a direct test of whether the agent learned to allocate high memory when `has_collection_list=1` or `has_array_mult=1`.
+
+Each CC problem has a hand-crafted stress-test generator stored in the JSON. All 80 CC generators verified against reference solutions.
 
 ---
 
@@ -697,6 +1291,8 @@ python3 online_rl/eval_results.py
 | `--force-mem N` | off | Override agent memory decision |
 | `--force-timeout N` | off | Override agent timeout decision |
 | `--task ID` | off | Run only one problem (enables verbose) |
+| `--run-name NAME` | off | Save transitions to `results/transitions_{NAME}.jsonl`, checkpoints to `checkpoints/{NAME}/` |
+| `--syn-factor N` | 3 | Times to push each synthetic transition to replay buffer (1 = disable oversampling) |
 
 ---
 
@@ -751,6 +1347,43 @@ firecracker-rl/
 ---
 
 ## Changelog
+
+### 2026-06-22 — SAC Shared Phase 2 complete + baseline comparison
+
+**Complete training run:** 1481 episodes (944 CC + 537 synthetic) on `cc_pool_cache_mixed581.json`. Multiple force injection cycles with `--force-mem 320`. Key finding: initial injections with `--force-timeout 8000` biased Q(320MB) negatively due to timeout over-allocation penalty; corrected to `--force-timeout 2000` which gave avg reward −0.429 on synthetic (vs −1.5 before).
+
+**Actor-critic disconnect confirmed:** Despite 1200 buffer entries (150 episodes × syn-factor 8) at Q(320MB) ≈ −0.43, greedy eval policy chose 128 MB on 14/14 synthetic eval problems (0 success). Root cause: SAC actor update is weighted by current actor probability — since CC gradient keeps π(320MB|s_syn) near 5%, the Q-advantage signal for 320MB barely reaches actor gradient.
+
+**Entropy reduction:** `target_entropy` changed from 0.70 → 0.55 × max entropy at episode 930. Did not resolve actor-critic disconnect.
+
+**`--syn-factor 8` flag:** raised from 3 to 8 for final injection phase giving 1200 synthetic buffer entries. Added as CLI flag `--syn-factor N`.
+
+**Eval sampling fixed:** `runner.py` now uses a shuffled queue in eval mode (`--eval`) so each problem is seen exactly once per cycle instead of random.choice with replacement. Old eval results had uneven category distribution (e.g. 9 easy, 25 medium for a 60-episode eval over 20+20+20 problems).
+
+**Baseline comparison:** Fixed-resource baseline (128MB / 125mc / 2000ms) established on 80-problem CC eval pool. SAC Phase 2 beats it overall (−1.835 vs −1.998) and on hard problems (76% vs 70% pass rate), confirming the RL agent learned meaningful resource allocation despite the high-memory limitation.
+
+**New eval pool:** `cc_pool_cache_eval80.json` (80 CC-only problems, 20 per category) + `cc_pool_cache_test.json` expanded to 90 problems by adding 10 synthetic_highmem eval problems (seeds 14–15, unseen) and 10 extra easy + 10 extra hard CC problems.
+
+---
+
+### 2026-06-22 — Synthetic high-memory pool + SAC Shared Phase 2 initial
+
+**`/tmp/gen_synthetic_highmem.py`** — redesigned synthetic problem generator. Replaced pure-Python `adjlist` and `dp2d` templates (which timed out at low CPU and produced ambiguous exit=-1 signals) with `bytearray`-based templates that are instant at any CPU and only fail from OOM. Two templates: `ba_clist` (triggers `has_collection_list`) and `ba_amult` (triggers `has_array_mult`). Sizes: n_mb ∈ {128,150,192,224} → RSS 137–234 MB. Regenerated `online_rl/synthetic_highmem_pool.json` (100 problems).
+
+**`online_rl/rewards.py`** — removed perverse OOM gradient. Old heuristic gave exit=-1+wall=0 a worse reward at higher memory (512 MB → −4.0, 64 MB → −3.0), which trained the agent to reduce memory on synthetic problems. Fixed to always return −3.0 for wall=0 failures regardless of memory level.
+
+**`online_rl/cc_pool_cache_mixed581.json`** (new) — 581-problem mixed pool: 100 synthetic + 81 large-n CC + 100 easy + 100 medium + 100 hard + 100 high-timeout.
+
+**`online_rl/runner.py`**:
+- `SYN_REPLAY_FACTOR = 3` — push synthetic transitions 3× to buffer to counter CC volume dominance
+- `_buf_push()` helper wrapping all three `res_buffer.push` sites
+- `--run-name` flag — named run saves to `results/transitions_{name}.jsonl` and `checkpoints/{name}/`
+- `--syn-factor N` flag — runtime override for `SYN_REPLAY_FACTOR` (pass 1 to disable after synthetic stabilises)
+- `MAX_RESOURCE_RETRIES = 1` (was 3) — prevents retry loop from overwriting forced resource actions
+
+**SAC Shared Phase 2 training** (`sac_shared_581_bytearray`): 582 episodes on mixed pool. CC last 20 training avg: −1.39 (beats Phase 1 best of −1.55). Synthetic success stalled at ~15% due to CC volume dominance — addressed with 3× oversampling + force injection of 30 synthetic successes.
+
+---
 
 ### 2026-06-21 — Phase 3: stratified 301-problem pool + fresh PPO restart
 
