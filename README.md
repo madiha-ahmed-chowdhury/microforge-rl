@@ -73,7 +73,7 @@ Features 0–8 (v1) were used for SAC-Shared, SAC-Factored, DQN, and the first P
 |---|---|---|---|---|
 | 0 | `cyclomatic_complexity` | Static | ÷50 | 1 + number of branches, loops, comprehensions in AST |
 | 1 | `max_loop_depth` | Static | ÷10 | Maximum nesting depth of `for`/`while` loops |
-| 2 | `estimated_complexity` | Static | ÷5 | Ordinal 0–3: O(1)→O(n)→O(n²)→O(n³+) |
+| 2 | `estimated_complexity` | Static | ÷5 | Ordinal 0–3: low→moderate→high→very high (from cc + loop depth) |
 | 3 | `has_recursion` | Static | ÷1 | Binary: any function name appears in its own call graph |
 | 4 | `ast_node_count` | Static | ÷1000 | Total AST node count — proxy for code size |
 | 5 | `line_count` | Static | ÷200 | Non-blank line count |
@@ -142,6 +142,557 @@ Memory waste is weighted 4× higher than CPU waste, reflecting that memory over-
 | Times out | ≈ -2.0 to -3.0 |
 | OOM killed | ≈ -3.5 |
 | VM boot failure | -4.0 (exact) |
+
+---
+
+## Phase 0 — Offline RL (Pre-Online RL Baseline)
+
+Before building the online Firecracker RL system, an offline RL pipeline was explored using a pre-collected dataset of resource allocation transitions from the **EffiBench** benchmark. The goal was to learn a resource allocation policy from logged data without interacting with real VMs.
+
+### Dataset
+
+| Property | Value |
+|---|---|
+| Source | EffiBench benchmark (competitive programming problems) |
+| Problems | 278 unique problems |
+| Resource configs per problem | 14 (all permutations tried exhaustively) |
+| Total transitions | 3,892 |
+| Train / Test split | 80% / 20% by problem (no problem appears in both splits) |
+| Test set | 56 problems / ~784 transitions |
+
+### Action Space (14 discrete joint configs)
+
+| Config | CPU (mc) | Memory (MB) | Timeout (ms) |
+|---|---|---|---|
+| 0 (min) | 50 | 32 | 1000 |
+| 1 | 50 | 48 | 2000 |
+| 2 | 50 | 64 | 3000 |
+| 3 | 80 | 48 | 1500 |
+| 4 | 80 | 64 | 2500 |
+| 5 | 80 | 96 | 4000 |
+| 6 | 100 | 64 | 2000 |
+| 7 | 100 | 96 | 3500 |
+| 8 | 100 | 128 | 5000 |
+| 9 | 150 | 64 | 3000 |
+| 10 | 150 | 96 | 5000 |
+| 11 | 250 | 128 | 5000 |
+| 12 | 250 | 192 | 8000 |
+| 13 (max) | 500 | 256 | 10000 |
+
+### State Features (19 features)
+
+| Feature | Description |
+|---|---|
+| `prompt_token_count` | Token count of the problem description |
+| `prompt_complexity_score` | Heuristic complexity score from problem text |
+| `task_type` | Encoded task category |
+| `has_loops_hint` | Loop-related keyword in description |
+| `has_io_hint` | I/O-heavy keyword in description |
+| `example_count` | Number of example test cases |
+| `line_count` | Lines of reference solution code |
+| `cyclomatic_complexity` | Branch/loop count in AST |
+| `ast_node_count` | Total AST node count |
+| `has_recursion` | Recursive function detected |
+| `has_external_calls` | External lib calls (subprocess, requests, etc.) |
+| `max_loop_depth` | Maximum nested loop depth |
+| `estimated_complexity` | Heuristic 0–3 complexity tier |
+| `host_cpu_load_1m` | Host 1-minute CPU load at collection time |
+| `host_mem_available_mb` | Host available memory at collection time |
+| `queue_depth` | Pending jobs at collection time |
+| `recent_success_rate` | EMA of recent task success |
+| `recent_mean_cpu_used` | EMA of recent CPU usage (ms) |
+| `recent_mean_mem_used` | EMA of recent memory usage (KB) |
+
+### Reward Function
+
+Continuous waste-based reward (different from the online RL bin-based reward):
+
+```
+r = r_success + r_timeout + r_resource + r_latency + r_correctness
+
+r_success    = +1.0 if exit_code == 0 else -2.0
+r_timeout    = -5.0 if timed_out else 0.0
+r_resource   = -0.75 * cpu_waste_fraction - 0.75 * mem_waste_fraction
+r_latency    = -0.2 * log(wall_ms / 500 + 1)
+r_correctness= +1.0 if tests_passed else -1.0 (0.0 if unknown)
+```
+
+CPU and memory waste are fractions: `(allocated - used) / allocated`.
+
+### Model Architectures
+
+#### Baselines
+
+| Model | Description |
+|---|---|
+| **Always-Max** | Always selects config 13 (500mc / 256MB / 10s) — maximum resources |
+| **Always-Min** | Always selects config 0 (50mc / 32MB / 1s) — minimum resources |
+| **Random** | Uniform random over all 14 configs per problem |
+| **Rule-Based** | Hand-crafted threshold policy: `if cc>15 or ec≥3 → cfg11; elif cc>8 or lc>50 → cfg10; elif cc>4 or lc>20 → cfg7; else → cfg5` using cyclomatic complexity (`cc`), estimated complexity (`ec`), line count (`lc`) |
+
+#### BC — Behavioral Cloning
+
+```
+State (19) → MLP → Config prediction (14 classes)
+
+Linear(19 → 128) → ReLU
+Linear(128 → 64)  → ReLU
+Linear(64  → 14)  → Softmax
+```
+
+- **Training target**: `argmax_reward(action)` per problem — the config with the highest observed reward in the training set
+- **Loss**: cross-entropy
+- **Early stopping**: validation fraction 0.1, patience via sklearn default
+- At inference: `argmax(logits)` → config index
+
+| Param | Value |
+|---|---|
+| Hidden layers | (128, 64) |
+| Activation | ReLU |
+| Output | 14-way softmax |
+| Max iterations | 500 |
+| lr | 1e-3 |
+| Early stopping | Yes (val fraction 0.1) |
+
+#### CQL — Conservative Q-Learning (Discrete)
+
+```
+State (19) → Q-Network → Q-values (14 actions)
+
+Linear(19  → 128) → ReLU
+Linear(128 → 64)  → ReLU
+Linear(64  → 14)             ← one Q-value per config
+```
+
+- **Single-step MDP**: `done=True` always → no next-state bootstrap; target is `r` directly
+- **Loss**: Bellman MSE + CQL penalty
+
+```
+L = E[(Q(s,a) - r)²]  +  α · E[log Σ_a exp(Q(s,a)) - Q(s, a_taken)]
+```
+
+The CQL penalty `log Σ_a exp(Q) - Q(s,a_taken)` pushes Q-values for unobserved actions down and raises Q for the taken action — preventing the greedy policy from exploiting overestimated out-of-distribution actions.
+
+At inference: `argmax(Q(s, ·))` → config index.
+
+Two experiments were run with different α values:
+
+| Param | Exp 01 (best) | Exp 04 |
+|---|---|---|
+| Dataset size | 278 problems / 3892 transitions | 532 problems / 7448 transitions |
+| CQL α | **1.0** | 0.1 |
+| Epochs | 300 | 500 |
+| Batch size | 256 | 128 |
+| Optimizer | Adam lr=1e-3 | Adam lr=1e-3 |
+| **Avg Reward** | **+0.111** | −0.330 |
+| **Success Rate** | **56.6%** | 53.8% |
+| **Oracle Acc** | **49.1%** | 5.7% |
+
+**Why Exp 04 collapsed:** α=0.1 provides a weak penalty — the Q-network learned to favour one or two high-frequency configs (config 9 and 10 dominate BC labels) regardless of state, causing oracle accuracy to collapse to 5.7%. A stronger α=1.0 forces the penalty to meaningfully differentiate between configs, producing state-sensitive predictions.
+
+#### IQL — Implicit Q-Learning (Discrete)
+
+Three networks trained jointly — avoids querying out-of-distribution actions by never taking `max_a Q(s,a)` over unseen actions:
+
+```
+State (19) → Q-network     → Q(s, a)   for each of 14 actions
+State (19) → Value network → V(s)      scalar
+State (19) → Policy network → logits   (14 actions)
+```
+
+**Q-network** (same architecture as CQL):
+```
+Linear(19 → 128) → ReLU → Linear(128 → 64) → ReLU → Linear(64 → 14)
+Loss: MSE(Q(s, a_taken), r)   [single-step MDP, done=True]
+```
+
+**Value network** (expectile regression):
+```
+Linear(19 → 128) → ReLU → Linear(128 → 64) → ReLU → Linear(64 → 1)
+Loss: expectile(Q(s, a_taken) - V(s), τ=0.7)
+  where expectile weight = τ if diff ≥ 0, else (1 − τ)
+```
+τ=0.7 makes V(s) track the 70th percentile of observed Q-values — optimistic but not the unobserved max.
+
+**Policy network** (advantage-weighted cross-entropy):
+```
+Linear(19 → 128) → ReLU → Linear(128 → 64) → ReLU → Linear(64 → 14)
+Loss: −E[exp(β · (Q(s,a) − V(s))) · log π(a|s)]
+  advantage weight = exp(β · A), clipped to [−10, 10] before exp
+```
+β=3.0 sharpens weighting — actions well above V(s) receive exponentially higher weight during policy training.
+
+| Param | Value |
+|---|---|
+| Expectile τ | 0.7 |
+| Inverse temperature β | 3.0 |
+| Advantage clip | 10.0 |
+| Epochs | 300 |
+| Batch size | 256 |
+| Optimizer | Adam lr=1e-3 (separate for Q, V, Policy) |
+
+**IQL variants:**
+
+| Variant | Avg Reward | Success | Oracle Acc |
+|---|---|---|---|
+| **IQL (single)** | −0.134 | 54.7% | 42.5% |
+| **IQL ensemble** | **+0.202** | **57.5%** | 59.4% |
+| **IQL + BC blend** | +0.211 | 57.5% | **71.7%** |
+
+#### IQL Ensemble
+
+The ensemble runs 3 fully independent IQL training runs (different random seeds) and combines them at inference via majority vote:
+
+```
+                     ┌── IQL run 1 ──┐
+                     │  Q₁, V₁, π₁  │ → argmax π₁(s) = a₁
+State (19) ──────────┼── IQL run 2 ──┤ → argmax π₂(s) = a₂  → majority_vote(a₁,a₂,a₃)
+                     │  Q₂, V₂, π₂  │
+                     └── IQL run 3 ──┘ → argmax π₃(s) = a₃
+                        Q₃, V₃, π₃
+```
+
+Each run is identical in architecture and hyperparameters to IQL (single) above — 3 separate (Q, V, Policy) triplets, each independently initialised with a different random seed and trained for 300 epochs on the same dataset.
+
+| Param | Value |
+|---|---|
+| Number of runs | 3 |
+| Architecture per run | Q: (128,64,14) · V: (128,64,1) · Policy: (128,64,14) |
+| Expectile τ | 0.7 (per run) |
+| Inverse temperature β | 3.0 (per run) |
+| Epochs per run | 300 |
+| Batch size | 256 |
+| Inference | `majority_vote(argmax π₁, argmax π₂, argmax π₃)` |
+| **Avg Reward** | **+0.202** |
+| **Success Rate** | **57.5%** |
+| **Oracle Accuracy** | **59.4%** |
+
+**Why ensemble works:** The single IQL policy network has high variance — the advantage-weighted cross-entropy loss is sensitive to noisy Q and V estimates, causing the policy to vary significantly across runs. Majority voting cancels out per-run errors: if two of three runs independently predict the same config, that prediction is likely correct even when any single run would have chosen differently. The jump from −0.134 (single) to +0.202 (ensemble) is a variance reduction effect, not a bias correction.
+
+#### IQL + BC Blend
+
+Uses the IQL ensemble policy logits as the primary predictor, but falls back to the BC prediction whenever the IQL max-logit confidence drops below a threshold:
+
+```python
+iql_pred   = argmax(π_ensemble(s))       # majority vote over 3 runs
+iql_conf   = max(softmax(π_ensemble(s))) # confidence of winning action
+final_pred = iql_pred if iql_conf > threshold else bc_pred
+```
+
+In practice, IQL confidence rarely clears the threshold on held-out problems, so the blend produces identical predictions to BC on the vast majority of the test set. This explains why IQL+BC blend and BC have exactly the same metrics (+0.211 / 71.7% oracle).
+
+The single IQL underperforms because the 14-way action space and high reward variance make the value estimate noisy; the ensemble majority vote substantially reduces variance (+0.202 vs −0.134). The BC blend matches BC exactly because the IQL confidence falls below threshold for most test problems.
+
+### Results (106 test problems)
+
+| Model | Avg Reward | Success Rate | Oracle Accuracy | Note |
+|---|---|---|---|---|
+| **BC** ✦ | **+0.211** | 57.5% | **71.7%** | **Best model** |
+| **IQL + BC blend** | +0.211 | 57.5% | 71.7% | Ties BC — degrades to BC in practice |
+| **IQL ensemble** | +0.202 | 57.5% | 59.4% | Best pure offline RL |
+| **Always-Max** | +0.154 | 57.5% | 1.9% | Non-learned |
+| **CQL (α=1.0)** | +0.111 | 56.6% | 49.1% | Best single Q-network |
+| **Rule-Based** | +0.018 | 55.7% | 13.2% | Hand-crafted heuristic |
+| **IQL (single)** | −0.134 | 54.7% | 42.5% | High variance |
+| **Random** | −1.338 | 44.3% | 12.3% | Random baseline |
+| **Always-Min** | −7.831 | 0.0% | 0.9% | Constant floor |
+
+> **Oracle Accuracy** = fraction of test problems where the model picked exactly the same config as the best-observed action in the dataset.
+
+> **Best model: BC (Behavioral Cloning)** — MLP(19→128→64→14) trained to predict `argmax_reward` config per problem. +0.211 avg reward, 71.7% oracle accuracy on 106 held-out problems. IQL+BC blend ties it numerically but is functionally identical to BC because IQL confidence falls below the fallback threshold on the vast majority of test problems.
+
+### Key Findings
+
+1. **BC is the best model** (+0.211, 71.7% oracle) — with 14 exhaustively-labelled actions per problem, supervised imitation of the best-observed config is the most sample-efficient strategy. No offline RL algorithm improved on it.
+
+2. **IQL + BC blend = BC in practice** — the IQL confidence rarely clears the fallback threshold, so the blend produces identical predictions to BC. It is not a meaningful improvement over BC as a standalone policy.
+
+3. **IQL ensemble is the best pure offline RL result** (+0.202) — majority voting over 3 independent runs reduces variance in the value estimate enough to recover from the single IQL's −0.134 result. Still trails BC by 0.009.
+
+4. **Always-Max ties BC on success rate (57.5%)** — but with 1.9% oracle accuracy. It succeeds by brute-forcing resources rather than adapting; its reward (+0.154) is lower because it wastes CPU/memory on every problem.
+
+5. **CQL α matters critically** — α=1.0 gives +0.111 / 49.1% oracle; α=0.1 (Exp 04) collapses to −0.330 / 5.7% oracle because the weaker penalty lets Q-values saturate toward constant high-frequency configs regardless of state.
+
+6. **Removing the correctness term collapses all rewards ~−1.0** — BC: +0.211 → −0.722; Always-Max: +0.154 → −0.784. The correctness signal dominates and is essential to distinguish good from bad configs.
+
+### Why Offline RL Was Replaced by Online RL
+
+- **Static dataset**: 278 problems with 14 exhaustive rollouts is expensive to collect and does not generalise — online RL continuously expands the problem pool
+- **Exhaustive collection bottleneck**: running all 14 configs for every new problem requires 14× the VM time; online RL needs one rollout per episode
+- **No feedback loop**: offline policies cannot adapt to new problem distributions or reward function changes; online RL updates continuously
+- **EffiBench distribution mismatch**: the offline dataset came from a different benchmark (EffiBench) with different problem structure and difficulty distribution than the Codeforces-based online pool
+- **Reward incompatibility**: the offline reward (continuous waste fraction) and action space (14 joint configs) differ structurally from the online reward (bin-penalty based) and action space (9×10×15 factored bins), making direct comparison or transfer non-trivial
+
+---
+
+## Methodology
+
+### Agent 1 — Thompson Sampling Bandit (LLM Model Selector)
+
+#### Design
+
+Agent 1 decides which LLM to call for code generation on each episode. It is a **contextual Thompson Sampling bandit** with 3 context buckets × 5 model arms = 15 independent Beta posteriors. The bandit runs before any code exists, so it cannot use code features — it uses only problem-level signals available at episode start.
+
+**Model arms:**
+
+| Arm | Model | Tier | Cost term | API |
+|---|---|---|---|---|
+| gpt-oss-120b | openai/gpt-oss-120b:free | free | 0.0 | OpenRouter |
+| kimi-k2 | moonshotai/kimi-k2.6:free | free | 0.0 | OpenRouter |
+| qwen-coder | qwen/qwen3-coder:free | free | 0.0 | OpenRouter |
+| claude-sonnet | claude-sonnet-4-5 | sonnet | −0.3 | Anthropic |
+| claude-opus | claude-opus-4-5 | opus | −1.0 | Anthropic |
+
+**Context buckets:**
+
+| Bucket | Condition | Represents |
+|---|---|---|
+| 0 — easy | CF rating ≤ 1,200 AND (desc < 1,000 chars AND < 3 examples) | Simple, short problems |
+| 1 — medium | CF rating 1,200–1,600, or easy problem with long description / many examples | Mid-complexity |
+| 2 — hard | CF rating > 1,600 | Difficult problems |
+
+The bucket promotion rule (`if bucket < 2 and (desc_len > 1000 or examples >= 3): bucket += 1`) captures problems with misleadingly low ratings but complex statements.
+
+#### Prior and Update
+
+Each of the 15 Beta posteriors is initialised at Beta(α=1, β=1) — a uniform prior over [0, 1].
+
+**Selection:** At each episode, draw one sample from each posterior in the problem's bucket; pick the arm with the highest sample. This is standard Thompson Sampling — arms with high uncertainty are explored, arms with strong evidence are exploited.
+
+**Update signal** (composite reward used to shift α or β):
+
+```
+r_quality  = +1.0  if tests_passed else  −1.0
+r_cost     = −model.cost            (0.0 for free, −0.3 sonnet, −1.0 opus)
+r_fallback = −2.0  if ref_fallback was used  else  0.0
+total = r_quality + r_cost + r_fallback
+
+if total > 0:  α[bucket][arm] += total   # success evidence
+else:          β[bucket][arm] += |total|  # failure evidence
+```
+
+The mean win-probability of arm `i` in bucket `b` is `α[b][i] / (α[b][i] + β[b][i])`. The effective number of updates is `α + β − 2` (subtracting the initial prior counts).
+
+#### Hyperparameters Summary
+
+| Parameter | Value |
+|---|---|
+| Algorithm | Thompson Sampling |
+| Prior | Beta(1, 1) — uniform, per arm per bucket |
+| Context dimensions | 3 (easy / medium / hard) |
+| Arms | 5 models |
+| Total posteriors | 15 |
+| Bucketing signals | CF rating, description length, example count |
+| Update signal | r\_quality + r\_cost + r\_fallback |
+| Persistence | α/β arrays saved to JSON checkpoint after each episode |
+
+---
+
+### Online RL Agent Architectures and Hyperparameters
+
+All four online RL agents (SAC-Shared, SAC-Factored, DQN, PPO) share the same factored action space (CPU × Memory × Timeout bins) and the same reward function. They differ in how they decompose the policy network and how they learn.
+
+---
+
+#### Common Action Space
+
+| Dimension | Bins | Values |
+|---|---|---|
+| CPU (millicores) | 9 | 50, 75, 100, 125, 150, 175, 200, 300, 500 |
+| Memory (MB) | 10 | 64, 80, 96, 112, 128, 160, 192, 256, 320, 512 |
+| Timeout (ms) | 15 | 200, 300, 400, 600, 800, 1000, 1500, 2000, 3000, 5000, 8000, 10000, 15000, 20000, 30000 |
+| **Total joint actions** | **1,350** | 9 × 10 × 15 |
+
+All agents output independent distributions over each dimension (factored policy), never a joint 1,350-dimensional distribution.
+
+---
+
+#### Common Training Infrastructure
+
+| Parameter | Value |
+|---|---|
+| Replay buffer size | 20,000 transitions |
+| Batch size | 256 |
+| Warmup (random episodes before first update) | 200 |
+| Discount factor γ | 0.99 |
+| Polyak soft-update τ | 0.005 |
+| Optimiser | Adam (all agents) |
+| PREP VM config | 500mc / 512MB / 60s |
+| MAX\_RESOURCE\_RETRIES | 1 |
+| VM boot timeout | 30 s |
+
+---
+
+#### SAC-Shared — Architecture
+
+**Motivation:** A single shared trunk forces the CPU, memory, and timeout heads to communicate through a common representation. The entropy temperature α is learned automatically via dual ascent, maintaining exploration throughout training.
+
+**Actor network:**
+
+```
+Input: state (9-dim)
+  → Linear(9 → 256) → ReLU → Dropout(0.1)
+  → Linear(256 → 256) → ReLU → Dropout(0.1)
+  → Linear(256 → 128) → ReLU
+  ├─ cpu_head:     Linear(128 → 9)  → Softmax  →  CPU distribution
+  ├─ memory_head:  Linear(128 → 10) → Softmax  →  Memory distribution
+  └─ timeout_head: Linear(128 → 15) → Softmax  →  Timeout distribution
+```
+
+**Critic network (×2 for clipped double-Q):**
+
+```
+Input: state (9-dim)
+  → Linear(9 → 256) → ReLU → Dropout(0.1)
+  → Linear(256 → 256) → ReLU → Dropout(0.1)
+  → Linear(256 → 128) → ReLU
+  ├─ cpu_head:     Linear(128 → 9)   →  Q-values per CPU bin
+  ├─ memory_head:  Linear(128 → 10)  →  Q-values per Memory bin
+  └─ timeout_head: Linear(128 → 15)  →  Q-values per Timeout bin
+```
+
+**Hyperparameters:**
+
+| Parameter | Value |
+|---|---|
+| State dimension | 9 |
+| Actor learning rate | 5 × 10⁻⁵ |
+| Critic learning rate | 1 × 10⁻⁴ |
+| Alpha (temperature) learning rate | 5 × 10⁻⁵ |
+| Target entropy | −(log 9 + log 10 + log 15) × 0.70 = −7.157 |
+| Dropout rate | 0.1 (trunk layers only) |
+| Target network update | Polyak τ = 0.005 |
+| Total trainable parameters | ~340K (actor) + ~340K × 2 (critics) |
+
+**Action selection:** Categorical sample from each softmax during training; argmax of each head during deterministic eval.
+
+**Update rule:** Bellman target averaged across all three dimensions: `target = r + γ(1-d) × (V_cpu + V_mem + V_tms) / 3`, where each `V` is the soft value under the clipped double-Q target.
+
+---
+
+#### SAC-Factored — Architecture
+
+**Motivation:** Replace the shared trunk with three independent trunks — one per action dimension. Each trunk specialises purely on its own reward signal without being pulled by the gradients of the other two heads.
+
+**Actor network:**
+
+```
+Input: state (9-dim) — fed separately to each trunk
+  trunk_cpu: Linear(9→256) → ReLU → Dropout(0.1) → Linear(256→128) → ReLU
+  trunk_mem: Linear(9→256) → ReLU → Dropout(0.1) → Linear(256→128) → ReLU
+  trunk_tms: Linear(9→256) → ReLU → Dropout(0.1) → Linear(256→128) → ReLU
+  ├─ cpu_head:     Linear(128 → 9)  → Softmax
+  ├─ mem_head:     Linear(128 → 10) → Softmax
+  └─ timeout_head: Linear(128 → 15) → Softmax
+```
+
+**Critic network (×2):** Same factored structure as actor — three independent trunks producing per-bin Q-values.
+
+**Hyperparameters:** Identical to SAC-Shared (same config dict). Key difference is parameter count:
+
+| Parameter | Value |
+|---|---|
+| State dimension | 9 |
+| Actor LR | 5 × 10⁻⁵ |
+| Critic LR | 1 × 10⁻⁴ |
+| Alpha LR | 5 × 10⁻⁵ |
+| Target entropy | −7.157 (same as shared) |
+| Total trainable parameters | ~520K (actor: 3 independent trunks) + ~520K × 2 (critics) |
+
+The factored actor has ~53% more parameters than the shared actor because each of the three trunks has its own full 9→256→128 chain rather than sharing the 9→256→256→128 backbone.
+
+---
+
+#### DQN — Architecture
+
+**Motivation:** Three completely independent Q-networks (one per action dimension), each trained with its own Bellman target. No shared trunk, no entropy regularisation, ε-greedy exploration.
+
+**Q-network (one each for CPU, Memory, Timeout):**
+
+```
+Input: state (18-dim, Phase 1 used 9-dim but config set to 18)
+  → Linear(18 → 256) → ReLU → Dropout(0.1)
+  → Linear(256 → 128) → ReLU
+  → Linear(128 → n_actions)   # 9 for CPU, 10 for Memory, 15 for Timeout
+```
+
+Three networks: `cpu_q`, `mem_q`, `tms_q`, each with its own Adam optimiser and target network.
+
+**Hyperparameters:**
+
+| Parameter | Value |
+|---|---|
+| State dimension | 18 (config) / 9 (actual training) |
+| Learning rate (all three nets) | 2 × 10⁻⁴ |
+| ε start | 1.0 |
+| ε min | 0.05 |
+| ε decay (per episode) | × 0.995 |
+| Target network update | Polyak τ = 0.005 |
+| Total trainable parameters | ~220K × 3 networks |
+
+**ε reaches floor (0.05) at episode ~600.** After that, the policy is 95% greedy. This is the primary overfitting risk — no entropy term prevents the Q-values from collapsing to training-distribution optima.
+
+---
+
+#### PPO — Architecture
+
+**Motivation:** On-policy training avoids the replay buffer distribution shift that affects SAC/DQN. The clipped surrogate objective prevents catastrophic policy updates. Three factored actor trunks — same as SAC-Factored but the critic is a single scalar-output value network.
+
+**Actor network:**
+
+```
+Input: state (18-dim)
+  trunk_cpu: Linear(18→256) → ReLU → Dropout(0.1) → Linear(256→128) → ReLU
+  trunk_mem: Linear(18→256) → ReLU → Dropout(0.1) → Linear(256→128) → ReLU
+  trunk_tms: Linear(18→256) → ReLU → Dropout(0.1) → Linear(256→128) → ReLU
+  ├─ cpu_head:     Linear(128 → 9)  → Softmax (categorical policy)
+  ├─ mem_head:     Linear(128 → 10) → Softmax
+  └─ timeout_head: Linear(128 → 15) → Softmax
+```
+
+**Critic (value network):**
+
+```
+Input: state (18-dim)
+  → Linear(18 → 256) → ReLU
+  → Linear(256 → 128) → ReLU
+  → Linear(128 → 1)                # scalar V(s)
+```
+
+**Hyperparameters:**
+
+| Parameter | Value |
+|---|---|
+| State dimension | 18 |
+| Actor learning rate | 3 × 10⁻⁴ |
+| Critic learning rate | 1 × 10⁻³ |
+| Entropy coefficient | 0.01 |
+| PPO clip ε | 0.2 |
+| Rollout steps (before update) | 20 |
+| PPO epochs per rollout | 4 |
+| GAE λ | 0.95 |
+| Discount γ | 0.99 |
+| Total trainable parameters | ~520K (actor) + ~100K (critic) |
+
+**On-policy update:** Collect 20 episodes → compute GAE advantages → run 4 epochs of PPO loss over the rollout batch → discard buffer. No replay buffer. Entropy bonus added to actor loss: `L_actor = −(clipped_ratio × advantage) − 0.01 × entropy`.
+
+---
+
+#### Architecture Comparison Summary
+
+| Property | SAC-Shared | SAC-Factored | DQN | PPO |
+|---|---|---|---|---|
+| Network type | Actor-Critic | Actor-Critic | Q-network | Actor-Critic |
+| Trunk structure | Shared (9→256→256→128) | Factored (3 × 9→256→128) | Independent (3 × Q-nets) | Factored (3 × 18→256→128) |
+| Critic output | Per-bin Q-values | Per-bin Q-values | Per-bin Q-values | Scalar V(s) |
+| Exploration | Entropy temperature α | Entropy temperature α | ε-greedy (ε=1.0→0.05) | Entropy bonus (0.01) |
+| Dropout | 0.1 (trunk) | 0.1 (trunk) | 0.1 (trunk) | 0.1 (trunk) |
+| State dim | 9 | 9 | 9 (18 in config) | 18 |
+| Update type | Off-policy (replay) | Off-policy (replay) | Off-policy (replay) | On-policy (rollout) |
+| Target networks | 2 critics (Polyak) | 2 critics (Polyak) | 3 Q-nets (Polyak) | None |
+| Actor LR | 5e-5 | 5e-5 | 2e-4 (shared) | 3e-4 |
+| Critic LR | 1e-4 | 1e-4 | 2e-4 (shared) | 1e-3 |
+| Approx. parameters | ~1.0M | ~1.6M | ~660K | ~620K |
 
 ---
 
@@ -757,7 +1308,7 @@ All agents evaluated on `cc_pool_cache_eval80.json` (80 problems, 20 per categor
 
 ## Cross-Agent Comparison
 
-> **Eval pool note:** SAC-Shared, SAC-Factored, DQN, and PPO-18feat were evaluated on their own randomly-sampled 60-problem pools (drawn from the CC training distribution, so per-category n varies). PPO-9feat and Fixed-128MB were evaluated on `cc_pool_cache_eval80.json` (80 problems, 20 per category, each seen exactly once). All runs used `--use-ref` (reference solution, no LLM) and greedy/deterministic policy.
+> **Eval pool note:** SAC-Shared, SAC-Factored, DQN, and PPO-18feat were evaluated on their own randomly-sampled 60-problem pools (drawn from the CC training distribution, so per-category n varies). PPO-9feat and Fixed-128MB were evaluated on `cc_pool_cache_eval80.json` (80 problems, 20 per category, each seen exactly once). Phase 1 baselines (Min-60, Max-60, Fixed-128MB-60) were evaluated on `cc_pool_cache_test_60.json` (60 fixed problems, same 9-feature config and OOM=−4.0 as SAC-Shared/Factored/DQN). All runs used `--use-ref` (reference solution, no LLM) and greedy/deterministic policy.
 
 ### Training Performance
 
@@ -774,7 +1325,7 @@ All agents evaluated on `cc_pool_cache_eval80.json` (80 problems, 20 per categor
 
 ### Overall Evaluation Results
 
-† eval80 pool = `cc_pool_cache_eval80.json` (80 problems, 20 per category, fixed queue). Others = random-sampled 60-problem pools.
+† eval80 pool = `cc_pool_cache_eval80.json` (80 problems, 20 per category, fixed queue). †† Phase 1 era baselines on `cc_pool_cache_test_60.json` (60 fixed problems, 9-feat config, OOM=−4.0). Others = random-sampled 60-problem pools.
 
 | Agent | Pool | n | Avg Reward | Completed | Boot Fails |
 |---|---|---|---|---|---|
@@ -782,9 +1333,12 @@ All agents evaluated on `cc_pool_cache_eval80.json` (80 problems, 20 per categor
 | **SAC-Shared Ph1** | 60-prob | 60 | −1.671 | 37 (62%) | 19 (32%) |
 | **SAC-Factored** | 60-prob | 60 | −1.747 | 43 (72%) | 11 (18%) |
 | **SAC-Shared Ph2** (18-feat, mixed pool) | 81-prob | 81 | −1.835 | 51 (63%) | 25 (31%) |
-| **Fixed-128MB** (128MB/125mc/2000ms) | eval80† | 80 | −1.999 | 52 (65%) | 22 (28%) |
 | **DQN** | 60-prob | 60 | −1.959 | 35 (58%) | 21 (35%) |
+| **Fixed-128MB-60** (128MB/125mc/2000ms) †† | 60-prob†† | 60 | −2.737 | 33 (55%) | 22 (37%) |
+| **Fixed-128MB** (128MB/125mc/2000ms) | eval80† | 80 | −1.999 | 52 (65%) | 22 (28%) |
 | **PPO-18feat** | 60-prob | 60 | −2.101 | 24 (40%) | 32 (53%) |
+| **Min-60 baseline** (64MB/50mc/200ms) †† | 60-prob†† | 60 | −4.000 | 0 (0%) | **60 (100%)** |
+| **Max-60 baseline** (512MB/500mc/10000ms) †† | 60-prob†† | 60 | −3.941 | 53 (88%) | 3 (5%) |
 | **Min baseline** (64MB/50mc/500ms) | eval80† | 80 | −3.000 | **0 (0%)** | **80 (100%)** |
 | **Max baseline** (512MB/500mc/10000ms) | eval80† | 80 | −3.637 | 72 (90%) | 3 (4%) |
 
@@ -792,36 +1346,36 @@ All agents evaluated on `cc_pool_cache_eval80.json` (80 problems, 20 per categor
 
 ### Per-Category Average Reward
 
-| Category | SAC-Ph1 | SAC-Ph2 | SAC-Factored | DQN | PPO-18feat | PPO-9feat‡ | Fixed-128MB‡ | Min‡ | Max‡ |
-|---|---|---|---|---|---|---|---|---|---|
-| **easy** | −0.716 | −1.676 | −1.026 | −0.941 | **+0.293** | −0.939 | −1.567 | −3.000 | −3.964 |
-| **medium** | −1.532 | −2.036 | −1.571 | −1.449 | −2.123 | −1.506 | −2.164 | −3.000 | −3.672 |
-| **hard** | −2.135 | −1.816 | −2.271 | −2.680 | −2.706 | **−1.549** | −2.131 | −3.000 | −3.456 |
-| **n easy** | 9 | 20 | 14 | 10 | 9 | 20 | 20 | 20 | 20 |
-| **n medium** | 25 | 20 | 20 | 21 | 16 | 20 | 20 | 20 | 20 |
-| **n hard** | 26 | 41 | 26 | 29 | 35 | 40 | 40 | 40 | 40 |
+| Category | SAC-Ph1 | SAC-Ph2 | SAC-Factored | DQN | PPO-18feat | PPO-9feat‡ | Fixed-128MB‡ | Min‡ | Max‡ | Fix-128-60†† | Min-60†† | Max-60†† |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **easy** | −0.716 | −1.676 | −1.026 | −0.941 | **+0.293** | −0.939 | −1.567 | −3.000 | −3.964 | −2.076 | −4.000 | −4.530 |
+| **medium** | −1.532 | −2.036 | −1.571 | −1.449 | −2.123 | −1.506 | −2.164 | −3.000 | −3.672 | −2.814 | −4.000 | −4.122 |
+| **hard** | −2.135 | −1.816 | −2.271 | −2.680 | −2.706 | **−1.549** | −2.131 | −3.000 | −3.456 | −2.906 | −4.000 | −3.625 |
+| **n easy** | 9 | 20 | 14 | 10 | 9 | 20 | 20 | 20 | 20 | 10 | 10 | 10 |
+| **n medium** | 25 | 20 | 20 | 21 | 16 | 20 | 20 | 20 | 20 | 20 | 20 | 20 |
+| **n hard** | 26 | 41 | 26 | 29 | 35 | 40 | 40 | 40 | 40 | 30 | 30 | 30 |
 
-‡ eval80 pool only: hard and high\_memory counted together (both cf\_rating ≥ 1600).
+‡ eval80 pool only: hard and high\_memory counted together (both cf\_rating ≥ 1600). †† Phase 1 era baselines on fixed 60-problem pool (`cc_pool_cache_test_60.json`), same 9-feat config and OOM=−4.0 as SAC-Shared/Factored/DQN.
 
 ---
 
 ### Per-Category Completion Rate
 
-| Category | SAC-Ph1 | SAC-Ph2 | SAC-Factored | DQN | PPO-18feat | PPO-9feat‡ | Fixed-128MB‡ | Min‡ | Max‡ |
-|---|---|---|---|---|---|---|---|---|---|
-| **easy** | 6/9 (67%) | 16/20 (80%) | **14/14 (100%)** | 9/10 (90%) | **9/9 (100%)** | 18/20 (90%) | 19/20 (95%) | 0/20 (0%) | 19/20 (95%) |
-| **medium** | 18/25 (72%) | 13/20 (65%) | 15/20 (75%) | 16/21 (76%) | 7/16 (44%) | 12/20 (60%) | 12/20 (60%) | 0/20 (0%) | 18/20 (90%) |
-| **hard** | 13/26 (50%) | 22/41 (54%) | 14/26 (54%) | 10/29 (34%) | 8/35 (23%) | **21/40 (52%)** | 21/40 (52%) | 0/40 (0%) | 35/40 (88%) |
+| Category | SAC-Ph1 | SAC-Ph2 | SAC-Factored | DQN | PPO-18feat | PPO-9feat‡ | Fixed-128MB‡ | Min‡ | Max‡ | Fix-128-60†† | Min-60†† | Max-60†† |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **easy** | 6/9 (67%) | 16/20 (80%) | **14/14 (100%)** | 9/10 (90%) | **9/9 (100%)** | 18/20 (90%) | 19/20 (95%) | 0/20 (0%) | 19/20 (95%) | 9/10 (90%) | 0/10 (0%) | 9/10 (90%) |
+| **medium** | 18/25 (72%) | 13/20 (65%) | 15/20 (75%) | 16/21 (76%) | 7/16 (44%) | 12/20 (60%) | 12/20 (60%) | 0/20 (0%) | 18/20 (90%) | 12/20 (60%) | 0/20 (0%) | 18/20 (90%) |
+| **hard** | 13/26 (50%) | 22/41 (54%) | 14/26 (54%) | 10/29 (34%) | 8/35 (23%) | **21/40 (52%)** | 21/40 (52%) | 0/40 (0%) | 35/40 (88%) | 12/30 (40%) | 0/30 (0%) | 26/30 (87%) |
 
 ---
 
 ### Per-Category Boot Failures
 
-| Category | SAC-Ph1 | SAC-Ph2 | SAC-Factored | DQN | PPO-18feat | PPO-9feat‡ | Fixed-128MB‡ | Min‡ | Max‡ |
-|---|---|---|---|---|---|---|---|---|---|
-| **easy** | 2/9 (22%) | 3/20 (15%) | **0/14 (0%)** | 1/10 (10%) | **0/9 (0%)** | 1/20 (5%) | **0/20 (0%)** | 20/20 (100%) | **0/20 (0%)** |
-| **medium** | 7/25 (28%) | 7/20 (35%) | 3/20 (15%) | 4/21 (19%) | 9/16 (56%) | 7/20 (35%) | 7/20 (35%) | 20/20 (100%) | 1/20 (5%) |
-| **hard** | 10/26 (38%) | 15/41 (37%) | 8/26 (31%) | 16/29 (55%) | **23/35 (66%)** | 15/40 (38%) | 15/40 (38%) | 40/40 (100%) | 2/40 (5%) |
+| Category | SAC-Ph1 | SAC-Ph2 | SAC-Factored | DQN | PPO-18feat | PPO-9feat‡ | Fixed-128MB‡ | Min‡ | Max‡ | Fix-128-60†† | Min-60†† | Max-60†† |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **easy** | 2/9 (22%) | 3/20 (15%) | **0/14 (0%)** | 1/10 (10%) | **0/9 (0%)** | 1/20 (5%) | **0/20 (0%)** | 20/20 (100%) | **0/20 (0%)** | **0/10 (0%)** | 10/10 (100%) | **0/10 (0%)** |
+| **medium** | 7/25 (28%) | 7/20 (35%) | 3/20 (15%) | 4/21 (19%) | 9/16 (56%) | 7/20 (35%) | 7/20 (35%) | 20/20 (100%) | 1/20 (5%) | 7/20 (35%) | 20/20 (100%) | 1/20 (5%) |
+| **hard** | 10/26 (38%) | 15/41 (37%) | 8/26 (31%) | 16/29 (55%) | **23/35 (66%)** | 15/40 (38%) | 15/40 (38%) | 40/40 (100%) | 2/40 (5%) | 15/30 (50%) | 30/30 (100%) | 2/30 (7%) |
 
 ---
 
@@ -1116,6 +1670,177 @@ Best checkpoint: `online_rl/checkpoints/ppo/sac_best.pt`
 
 ## Analysis
 
+### Training Statistics — All Agents
+
+#### Overall Training Summary
+
+| Agent | Episodes | Avg Reward (all) | Avg Reward (last 100) | Boot Failures (all) | Boot Failures (last 100) | Success (exit=0) |
+|---|---|---|---|---|---|---|
+| SAC-Shared | 1,454 | −2.038 | −1.811 | 230 (15.8%) | 9 (9.0%) | 1,163 (80.0%) |
+| SAC-Factored | 1,300 | −2.016 | −2.244 | 156 (12.0%) | 12 (12.0%) | 1,087 (83.6%) |
+| DQN | 1,200 | −1.679 | −1.269 | 156 (13.0%) | 9 (9.0%) | 984 (82.0%) |
+| PPO | 2,467 | −1.186 | −1.933 | 310 (12.6%) | 23 (23.0%) | 2,030 (82.3%) |
+
+Notes: Boot failure = `exit_code == −1` (VM boot failed or vsock OOM on large stdin). Last-100 window shows the final converged behaviour. SAC-Factored and PPO last-100 degraded relative to overall mean, indicating late-stage instability or entropy collapse.
+
+#### Per-Difficulty Training Breakdown
+
+Problems are bucketed by CF rating: easy < 1,200, medium 1,200–1,599, hard ≥ 1,600.
+
+**SAC-Shared (1,454 episodes, 394-problem pool)**
+
+| Difficulty | Episodes | Avg Reward | Boot Failures | Success |
+|---|---|---|---|---|
+| Easy (< 1,200) | 101 | −1.883 | 9 (8.9%) | 91 (90.1%) |
+| Medium (1,200–1,599) | 615 | −1.944 | 57 (9.3%) | 532 (86.5%) |
+| Hard (≥ 1,600) | 738 | −2.137 | 164 (22.2%) | 540 (73.2%) |
+
+**SAC-Factored (1,300 episodes, 394-problem pool)**
+
+| Difficulty | Episodes | Avg Reward | Boot Failures | Success |
+|---|---|---|---|---|
+| Easy | 68 | −1.812 | 1 (1.5%) | 66 (97.1%) |
+| Medium | 567 | −1.934 | 29 (5.1%) | 521 (91.9%) |
+| Hard | 665 | −2.107 | 126 (18.9%) | 500 (75.2%) |
+
+**DQN (1,200 episodes, 394-problem pool)**
+
+| Difficulty | Episodes | Avg Reward | Boot Failures | Success |
+|---|---|---|---|---|
+| Easy | 69 | −1.526 | 4 (5.8%) | 60 (87.0%) |
+| Medium | 532 | −1.482 | 24 (4.5%) | 494 (92.9%) |
+| Hard | 599 | −1.872 | 128 (21.4%) | 430 (71.8%) |
+
+**PPO (2,467 episodes, 836-problem pool)**
+
+| Difficulty | Episodes | Avg Reward | Boot Failures | Success |
+|---|---|---|---|---|
+| Easy | 70 | −0.892 | 2 (2.9%) | 68 (97.1%) |
+| Medium | 773 | −0.912 | 40 (5.2%) | 722 (93.4%) |
+| Hard | 1,624 | −1.329 | 268 (16.5%) | 1,240 (76.4%) |
+
+The hard-difficulty boot failure rate is consistently 3–5× higher than easy/medium across all agents. Hard problems are longer, have deeper loops, and the agent early in training tends to under-allocate memory — the 9-feature state gives no signal about whether the code allocates a large adjacency list or a segment tree.
+
+---
+
+### Bandit (Agent 1) — Training Results
+
+The following is from `transitions.jsonl` (SAC-Shared training run, 1,454 episodes with live LLM calls). PPO training used `--use-ref` (reference solution bypasses the bandit entirely), so bandit stats apply only to SAC-Shared/Factored/DQN runs.
+
+#### Overall Model Selection Distribution (SAC-Shared, 1,454 episodes)
+
+| Model | Episodes selected | Avg LLM reward | Pass rate | Fail rate |
+|---|---|---|---|---|
+| gpt-oss-120b | 1,073 (73.8%) | −0.047 | 21.1% | 17.1% |
+| claude-sonnet-4-6 | 285 (19.6%) | −0.118 | 21.1% | 14.7% |
+| claude-opus-4-8 | 65 (4.5%) | −0.231 | 0.0% | 9.2% |
+| ref-fallback | 16 (1.1%) | −0.150 | 0.0% | 6.2% |
+| opus-escalated | 11 (0.8%) | −1.009 | 18.2% | 45.5% |
+| sonnet-escalated | 4 (0.3%) | +0.125 | 25.0% | 0.0% |
+
+`gpt-oss-120b` dominates at 73.8% selection because it is free (no cost penalty) and achieves comparable pass rates to the paid models. Claude-opus ended up with 0% pass rate — the bandit correctly reduced its posterior over time. `ref-fallback` is a safety valve used when all LLM calls fail.
+
+#### Model Selection Per Difficulty Bucket
+
+**Easy (n=101):**
+
+| Model | n | % | Avg LLM reward | Pass rate |
+|---|---|---|---|---|
+| gpt-oss-120b | 87 | 86% | +0.011 | 18% |
+| claude-opus-4-8 | 8 | 8% | −0.312 | 0% |
+| claude-sonnet-4-6 | 6 | 6% | −0.783 | 17% |
+
+**Medium (n=615):**
+
+| Model | n | % | Avg LLM reward | Pass rate |
+|---|---|---|---|---|
+| gpt-oss-120b | 423 | 69% | −0.097 | 22% |
+| claude-sonnet-4-6 | 176 | 29% | −0.149 | 21% |
+| opus-escalated | 7 | 1% | −0.271 | 29% |
+| claude-opus-4-8 | 5 | 1% | −1.500 | 0% |
+
+**Hard (n=738):**
+
+| Model | n | % | Avg LLM reward | Pass rate |
+|---|---|---|---|---|
+| gpt-oss-120b | 563 | 76% | −0.018 | 21% |
+| claude-sonnet-4-6 | 103 | 14% | −0.025 | 21% |
+| claude-opus-4-8 | 52 | 7% | −0.096 | 0% |
+| ref-fallback | 12 | 2% | −0.142 | 0% |
+| sonnet-escalated | 4 | 1% | +0.125 | 25% |
+
+#### Learned Posteriors (Snapshot at Episode 120)
+
+The bandit saves a snapshot of mean win-probabilities `α/(α+β)` and effective update counts `n = α+β−2`:
+
+| Bucket | gpt-oss-120b | kimi-k2 | qwen-coder | claude-sonnet | claude-opus |
+|---|---|---|---|---|---|
+| easy | 0.333 (n=1) | 0.333 (n=1) | **0.600 (n=13)** | 0.303 (n=1) | 0.250 (n=2) |
+| medium | 0.333 (n=10) | **0.565 (n=21)** | 0.542 (n=22) | 0.502 (n=21) | 0.167 (n=4) |
+| hard | **0.808 (n=24)** | 0.429 (n=5) | 0.722 (n=16) | 0.720 (n=6) | 0.250 (n=2) |
+
+By episode 120, `gpt-oss-120b` had already established a strong posterior on hard problems (0.808) with the most evidence (n=24), while `claude-opus` was consistently penalised across all buckets (0.167–0.250). `qwen-coder` led on easy (0.600) and `kimi-k2` on medium (0.565) — both free models.
+
+---
+
+### Evaluation Statistics — 60-Problem Fixed Pool
+
+All Phase 1 agents (SAC-Shared, SAC-Factored, DQN) and baselines were evaluated on `cc_pool_cache_test_60.json` (60 problems, same pool, no LLM, deterministic policy, 9-feature config, OOM penalty = −4.0). PPO used 113 episodes over the same pool.
+
+#### Overall Eval Summary
+
+| Agent | Episodes | Avg Reward | Boot Failures | Success (exit=0) |
+|---|---|---|---|---|
+| Baseline-Min (64MB / 50mc / 200ms) | 60 | −4.000 | 60 (100%) | 0 (0%) |
+| Baseline-Fixed128 (128MB / 100mc / 1000ms) | 60 | −2.737 | 22 (36.7%) | 33 (55.0%) |
+| DQN | 60 | −1.959 | 21 (35.0%) | 35 (58.3%) |
+| SAC-Shared | 60 | −1.671 | 19 (31.7%) | 37 (61.7%) |
+| SAC-Factored | 60 | −1.747 | 11 (18.3%) | 43 (71.7%) |
+| PPO (113 ep) | 113 | −1.068 | 43 (38.1%) | 61 (54.0%) |
+| Baseline-Max (512MB / 500mc / 30s) | 60 | −3.941 | 3 (5.0%) | 53 (88.3%) |
+
+#### Per-Difficulty Eval Breakdown
+
+**Easy (CF < 1,200)**
+
+| Agent | n | Avg Reward | Boot Failures | Success |
+|---|---|---|---|---|
+| Baseline-Min | 10 | −4.000 | 10 | 0 |
+| Baseline-Fixed128 | 10 | −2.076 | 0 | 9 |
+| DQN | 10 | −0.941 | 1 | 9 |
+| SAC-Shared | 9 | −0.716 | 2 | 6 |
+| SAC-Factored | 14 | −1.026 | 0 | 14 |
+| PPO | 19 | **+0.160** | 3 | 16 |
+| Baseline-Max | 10 | −4.530 | 0 | 9 |
+
+**Medium (CF 1,200–1,599)**
+
+| Agent | n | Avg Reward | Boot Failures | Success |
+|---|---|---|---|---|
+| Baseline-Min | 20 | −4.000 | 20 | 0 |
+| Baseline-Fixed128 | 20 | −2.814 | 7 | 12 |
+| DQN | 21 | −1.449 | 4 | 16 |
+| SAC-Shared | 25 | −1.532 | 7 | 18 |
+| SAC-Factored | 20 | −1.571 | 3 | 15 |
+| PPO | 39 | −0.558 | 11 | 25 |
+| Baseline-Max | 20 | −4.122 | 1 | 18 |
+
+**Hard (CF ≥ 1,600)**
+
+| Agent | n | Avg Reward | Boot Failures | Success |
+|---|---|---|---|---|
+| Baseline-Min | 30 | −4.000 | 30 | 0 |
+| Baseline-Fixed128 | 30 | −2.906 | 15 | 12 |
+| DQN | 29 | −2.680 | 16 | 10 |
+| SAC-Shared | 26 | −2.135 | 10 | 13 |
+| SAC-Factored | 26 | −2.271 | 8 | 14 |
+| PPO | 55 | −1.854 | 29 | 20 |
+| Baseline-Max | 30 | −3.625 | 2 | 26 |
+
+Key observations: PPO dominates easy (+0.160 avg) and medium (−0.558), but its hard performance (−1.854) stays worse than SAC-Shared (−2.135) after normalising for episode count. Baseline-Max achieves high success on hard (26/30) but at extreme negative reward because it massively over-allocates. SAC-Factored has the fewest boot failures overall (11/60) but at the cost of more over-allocation waste on the episodes that do succeed.
+
+---
+
 ### Why Each Agent Generalises Differently
 
 **SAC Shared — best overall eval reward (−1.671):**
@@ -1165,6 +1890,232 @@ All boot failures have the same signature: `exit_code = −1`, `wall_time_ms = 0
 - `has_lru_cache` — detects `@lru_cache` / `@cache` decorator or `functools.lru_cache` attribute call
 - `sort_call_count` — counts `sorted(...)` calls (Name node) and `.sort()` method calls (Attribute node); scaled by ÷10
 - `has_while_true` — detects `while True:` loop (While node where test is Constant(True))
+
+---
+
+## Dataset Development
+
+Three distinct datasets were built across the two training phases. Each serves a different role in the pipeline.
+
+---
+
+### EffiBench Dataset (Phase 0 — Offline RL)
+
+**Source:** EffiBench benchmark (competitive programming problems from ICPC/AtCoder/open contests).
+
+**Collection:** Two Claude models were used to generate Python solutions for each problem. Both solutions were executed inside a Firecracker VM (PREP config: 500mc / 512MB / 60s) and outcomes recorded.
+
+| Model | Problems | Pass | Wrong Answer | Timeout / OOM |
+|---|---|---|---|---|
+| claude-sonnet-4-5 | 280 | 149 (53.2%) | 99 (35.4%) | 32 (11.4%) |
+| claude-haiku-4-5 | 259 | 168 (64.9%) | 45 (17.4%) | 46 (17.8%) |
+| **Total** | **539** | **317 (58.8%)** | **144 (26.7%)** | **78 (14.5%)** |
+
+616 raw pairs were collected; 77 duplicates removed (same task_id × model) → **539 unique (problem, solution) pairs**. Each pair was executed ~14 times across varied resource configurations, producing **7,448 execution transitions**.
+
+**Problem characteristics:**
+
+| Metric | Value |
+|---|---|
+| Prompt tokens | min 81 · median 315 · p75 398 · max 855 |
+| LLM response latency | median 3.4 s · max 28.6 s |
+| Successful wall time | min 9 ms · median 88 ms · p75 496 ms · max 4836 ms |
+| Peak memory (successful) | median 13 MB · max 84 MB |
+
+**Code structure complexity distribution** (from AST-derived `estimated_complexity` feature, across all transitions):
+
+`estimated_complexity` is an ordinal 0–3 score derived from cyclomatic complexity (cc) and maximum loop depth (ld) of the generated code: 0 if cc ≤ 3 and ld < 2, 1 if cc 4–8 or ld = 2, 2 if cc 9–15 or ld = 3, 3 if cc > 15 or ld ≥ 4.
+
+| Level | Condition | Count | % |
+|---|---|---|---|
+| 0 — Low | cc ≤ 3, loop depth < 2 (few branches, at most one loop) | 784 | 10.5% |
+| 1 — Moderate | cc 4–8 or loop depth = 2 (some branching, one level of nesting) | 2,688 | 36.1% |
+| 2 — High | cc 9–15 or loop depth = 3 (many branches or doubly-nested) | 2,912 | 39.1% |
+| 3 — Very high | cc > 15 or loop depth ≥ 4 (deeply nested or heavily branched) | 1,064 | 14.3% |
+
+The dataset is dominated by structurally complex code (levels 2+3 = 53.4%). Note that this is code structure complexity, not algorithmic time complexity — a high cyclomatic complexity score reflects many conditional branches in the LLM-generated solution, not necessarily high asymptotic runtime. The actual memory footprints (median 13 MB) and wall times (median 88 ms) are modest, which is what motivated the switch to Codeforces problems with explicit large-input stress tests.
+
+**Exit code distribution across all 7,448 offline transitions:**
+
+| exit_code | Count | Meaning |
+|---|---|---|
+| 0 | 5,206 (69.9%) | Success |
+| 1 | 790 (10.6%) | Runtime error / wrong output |
+| -9 | 1,443 (19.4%) | SIGKILL — OOM or CPU time exceeded |
+| -1 | 9 (0.1%) | vsock / boot failure (infrastructure) |
+
+Unlike the online RL phase, exit_code == -9 is substantial here (19.4%) because the offline collection used aggressive resource constraints to generate diverse reward signals for training.
+
+---
+
+### CC Main Pool — `cc_pool_cache.json` (Phase 1 Online RL Training)
+
+**Source:** `deepmind/code_contests` (Codeforces subset). Python 3 reference solution required; generated test inputs required.
+
+**Size:** 994 problems (expanded over training from 394 → 836 → 994 as new problems were fetched and generators verified).
+
+**Rating distribution:**
+
+| CF Rating | Count | % |
+|---|---|---|
+| 800–999 | 71 | 7.1% |
+| 1000–1199 | 109 | 11.0% |
+| 1200–1399 | 77 | 7.7% |
+| 1400–1599 | 108 | 10.9% |
+| 1600–1799 | 155 | 15.6% |
+| 1800–1999 | 153 | 15.4% |
+| 2000–2199 | 103 | 10.4% |
+| 2200+ | 98 | 9.9% |
+| Unrated | 120 | 12.1% |
+
+The pool is skewed toward mid-hard difficulty (1600–2000 accounts for 31%). Unrated problems (12%) are sourced from Google/Facebook contest archives hosted on Codeforces with no official rating.
+
+**Top algorithm tags** (problems can have multiple tags):
+
+| Tag | Count | % of pool |
+|---|---|---|
+| implementation | 295 | 29.7% |
+| greedy | 275 | 27.7% |
+| math | 272 | 27.4% |
+| brute force | 173 | 17.4% |
+| dp | 167 | 16.8% |
+| constructive algorithms | 149 | 15.0% |
+| sortings | 112 | 11.3% |
+| data structures | 107 | 10.8% |
+| binary search | 92 | 9.3% |
+| graphs | 82 | 8.2% |
+| strings | 77 | 7.7% |
+| number theory | 71 | 7.1% |
+| dfs and similar | 65 | 6.5% |
+| combinatorics | 54 | 5.4% |
+
+The pool is implementation/greedy/math heavy. Graph and tree problems (graphs 8.2%, dfs 6.5%, data structures 10.8%) are present but underrepresented relative to their memory demands, which motivated the explicit high-memory category in the evaluation pool.
+
+---
+
+### CC Evaluation Pool — `cc_pool_cache_test_60.json` (Phase 1 Evaluation)
+
+**Source:** Same `deepmind/code_contests` Codeforces subset, problems not present in the training pool.
+
+**Size:** 60 problems, stratified by category.
+
+| Category | Count | CF Rating range | Purpose |
+|---|---|---|---|
+| high_memory | 20 | any | Problems with graph/tree/DP/data-structure tags — stress-test memory allocation |
+| easy | 10 | 800–999 | Verify agent doesn't over-allocate on simple problems |
+| medium | 20 | 1200–1599 | Mid-range generalisation |
+| hard | 10 | ≥1600 | Complex unseen problems |
+
+**Rating distribution:**
+
+| CF Rating | Count | % |
+|---|---|---|
+| 800–999 | 10 | 16.7% |
+| 1200–1399 | 13 | 21.7% |
+| 1400–1599 | 7 | 11.7% |
+| 1800–1999 | 8 | 13.3% |
+| 2000–2199 | 8 | 13.3% |
+| 2200+ | 14 | 23.3% |
+| Unrated | 0 | 0% |
+
+Notable gaps at 1000–1199 and 1600–1799 result from the category boundary rules: the easy bucket filled at 800–999 before reaching 1000+, and hard required ≥1600 but high_memory had already claimed many of those problems.
+
+**Tag distribution (top tags):**
+
+| Tag | Count | % of pool |
+|---|---|---|
+| implementation | 22 | 36.7% |
+| math | 15 | 25.0% |
+| brute force | 15 | 25.0% |
+| greedy | 13 | 21.7% |
+| graphs | 11 | 18.3% |
+| dfs and similar | 11 | 18.3% |
+| dp | 11 | 18.3% |
+| dsu | 6 | 10.0% |
+| data structures | 6 | 10.0% |
+
+Graphs, DFS, and DSU are proportionally much higher than in the main pool (18% vs 6–8%) because the 20 high_memory problems were explicitly sampled using those tags. This makes the eval pool a harder test for memory allocation than the training distribution.
+
+**Key differences from training pool:**
+- No unrated problems (evaluation requires known difficulty for analysis)
+- Graphs/DFS/DSU are 2–3× overrepresented (deliberate — tests the allocation capability the agent needs most)
+- All 60 problems have hand-verified stress-test generators that produce large inputs (up to several MB of stdin)
+
+---
+
+### Stress-Test Generator Crafting
+
+Every problem in both CC pools has a hand-written Python generator stored under the `test_case_generator` key in the JSON. The generator is a short self-contained Python script that prints a large test case to stdout. At runtime the runner executes the generator, captures its output as stdin, then feeds it to the reference solution and subsequently to the LLM-generated code inside the VM.
+
+**Why generators are needed**
+
+The `deepmind/code_contests` dataset ships with sample test cases (usually 1–3 small examples from the problem statement). These are correct but trivially small — a problem with `n ≤ 200 000` may have a sample with `n = 3`. Running the agent on tiny inputs produces near-zero wall times, near-zero memory usage, and rewards that give no signal about whether the allocation is sensible. The generators replace these with worst-case or near-worst-case inputs so that execution actually stresses the resource limits.
+
+**Generator structure**
+
+All generators follow the same three-rule template:
+
+1. `import random; random.seed(42)` — deterministic output so the same problem always produces the same stdin
+2. Set `n` (or equivalent) to the problem's stated upper constraint (e.g., `n = 200_000`, `q = 500_000`, `k = 10`)
+3. Print a valid input in exactly the format the reference solution expects
+
+For graph and tree problems a random spanning tree is built first (to guarantee connectivity), then extra edges are added to reach `m`:
+
+```python
+# Example: tree on 100 000 nodes
+n = 100000
+print(n)
+for i in range(2, n + 1):
+    parent = random.randint(1, i - 1)
+    print(parent, i)
+```
+
+For multi-test-case problems the query count `T` is set to the maximum allowed, with each query's parameters drawn uniformly from the valid range:
+
+```python
+# Example: 500 queries each with three parameters
+q = 500
+print(q)
+for _ in range(q):
+    d = random.randint(1, 2*10**9)
+    l = random.randint(1, 2*10**9)
+    r = random.randint(l, min(l + 10**9, 4*10**9))
+    print(l, r, d)
+```
+
+**Verification protocol**
+
+After writing a generator it is verified before being embedded in the pool cache:
+
+1. Run the generator → capture stdout as `stdin`
+2. Run the reference solution with that `stdin` using `subprocess`
+3. Check `returncode == 0` and output is non-empty
+4. If either step fails, the generator is rewritten and re-verified
+
+Only generators that pass this check are written into the JSON. The `--new-only` flag on the generator scripts lets them be re-run incrementally as new problems are added without re-verifying already-stored generators.
+
+**Coverage and output size distribution**
+
+| File | Problems covered |
+|---|---|
+| `generate_stress_tests.py` | 400 generators (main pool batch 1) |
+| `generate_stress_tests_training.py` | 333 generators (main pool batch 2) |
+| `generate_stress_tests_eval.py` | 60 generators (evaluation pool) |
+| **Total unique** | **719 generators across 793 pool problems** |
+
+909 of the 994 main-pool problems have a generator embedded; 85 remain without one (problems whose reference solution was too slow to run locally under the 60-second subprocess timeout, or whose input format required manual inspection that was deferred).
+
+Generator output sizes vary widely depending on problem type. Based on a random 60-problem sample:
+
+| Size bucket | % of problems |
+|---|---|
+| Tiny (< 1 KB) — constant-size or small-n problems | 78% |
+| Small (1–10 KB) | 5% |
+| Medium (10–100 KB) | 10% |
+| Large (100 KB – 1 MB) | 5% |
+| Very large (> 1 MB) — graphs / DP tables / string arrays | 2% |
+
+The long tail of large-input generators (7% above 100 KB) is what drives the non-trivial memory and CPU demands seen during training, and is also the source of the vsock payload OOM failures described in the VM lifecycle section.
 
 ---
 

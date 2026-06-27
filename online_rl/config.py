@@ -3,11 +3,11 @@ import math as _math
 # ── Discrete resource bins ─────────────────────────────────────────────────
 CPU_BINS     = [50, 75, 100, 125, 150, 175, 200, 300, 500]
 MEMORY_BINS  = [64, 80, 96, 112, 128, 160, 192, 256, 320, 512]
-TIMEOUT_BINS = [500, 800, 1000, 1500, 2000, 3000, 5000, 8000, 10000]
+TIMEOUT_BINS = [200, 300, 400, 600, 800, 1000, 1500, 2000, 3000, 5000, 8000, 10000, 15000, 20000, 30000]
 
 N_CPU     = 9   # len(CPU_BINS)
 N_MEMORY  = 10  # len(MEMORY_BINS)
-N_TIMEOUT = 9  # len(TIMEOUT_BINS)
+N_TIMEOUT = 15  # len(TIMEOUT_BINS)
 
 FIXED_OVERHEAD_MB = 65  # guest OS + Python runtime baseline
 
@@ -21,17 +21,6 @@ SAC_FEATURE_COLS = [
     "recent_success_rate",
     "recent_mean_cpu_used",
     "recent_mean_mem_used",
-    # memory-signal features
-    "uses_defaultdict",
-    "uses_deque",
-    "uses_heapq",
-    "has_array_mult",         # [x]*N — segment trees, BIT arrays
-    "has_collection_list",    # [[] for _ in range(n)] — adjacency lists, set graphs
-    # timeout-signal features
-    "uses_itertools",         # permutations/combinations → exponential time
-    "has_lru_cache",          # memoization → recursive but cached
-    "sort_call_count",        # O(n log n) passes
-    "has_while_true",         # unbounded loop risk
 ]
 
 # Action ranges — fully continuous, no rounding
@@ -55,8 +44,8 @@ RES_SAC_CONFIG = {
     "batch_size":           256,
     "buffer_size":          20000,
     "warmup":               200,
-    "target_entropy":       -(_math.log(N_CPU) + _math.log(N_MEMORY) + _math.log(N_TIMEOUT)) * 0.55,
-    "state_dim":            18,
+    "target_entropy":       -(_math.log(N_CPU) + _math.log(N_MEMORY) + _math.log(N_TIMEOUT)) * 0.70,
+    "state_dim":            9,
 }
 
 SAC_CONFIG = RES_SAC_CONFIG  # keep backward compat
